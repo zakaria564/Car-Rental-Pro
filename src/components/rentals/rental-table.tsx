@@ -42,11 +42,60 @@ import { formatCurrency } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import RentalForm from "./rental-form";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Separator } from "../ui/separator";
+import Image from "next/image";
 
 type RentalTableProps = {
   rentals: Rental[];
   isDashboard?: boolean;
 };
+
+function RentalDetails({ rental }: { rental: Rental }) {
+    return (
+        <div className="space-y-4">
+            <div>
+                <h3 className="font-semibold text-lg mb-2">Détails de la voiture</h3>
+                <div className="flex items-start gap-4">
+                    <Image
+                        src={rental.voiture.photoURL}
+                        alt={`${rental.voiture.marque} ${rental.voiture.modele}`}
+                        width={128}
+                        height={96}
+                        className="rounded-md object-cover"
+                        data-ai-hint="car photo"
+                    />
+                    <div className="text-sm space-y-1">
+                        <p><strong>Marque/Modèle :</strong> {rental.voiture.marque} {rental.voiture.modele}</p>
+                        <p><strong>Immatriculation :</strong> {rental.voiture.immat}</p>
+                        <p><strong>État :</strong> <span className="capitalize">{rental.voiture.etat}</span></p>
+                    </div>
+                </div>
+            </div>
+            <Separator />
+            <div>
+                <h3 className="font-semibold text-lg mb-2">Informations sur le client</h3>
+                <div className="text-sm space-y-1">
+                    <p><strong>Nom :</strong> {rental.client.nom}</p>
+                    <p><strong>CIN :</strong> {rental.client.cin}</p>
+                    <p><strong>Téléphone :</strong> {rental.client.telephone}</p>
+                    <p><strong>Adresse :</strong> {rental.client.adresse}</p>
+                </div>
+            </div>
+            <Separator />
+            <div>
+                <h3 className="font-semibold text-lg mb-2">Informations sur la location</h3>
+                <div className="text-sm space-y-1">
+                    <p><strong>Période :</strong> du {format(new Date(rental.dateDebut), "dd LLL, y", { locale: fr })} au {format(new Date(rental.dateFin), "dd LLL, y", { locale: fr })}</p>
+                    <p><strong>Prix par jour :</strong> {formatCurrency(rental.prixParJour, 'MAD')}</p>
+                    <p><strong>Caution :</strong> {formatCurrency(rental.caution, 'MAD')}</p>
+                    <p className="font-bold text-base mt-2"><strong>Prix Total :</strong> {formatCurrency(rental.prixTotal, 'MAD')}</p>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 
 export default function RentalTable({ rentals, isDashboard = false }: RentalTableProps) {
   const { toast } = useToast();
@@ -56,10 +105,6 @@ export default function RentalTable({ rentals, isDashboard = false }: RentalTabl
   const [rowSelection, setRowSelection] = React.useState({});
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [selectedRental, setSelectedRental] = React.useState<Rental | null>(null);
-
-  const handleViewDetails = (rentalId: string) => {
-    toast({ title: "Action déclenchée", description: `Affichage des détails pour la location ${rentalId}` });
-  };
 
   const handleEndRental = (rentalId: string) => {
     toast({ title: "Action déclenchée", description: `Terminaison de la location ${rentalId}` });
@@ -82,7 +127,7 @@ export default function RentalTable({ rentals, isDashboard = false }: RentalTabl
     {
       accessorKey: "dateFin",
       header: "Date de retour",
-      cell: ({ row }) => format(new Date(row.getValue("dateFin")), "dd/MM/yyyy"),
+      cell: ({ row }) => format(new Date(row.getValue("dateFin")), "dd/MM/yyyy", { locale: fr }),
     },
     {
       accessorKey: "prixTotal",
@@ -108,25 +153,38 @@ export default function RentalTable({ rentals, isDashboard = false }: RentalTabl
       cell: ({ row }) => {
         const rental = row.original;
         return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Ouvrir le menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => handleViewDetails(rental.id)}>
-                Voir les détails
-              </DropdownMenuItem>
-              {rental.statut === 'en_cours' && (
-                <DropdownMenuItem onClick={() => handleEndRental(rental.id)}>
-                  Terminer la location
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Dialog>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">Ouvrir le menu</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DialogTrigger asChild>
+                    <DropdownMenuItem>
+                        Voir les détails
+                    </DropdownMenuItem>
+                </DialogTrigger>
+                {rental.statut === 'en_cours' && (
+                  <DropdownMenuItem onClick={() => handleEndRental(rental.id)}>
+                    Terminer la location
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <DialogContent className="sm:max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>Détails de la location #{rental.id}</DialogTitle>
+                    <DialogDescription>
+                        Créée le {format(new Date(rental.createdAt), "dd LLL, y 'à' HH:mm", { locale: fr })}
+                    </DialogDescription>
+                </DialogHeader>
+                <RentalDetails rental={rental} />
+            </DialogContent>
+          </Dialog>
         );
       },
     },
