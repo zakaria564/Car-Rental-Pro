@@ -39,6 +39,7 @@ import {
 import type { Client } from "@/lib/definitions";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import ClientForm from "./client-form";
+import { ScrollArea } from "../ui/scroll-area";
 
 export default function ClientTable({ clients }: { clients: Client[] }) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -236,7 +237,9 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
         <SheetHeader>
           <SheetTitle>{selectedClient ? "Modifier le client" : "Ajouter un nouveau client"}</SheetTitle>
         </SheetHeader>
-        <ClientForm client={selectedClient} onFinished={() => setIsSheetOpen(false)} />
+        <ScrollArea className="h-full pr-6">
+            <ClientForm client={selectedClient} onFinished={() => setIsSheetOpen(false)} />
+        </ScrollArea>
       </SheetContent>
     </Sheet>
   );

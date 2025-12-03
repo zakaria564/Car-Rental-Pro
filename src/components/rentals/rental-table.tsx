@@ -46,6 +46,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Separator } from "../ui/separator";
 import Image from "next/image";
+import { ScrollArea } from "../ui/scroll-area";
 
 type RentalTableProps = {
   rentals: Rental[];
@@ -339,11 +340,13 @@ export default function RentalTable({ rentals: initialRentals, isDashboard = fal
           <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Suivant</Button>
         </div>
       </div>
-      <SheetContent className="sm:max-w-[600px]">
+      <SheetContent className="sm:max-w-[600px] flex flex-col">
         <SheetHeader>
           <SheetTitle>{selectedRental ? "Modifier la location" : "Créer une nouvelle location"}</SheetTitle>
         </SheetHeader>
-        <RentalForm rental={selectedRental} onFinished={() => setIsSheetOpen(false)} />
+        <ScrollArea className="flex-grow pr-6">
+            <RentalForm rental={selectedRental} onFinished={() => setIsSheetOpen(false)} />
+        </ScrollArea>
       </SheetContent>
     </Sheet>
   );

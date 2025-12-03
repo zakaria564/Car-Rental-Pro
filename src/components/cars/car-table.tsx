@@ -43,6 +43,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import CarForm from "./car-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import MaintenanceChecker from "./maintenance-checker";
+import { ScrollArea } from "../ui/scroll-area";
 
 export default function CarTable({ cars }: { cars: Car[] }) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -284,7 +285,9 @@ export default function CarTable({ cars }: { cars: Car[] }) {
         <SheetHeader>
           <SheetTitle>{selectedCar ? "Modifier la voiture" : "Ajouter une nouvelle voiture"}</SheetTitle>
         </SheetHeader>
-        <CarForm car={selectedCar} onFinished={() => setIsSheetOpen(false)} />
+        <ScrollArea className="h-full pr-6">
+          <CarForm car={selectedCar} onFinished={() => setIsSheetOpen(false)} />
+        </ScrollArea>
       </SheetContent>
     </Sheet>
   );
