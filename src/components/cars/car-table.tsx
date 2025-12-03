@@ -4,11 +4,6 @@
 import * as React from "react";
 import Image from "next/image";
 import {
-  CaretSortIcon,
-  ChevronDownIcon,
-  DotsHorizontalIcon,
-} from "@radix-ui/react-icons";
-import {
   ColumnDef,
   ColumnFiltersState,
   SortingState,
@@ -20,7 +15,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { Wrench, PlusCircle, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { Wrench, PlusCircle, CheckCircle2, XCircle, Clock, ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -66,7 +61,7 @@ export default function CarTable({ cars }: { cars: Car[] }) {
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
           Brand & Model
-          <CaretSortIcon className="ml-2 h-4 w-4" />
+          <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       ),
       cell: ({ row }) => {
@@ -123,7 +118,7 @@ export default function CarTable({ cars }: { cars: Car[] }) {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="h-8 w-8 p-0">
                   <span className="sr-only">Open menu</span>
-                  <DotsHorizontalIcon className="h-4 w-4" />
+                  <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -187,7 +182,7 @@ export default function CarTable({ cars }: { cars: Car[] }) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="ml-auto">
-                Columns <ChevronDownIcon className="ml-2 h-4 w-4" />
+                Columns <ChevronDown className="ml-2 h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
