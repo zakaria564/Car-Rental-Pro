@@ -103,7 +103,7 @@ export default function CarTable({ cars }: { cars: Car[] }) {
       header: () => <div className="text-right">Prix/jour</div>,
       cell: ({ row }) => (
         <div className="text-right font-medium">
-          {formatCurrency(row.getValue("prixParJour"), 'EUR')}
+          {formatCurrency(row.getValue("prixParJour"), 'MAD')}
         </div>
       ),
     },

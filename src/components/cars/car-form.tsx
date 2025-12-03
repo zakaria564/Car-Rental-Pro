@@ -103,7 +103,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
           name="prixParJour"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Prix par jour (€)</FormLabel>
+              <FormLabel>Prix par jour (MAD)</FormLabel>
               <FormControl>
                 <Input type="number" placeholder="99.99" {...field} />
               </FormControl>

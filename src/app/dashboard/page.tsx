@@ -4,6 +4,7 @@ import { StatCard } from "@/components/stat-card";
 import RentalTable from "@/components/rentals/rental-table";
 import { getRentals, getCars } from "@/lib/mock-data";
 import { DashboardHeader } from "@/components/dashboard-header";
+import { formatCurrency } from "@/lib/utils";
 
 export default async function DashboardPage() {
   const rentals = await getRentals();
@@ -19,7 +20,7 @@ export default async function DashboardPage() {
         <StatCard title="Voitures totales" value={cars.length.toString()} icon={Car} />
         <StatCard title="Voitures disponibles" value={`${availableCars} / ${cars.length}`} icon={Car} color="text-green-500" />
         <StatCard title="Locations actives" value={activeRentals.toString()} icon={KeyRound} />
-        <StatCard title="Revenu total (mois)" value={`${totalRevenue.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}`} icon={DollarSign} />
+        <StatCard title="Revenu total (mois)" value={formatCurrency(totalRevenue, 'MAD')} icon={DollarSign} />
       </div>
       <div>
         <h2 className="text-2xl font-semibold tracking-tight mb-4">Locations récentes</h2>

@@ -79,7 +79,7 @@ export default function RentalTable({ rentals, isDashboard = false }: RentalTabl
       header: () => <div className="text-right">Prix Total</div>,
       cell: ({ row }) => (
         <div className="text-right font-medium">
-          {formatCurrency(row.getValue("prixTotal"), 'EUR')}
+          {formatCurrency(row.getValue("prixTotal"), 'MAD')}
         </div>
       ),
     },

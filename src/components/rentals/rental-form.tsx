@@ -171,7 +171,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
           name="caution"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Caution (€)</FormLabel>
+              <FormLabel>Caution (MAD)</FormLabel>
               <FormControl>
                 <Input type="number" placeholder="500" {...field} />
               </FormControl>
@@ -185,9 +185,9 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
                 <CardTitle className="text-lg">Résumé de la location</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
-                <div className="flex justify-between"><span>Prix par jour :</span> <span className="font-medium">{selectedCar ? formatCurrency(selectedCar.prixParJour, 'EUR') : '0,00 €'}</span></div>
+                <div className="flex justify-between"><span>Prix par jour :</span> <span className="font-medium">{selectedCar ? formatCurrency(selectedCar.prixParJour, 'MAD') : '0,00 MAD'}</span></div>
                 <div className="flex justify-between"><span>Durée de la location :</span> <span className="font-medium">{rentalDays} jour(s)</span></div>
-                <div className="flex justify-between text-lg font-bold"><span>Prix total :</span> <span>{formatCurrency(prixTotal, 'EUR')}</span></div>
+                <div className="flex justify-between text-lg font-bold"><span>Prix total :</span> <span>{formatCurrency(prixTotal, 'MAD')}</span></div>
             </CardContent>
         </Card>
 

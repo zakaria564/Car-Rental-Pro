@@ -68,7 +68,7 @@ export default function MaintenanceChecker({ carId }: { carId: string }) {
                            <p className='font-semibold'>Tâches suggérées: <span className='font-normal'>{state.data.suggestedMaintenanceTasks}</span></p>
                            <div className='flex items-center gap-2'>
                                 <Badge variant={state.data.urgency === 'high' ? 'destructive' : 'secondary'}>Urgence: {state.data.urgency}</Badge>
-                                <Badge variant="outline">Coût est.: {formatCurrency(state.data.estimatedCost, 'EUR')}</Badge>
+                                <Badge variant="outline">Coût est.: {formatCurrency(state.data.estimatedCost, 'MAD')}</Badge>
                            </div>
                         </>
                        )}

@@ -6,8 +6,8 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatCurrency(amount: number, currency: 'USD' | 'EUR' = 'USD') {
-  const locale = currency === 'EUR' ? 'fr-FR' : 'en-US';
+export function formatCurrency(amount: number, currency: 'USD' | 'EUR' | 'MAD' = 'MAD') {
+  const locale = currency === 'MAD' ? 'fr-MA' : (currency === 'EUR' ? 'fr-FR' : 'en-US');
   return new Intl.NumberFormat(locale, {
     style: "currency",
     currency: currency,
