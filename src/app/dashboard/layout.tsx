@@ -26,11 +26,11 @@ export default function DashboardLayout({
           <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
             <a href="/dashboard" className="flex items-center gap-2 font-semibold">
               <Logo />
-              <span className="">Car Rental Pro</span>
+              <span className="">Location Auto Pro</span>
             </a>
             <Button variant="outline" size="icon" className="ml-auto h-8 w-8">
               <Bell className="h-4 w-4" />
-              <span className="sr-only">Toggle notifications</span>
+              <span className="sr-only">Activer les notifications</span>
             </Button>
           </div>
           <div className="flex-1">
@@ -46,7 +46,7 @@ export default function DashboardLayout({
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="search"
-                  placeholder="Search anything..."
+                  placeholder="Rechercher..."
                   className="w-full appearance-none bg-background pl-8 shadow-none md:w-2/3 lg:w-1/3"
                 />
               </div>
@@ -59,16 +59,16 @@ export default function DashboardLayout({
                   <AvatarImage src="https://i.pravatar.cc/150?u=a042581f4e29026024d" />
                   <AvatarFallback>AD</AvatarFallback>
                 </Avatar>
-                <span className="sr-only">Toggle user menu</span>
+                <span className="sr-only">Menu utilisateur</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuLabel>Mon Compte</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Settings</DropdownMenuItem>
+              <DropdownMenuItem>Paramètres</DropdownMenuItem>
               <DropdownMenuItem>Support</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Logout</DropdownMenuItem>
+              <DropdownMenuItem>Déconnexion</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </header>

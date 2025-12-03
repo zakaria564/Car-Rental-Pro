@@ -15,7 +15,7 @@ function SubmitButton() {
     return (
         <Button type="submit" disabled={pending} className="w-full bg-primary hover:bg-primary/90">
             {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wrench className="mr-2 h-4 w-4" />}
-            Predict Maintenance
+            Prédire l'entretien
         </Button>
     );
 }
@@ -27,26 +27,26 @@ export default function MaintenanceChecker({ carId }: { carId: string }) {
     return (
         <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-                Use our AI-powered tool to predict if this car needs maintenance based on its recent usage and history.
+                Utilisez notre outil alimenté par l'IA pour prédire si cette voiture a besoin d'un entretien en fonction de son utilisation récente et de son historique.
             </p>
             <form action={dispatch} className="space-y-4">
                 <input type="hidden" name="carId" value={carId} />
                 <div className="space-y-2">
-                    <Label htmlFor="usageData">Recent Usage Data</Label>
+                    <Label htmlFor="usageData">Données d'utilisation récentes</Label>
                     <Textarea
                         id="usageData"
                         name="usageData"
-                        placeholder="e.g., 'Driven 2000 miles in the last month, mostly city driving. Some hard braking.''"
+                        placeholder="par exemple, 'Conduite de 2000 miles le mois dernier, principalement en ville. Quelques freinages brusques.'"
                         required
                     />
                     {state.errors?.usageData && <p className="text-sm font-medium text-destructive">{state.errors.usageData[0]}</p>}
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="historicalMaintenanceData">Historical Maintenance Data</Label>
+                    <Label htmlFor="historicalMaintenanceData">Données d'entretien historiques</Label>
                     <Textarea
                         id="historicalMaintenanceData"
                         name="historicalMaintenanceData"
-                        placeholder="e.g., 'Last oil change 6 months ago. Brake pads replaced 1 year ago.'"
+                        placeholder="par exemple, 'Dernière vidange il y a 6 mois. Plaquettes de frein remplacées il y a 1 an.'"
                         required
                     />
                      {state.errors?.historicalMaintenanceData && <p className="text-sm font-medium text-destructive">{state.errors.historicalMaintenanceData[0]}</p>}
@@ -58,16 +58,16 @@ export default function MaintenanceChecker({ carId }: { carId: string }) {
                 <Alert variant={state.data.needsMaintenance ? 'destructive' : 'default'} className={!state.data.needsMaintenance ? "border-green-500" : ""}>
                     {state.data.needsMaintenance ? <AlertCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4 text-green-500" />}
                     <AlertTitle className={!state.data.needsMaintenance ? "text-green-700" : ""}>
-                        {state.data.needsMaintenance ? 'Maintenance Recommended' : 'No Immediate Maintenance Needed'}
+                        {state.data.needsMaintenance ? 'Entretien recommandé' : 'Aucun entretien immédiat nécessaire'}
                     </AlertTitle>
                     <AlertDescription className="space-y-2">
                        <p>{state.data.reason}</p>
                        {state.data.needsMaintenance && (
                         <>
-                           <p className='font-semibold'>Suggested Tasks: <span className='font-normal'>{state.data.suggestedMaintenanceTasks}</span></p>
+                           <p className='font-semibold'>Tâches suggérées: <span className='font-normal'>{state.data.suggestedMaintenanceTasks}</span></p>
                            <div className='flex items-center gap-2'>
-                                <Badge variant={state.data.urgency === 'high' ? 'destructive' : 'secondary'}>Urgency: {state.data.urgency}</Badge>
-                                <Badge variant="outline">Est. Cost: {formatCurrency(state.data.estimatedCost)}</Badge>
+                                <Badge variant={state.data.urgency === 'high' ? 'destructive' : 'secondary'}>Urgence: {state.data.urgency}</Badge>
+                                <Badge variant="outline">Coût est.: {formatCurrency(state.data.estimatedCost, 'EUR')}</Badge>
                            </div>
                         </>
                        )}
@@ -78,7 +78,7 @@ export default function MaintenanceChecker({ carId }: { carId: string }) {
             {state.message && state.message !== 'Success' && (
                  <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Error</AlertTitle>
+                    <AlertTitle>Erreur</AlertTitle>
                     <AlertDescription>
                         {state.message}
                     </AlertDescription>

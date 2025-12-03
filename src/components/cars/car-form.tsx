@@ -22,10 +22,10 @@ import type { Car } from "@/lib/definitions";
 import { FileInput } from "../ui/file-input";
 
 const carFormSchema = z.object({
-  marque: z.string().min(2, "Brand must be at least 2 characters."),
-  modele: z.string().min(1, "Model is required."),
-  immat: z.string().min(5, "License plate seems too short."),
-  prixParJour: z.coerce.number().min(1, "Price must be greater than 0."),
+  marque: z.string().min(2, "La marque doit comporter au moins 2 caractères."),
+  modele: z.string().min(1, "Le modèle est requis."),
+  immat: z.string().min(5, "La plaque d'immatriculation semble trop courte."),
+  prixParJour: z.coerce.number().min(1, "Le prix doit être supérieur à 0."),
   etat: z.enum(["new", "good", "fair", "poor"]),
   disponible: z.boolean().default(true),
   photo: z.any().optional(),
@@ -46,7 +46,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
 
   function onSubmit(data: CarFormValues) {
     toast({
-      title: "Form Submitted",
+      title: "Formulaire soumis",
       description: (
         <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
           <code className="text-white">{JSON.stringify(data, null, 2)}</code>
@@ -64,7 +64,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
           name="marque"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Brand</FormLabel>
+              <FormLabel>Marque</FormLabel>
               <FormControl>
                 <Input placeholder="Tesla" {...field} />
               </FormControl>
@@ -77,7 +77,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
           name="modele"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Model</FormLabel>
+              <FormLabel>Modèle</FormLabel>
               <FormControl>
                 <Input placeholder="Model S" {...field} />
               </FormControl>
@@ -90,9 +90,9 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
           name="immat"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>License Plate</FormLabel>
+              <FormLabel>Plaque d'immatriculation</FormLabel>
               <FormControl>
-                <Input placeholder="CAR-123" {...field} />
+                <Input placeholder="VOITURE-123" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -103,7 +103,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
           name="prixParJour"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Price per day ($)</FormLabel>
+              <FormLabel>Prix par jour (€)</FormLabel>
               <FormControl>
                 <Input type="number" placeholder="99.99" {...field} />
               </FormControl>
@@ -116,18 +116,18 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
           name="etat"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Condition</FormLabel>
+              <FormLabel>État</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select car condition" />
+                    <SelectValue placeholder="Sélectionnez l'état de la voiture" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="new">New</SelectItem>
-                  <SelectItem value="good">Good</SelectItem>
-                  <SelectItem value="fair">Fair</SelectItem>
-                  <SelectItem value="poor">Poor</SelectItem>
+                  <SelectItem value="new">Neuf</SelectItem>
+                  <SelectItem value="good">Bon</SelectItem>
+                  <SelectItem value="fair">Passable</SelectItem>
+                  <SelectItem value="poor">Mauvais</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -148,10 +148,9 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
           )}
         />
         <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
-          {car ? 'Update Car' : 'Add Car'}
+          {car ? 'Mettre à jour la voiture' : 'Ajouter une voiture'}
         </Button>
       </form>
     </Form>
   );
 }
-

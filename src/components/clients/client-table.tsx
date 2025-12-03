@@ -56,7 +56,7 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Name
+          Nom
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       ),
@@ -64,15 +64,15 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
     },
     {
       accessorKey: "cin",
-      header: "National ID",
+      header: "CIN",
     },
     {
       accessorKey: "telephone",
-      header: "Phone",
+      header: "Téléphone",
     },
     {
       accessorKey: "adresse",
-      header: "Address",
+      header: "Adresse",
     },
     {
       id: "actions",
@@ -83,16 +83,16 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
+                <span className="sr-only">Ouvrir le menu</span>
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuItem onClick={() => { setSelectedClient(client); setIsSheetOpen(true); }}>
-                Edit
+                Modifier
               </DropdownMenuItem>
-              <DropdownMenuItem>Delete</DropdownMenuItem>
+              <DropdownMenuItem>Supprimer</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         );
@@ -124,7 +124,7 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
       <div className="w-full">
         <div className="flex items-center py-4 gap-2">
           <Input
-            placeholder="Filter by name..."
+            placeholder="Filtrer par nom..."
             value={(table.getColumn("nom")?.getFilterValue() as string) ?? ""}
             onChange={(event) =>
               table.getColumn("nom")?.setFilterValue(event.target.value)
@@ -134,7 +134,7 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="ml-auto">
-                Columns <ChevronDown className="ml-2 h-4 w-4" />
+                Colonnes <ChevronDown className="ml-2 h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -159,7 +159,7 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
           </DropdownMenu>
           <SheetTrigger asChild>
             <Button className="bg-primary hover:bg-primary/90" onClick={() => setSelectedClient(null)}>
-              <PlusCircle className="mr-2 h-4 w-4" /> Add Client
+              <PlusCircle className="mr-2 h-4 w-4" /> Ajouter un client
             </Button>
           </SheetTrigger>
         </div>
@@ -206,7 +206,7 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
                     colSpan={columns.length}
                     className="h-24 text-center"
                   >
-                    No results.
+                    Aucun résultat.
                   </TableCell>
                 </TableRow>
               )}
@@ -220,7 +220,7 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
-            Previous
+            Précédent
           </Button>
           <Button
             variant="outline"
@@ -228,13 +228,13 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >
-            Next
+            Suivant
           </Button>
         </div>
       </div>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>{selectedClient ? "Edit Client" : "Add a New Client"}</SheetTitle>
+          <SheetTitle>{selectedClient ? "Modifier le client" : "Ajouter un nouveau client"}</SheetTitle>
         </SheetHeader>
         <ClientForm client={selectedClient} onFinished={() => setIsSheetOpen(false)} />
       </SheetContent>

@@ -6,8 +6,8 @@ import { z } from 'zod';
 
 const MaintenanceSchema = z.object({
   carId: z.string(),
-  usageData: z.string().min(10, { message: "Please provide more details on usage." }),
-  historicalMaintenanceData: z.string().min(10, { message: "Please provide more details on maintenance history." }),
+  usageData: z.string().min(10, { message: "Veuillez fournir plus de détails sur l'utilisation." }),
+  historicalMaintenanceData: z.string().min(10, { message: "Veuillez fournir plus de détails sur l'historique de l'entretien." }),
 });
 
 export type MaintenanceState = {
@@ -32,7 +32,7 @@ export async function checkMaintenance(
   if (!validatedFields.success) {
     return {
       errors: validatedFields.error.flatten().fieldErrors,
-      message: 'Validation Error: Please check the fields.',
+      message: 'Erreur de validation : Veuillez vérifier les champs.',
     };
   }
 
@@ -41,6 +41,6 @@ export async function checkMaintenance(
     return { message: 'Success', data: result };
   } catch (error) {
     console.error(error);
-    return { message: 'API Error: Failed to get maintenance prediction.' };
+    return { message: "Erreur d'API : Impossible d'obtenir la prédiction de l'entretien." };
   }
 }

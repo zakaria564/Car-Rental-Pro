@@ -8,7 +8,7 @@ export default async function ClientsPage() {
 
   return (
     <>
-      <DashboardHeader title="Clients" description="Manage your customer information." />
+      <DashboardHeader title="Clients" description="Gérez les informations de vos clients." />
       <ClientTable clients={clients} />
     </>
   );

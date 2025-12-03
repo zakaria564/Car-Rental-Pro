@@ -20,10 +20,10 @@ import type { Client } from "@/lib/definitions";
 import { FileInput } from "../ui/file-input";
 
 const clientFormSchema = z.object({
-  nom: z.string().min(2, "Name must be at least 2 characters."),
-  cin: z.string().min(5, "National ID seems too short."),
-  telephone: z.string().min(10, "Phone number seems incorrect."),
-  adresse: z.string().min(10, "Address is too short."),
+  nom: z.string().min(2, "Le nom doit comporter au moins 2 caractères."),
+  cin: z.string().min(5, "La CIN semble trop courte."),
+  telephone: z.string().min(10, "Le numéro de téléphone semble incorrect."),
+  adresse: z.string().min(10, "L'adresse est trop courte."),
   photoCIN: z.any().optional(),
 });
 
@@ -42,7 +42,7 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
 
   function onSubmit(data: ClientFormValues) {
     toast({
-      title: "Form Submitted",
+      title: "Formulaire soumis",
       description: (
         <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
           <code className="text-white">{JSON.stringify(data, null, 2)}</code>
@@ -60,9 +60,9 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
           name="nom"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Full Name</FormLabel>
+              <FormLabel>Nom complet</FormLabel>
               <FormControl>
-                <Input placeholder="John Doe" {...field} />
+                <Input placeholder="Jean Dupont" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -73,7 +73,7 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
           name="cin"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>National ID (CIN)</FormLabel>
+              <FormLabel>Carte d'identité nationale (CIN)</FormLabel>
               <FormControl>
                 <Input placeholder="AB123456" {...field} />
               </FormControl>
@@ -86,9 +86,9 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
           name="telephone"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Phone Number</FormLabel>
+              <FormLabel>Numéro de téléphone</FormLabel>
               <FormControl>
-                <Input placeholder="+1 (555) 123-4567" {...field} />
+                <Input placeholder="+33 6 12 34 56 78" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -99,9 +99,9 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
           name="adresse"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Address</FormLabel>
+              <FormLabel>Adresse</FormLabel>
               <FormControl>
-                <Textarea placeholder="123 Main St, Anytown, USA" {...field} />
+                <Textarea placeholder="123 Rue Principale, Anytown, France" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -112,7 +112,7 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
           name="photoCIN"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>ID Photo</FormLabel>
+              <FormLabel>Photo de la CIN</FormLabel>
               <FormControl>
                 <FileInput {...field} />
               </FormControl>
@@ -121,7 +121,7 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
           )}
         />
         <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
-          {client ? 'Update Client' : 'Add Client'}
+          {client ? 'Mettre à jour le client' : 'Ajouter un client'}
         </Button>
       </form>
     </Form>

@@ -16,6 +16,7 @@ import {
 } from "@tanstack/react-table";
 import { PlusCircle, MoreHorizontal } from "lucide-react";
 import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -57,7 +58,7 @@ export default function RentalTable({ rentals, isDashboard = false }: RentalTabl
   const columns: ColumnDef<Rental>[] = [
     {
       accessorKey: "voiture",
-      header: "Car",
+      header: "Voiture",
       cell: ({ row }) => {
         const rental = row.original;
         return `${rental.voiture.marque} ${rental.voiture.modele}`;
@@ -70,24 +71,24 @@ export default function RentalTable({ rentals, isDashboard = false }: RentalTabl
     },
     {
       accessorKey: "dateFin",
-      header: "Return Date",
-      cell: ({ row }) => format(new Date(row.getValue("dateFin")), "MM/dd/yyyy"),
+      header: "Date de retour",
+      cell: ({ row }) => format(new Date(row.getValue("dateFin")), "dd/MM/yyyy"),
     },
     {
       accessorKey: "prixTotal",
-      header: () => <div className="text-right">Total Price</div>,
+      header: () => <div className="text-right">Prix Total</div>,
       cell: ({ row }) => (
         <div className="text-right font-medium">
-          {formatCurrency(row.getValue("prixTotal"))}
+          {formatCurrency(row.getValue("prixTotal"), 'EUR')}
         </div>
       ),
     },
     {
       accessorKey: "statut",
-      header: "Status",
+      header: "Statut",
       cell: ({ row }) => (
         <Badge variant={row.getValue("statut") === 'en_cours' ? 'default' : 'outline'} className={row.getValue("statut") === 'en_cours' ? "bg-orange-500/20 text-orange-700" : ""}>
-          {row.getValue("statut") === 'en_cours' ? "In Progress" : "Finished"}
+          {row.getValue("statut") === 'en_cours' ? "En cours" : "Terminée"}
         </Badge>
       ),
     },
@@ -100,15 +101,15 @@ export default function RentalTable({ rentals, isDashboard = false }: RentalTabl
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
+                <span className="sr-only">Ouvrir le menu</span>
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem>View Details</DropdownMenuItem>
+              <DropdownMenuItem>Voir les détails</DropdownMenuItem>
               {rental.statut === 'en_cours' && (
-                <DropdownMenuItem>Terminate Rental</DropdownMenuItem>
+                <DropdownMenuItem>Terminer la location</DropdownMenuItem>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
@@ -164,7 +165,7 @@ export default function RentalTable({ rentals, isDashboard = false }: RentalTabl
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={columns.length} className="h-24 text-center">No recent rentals.</TableCell>
+                  <TableCell colSpan={columns.length} className="h-24 text-center">Aucune location récente.</TableCell>
                 </TableRow>
               )}
             </TableBody>
@@ -178,7 +179,7 @@ export default function RentalTable({ rentals, isDashboard = false }: RentalTabl
       <div className="w-full">
         <div className="flex items-center py-4 gap-2">
           <Input
-            placeholder="Filter by client..."
+            placeholder="Filtrer par client..."
             value={(table.getColumn("client")?.getFilterValue() as string) ?? ""}
             onChange={(event) =>
               table.getColumn("client")?.setFilterValue(event.target.value)
@@ -187,7 +188,7 @@ export default function RentalTable({ rentals, isDashboard = false }: RentalTabl
           />
           <SheetTrigger asChild>
             <Button className="ml-auto bg-primary hover:bg-primary/90" onClick={() => setSelectedRental(null)}>
-              <PlusCircle className="mr-2 h-4 w-4" /> New Rental
+              <PlusCircle className="mr-2 h-4 w-4" /> Nouvelle location
             </Button>
           </SheetTrigger>
         </div>
@@ -218,7 +219,7 @@ export default function RentalTable({ rentals, isDashboard = false }: RentalTabl
               ) : (
                 <TableRow>
                   <TableCell colSpan={columns.length} className="h-24 text-center">
-                    No results.
+                    Aucun résultat.
                   </TableCell>
                 </TableRow>
               )}
@@ -226,13 +227,13 @@ export default function RentalTable({ rentals, isDashboard = false }: RentalTabl
           </Table>
         </div>
         <div className="flex items-center justify-end space-x-2 py-4">
-          <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Previous</Button>
-          <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Next</Button>
+          <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Précédent</Button>
+          <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Suivant</Button>
         </div>
       </div>
       <SheetContent className="sm:max-w-[600px]">
         <SheetHeader>
-          <SheetTitle>{selectedRental ? "Edit Rental" : "Create a New Rental"}</SheetTitle>
+          <SheetTitle>{selectedRental ? "Modifier la location" : "Créer une nouvelle location"}</SheetTitle>
         </SheetHeader>
         <RentalForm rental={selectedRental} onFinished={() => setIsSheetOpen(false)} />
       </SheetContent>

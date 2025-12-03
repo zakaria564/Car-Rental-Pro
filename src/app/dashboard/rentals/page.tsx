@@ -8,7 +8,7 @@ export default async function RentalsPage() {
 
   return (
     <>
-      <DashboardHeader title="Rentals" description="Manage all car rental records." />
+      <DashboardHeader title="Locations" description="Gérez tous les enregistrements de location de voitures." />
       <RentalTable rentals={rentals} />
     </>
   );

@@ -23,18 +23,19 @@ import { CalendarIcon } from "lucide-react";
 import { Calendar } from "../ui/calendar";
 import { cn, formatCurrency } from "@/lib/utils";
 import { format, differenceInCalendarDays } from "date-fns";
+import { fr } from 'date-fns/locale';
 import { MOCK_CARS, MOCK_CLIENTS } from "@/lib/mock-data";
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 
 const rentalFormSchema = z.object({
-  clientId: z.string({ required_error: "Please select a client." }),
-  voitureId: z.string({ required_error: "Please select a car." }),
+  clientId: z.string({ required_error: "Veuillez sélectionner un client." }),
+  voitureId: z.string({ required_error: "Veuillez sélectionner une voiture." }),
   dateRange: z.object({
-    from: z.date({ required_error: "A start date is required." }),
-    to: z.date({ required_error: "An end date is required." }),
+    from: z.date({ required_error: "Une date de début est requise." }),
+    to: z.date({ required_error: "Une date de fin est requise." }),
   }),
-  caution: z.coerce.number().min(0, "Deposit cannot be negative."),
+  caution: z.coerce.number().min(0, "La caution ne peut pas être négative."),
 });
 
 type RentalFormValues = z.infer<typeof rentalFormSchema>;
@@ -71,7 +72,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
 
   function onSubmit(data: RentalFormValues) {
     toast({
-      title: "Rental Created",
+      title: "Location créée",
       description: (
         <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
           <code className="text-white">{JSON.stringify({...data, prixTotal}, null, 2)}</code>
@@ -92,7 +93,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
               <FormLabel>Client</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
-                  <SelectTrigger><SelectValue placeholder="Select a client" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Sélectionner un client" /></SelectTrigger>
                 </FormControl>
                 <SelectContent>
                   {MOCK_CLIENTS.map(client => <SelectItem key={client.id} value={client.id}>{client.nom}</SelectItem>)}
@@ -107,10 +108,10 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
           name="voitureId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Car</FormLabel>
+              <FormLabel>Voiture</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
-                  <SelectTrigger><SelectValue placeholder="Select an available car" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Sélectionner une voiture disponible" /></SelectTrigger>
                 </FormControl>
                 <SelectContent>
                   {availableCars.map(car => <SelectItem key={car.id} value={car.id}>{car.marque} {car.modele}</SelectItem>)}
@@ -125,7 +126,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
           name="dateRange"
           render={({ field }) => (
             <FormItem className="flex flex-col">
-              <FormLabel>Rental Period</FormLabel>
+              <FormLabel>Période de location</FormLabel>
               <Popover>
                 <PopoverTrigger asChild>
                   <FormControl>
@@ -136,14 +137,14 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
                       {field.value?.from ? (
                         field.value.to ? (
                           <>
-                            {format(field.value.from, "LLL dd, y")} -{" "}
-                            {format(field.value.to, "LLL dd, y")}
+                            {format(field.value.from, "dd LLL, y", { locale: fr })} -{" "}
+                            {format(field.value.to, "dd LLL, y", { locale: fr })}
                           </>
                         ) : (
-                          format(field.value.from, "LLL dd, y")
+                          format(field.value.from, "dd LLL, y", { locale: fr })
                         )
                       ) : (
-                        <span>Pick a date range</span>
+                        <span>Choisir une plage de dates</span>
                       )}
                       <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                     </Button>
@@ -157,6 +158,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
                     selected={{from: field.value?.from, to: field.value?.to}}
                     onSelect={field.onChange}
                     numberOfMonths={2}
+                    locale={fr}
                   />
                 </PopoverContent>
               </Popover>
@@ -169,7 +171,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
           name="caution"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Security Deposit ($)</FormLabel>
+              <FormLabel>Caution (€)</FormLabel>
               <FormControl>
                 <Input type="number" placeholder="500" {...field} />
               </FormControl>
@@ -180,17 +182,17 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
         
         <Card className="bg-muted/50">
             <CardHeader>
-                <CardTitle className="text-lg">Rental Summary</CardTitle>
+                <CardTitle className="text-lg">Résumé de la location</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
-                <div className="flex justify-between"><span>Price per day:</span> <span className="font-medium">{selectedCar ? formatCurrency(selectedCar.prixParJour) : '$0.00'}</span></div>
-                <div className="flex justify-between"><span>Rental duration:</span> <span className="font-medium">{rentalDays} day(s)</span></div>
-                <div className="flex justify-between text-lg font-bold"><span>Total Price:</span> <span>{formatCurrency(prixTotal)}</span></div>
+                <div className="flex justify-between"><span>Prix par jour :</span> <span className="font-medium">{selectedCar ? formatCurrency(selectedCar.prixParJour, 'EUR') : '0,00 €'}</span></div>
+                <div className="flex justify-between"><span>Durée de la location :</span> <span className="font-medium">{rentalDays} jour(s)</span></div>
+                <div className="flex justify-between text-lg font-bold"><span>Prix total :</span> <span>{formatCurrency(prixTotal, 'EUR')}</span></div>
             </CardContent>
         </Card>
 
         <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={!form.formState.isValid}>
-          Create Rental
+          Créer la location
         </Button>
       </form>
     </Form>

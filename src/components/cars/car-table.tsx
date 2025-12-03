@@ -60,7 +60,7 @@ export default function CarTable({ cars }: { cars: Car[] }) {
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Brand & Model
+          Marque & Modèle
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       ),
@@ -86,24 +86,24 @@ export default function CarTable({ cars }: { cars: Car[] }) {
     },
     {
       accessorKey: "disponible",
-      header: "Availability",
+      header: "Disponibilité",
       cell: ({ row }) => (
         <Badge variant={row.getValue("disponible") ? "default" : "secondary"} className={row.getValue("disponible") ? "bg-green-500/20 text-green-700" : "bg-red-500/20 text-red-700"}>
-          {row.getValue("disponible") ? "Available" : "Rented"}
+          {row.getValue("disponible") ? "Disponible" : "Louée"}
         </Badge>
       ),
     },
     {
       accessorKey: "etat",
-      header: "Condition",
+      header: "État",
       cell: ({ row }) => <div className="capitalize">{row.getValue("etat")}</div>,
     },
     {
       accessorKey: "prixParJour",
-      header: () => <div className="text-right">Price/day</div>,
+      header: () => <div className="text-right">Prix/jour</div>,
       cell: ({ row }) => (
         <div className="text-right font-medium">
-          {formatCurrency(row.getValue("prixParJour"))}
+          {formatCurrency(row.getValue("prixParJour"), 'EUR')}
         </div>
       ),
     },
@@ -117,28 +117,28 @@ export default function CarTable({ cars }: { cars: Car[] }) {
              <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="h-8 w-8 p-0">
-                  <span className="sr-only">Open menu</span>
+                  <span className="sr-only">Ouvrir le menu</span>
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 <DropdownMenuItem onClick={() => { setSelectedCar(car); setIsSheetOpen(true); }}>
-                  Edit
+                  Modifier
                 </DropdownMenuItem>
-                <DropdownMenuItem>Delete</DropdownMenuItem>
+                <DropdownMenuItem>Supprimer</DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DialogTrigger asChild>
                     <DropdownMenuItem>
                         <Wrench className="mr-2 h-4 w-4" />
-                        Check Maintenance
+                        Vérifier l'entretien
                     </DropdownMenuItem>
                 </DialogTrigger>
               </DropdownMenuContent>
             </DropdownMenu>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>AI Maintenance Check for {car.marque} {car.modele}</DialogTitle>
+                    <DialogTitle>Vérification IA de l'entretien pour {car.marque} {car.modele}</DialogTitle>
                 </DialogHeader>
                 <MaintenanceChecker carId={car.id} />
             </DialogContent>
@@ -172,7 +172,7 @@ export default function CarTable({ cars }: { cars: Car[] }) {
       <div className="w-full">
         <div className="flex items-center py-4 gap-2">
           <Input
-            placeholder="Filter by brand..."
+            placeholder="Filtrer par marque..."
             value={(table.getColumn("marque")?.getFilterValue() as string) ?? ""}
             onChange={(event) =>
               table.getColumn("marque")?.setFilterValue(event.target.value)
@@ -182,7 +182,7 @@ export default function CarTable({ cars }: { cars: Car[] }) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="ml-auto">
-                Columns <ChevronDown className="ml-2 h-4 w-4" />
+                Colonnes <ChevronDown className="ml-2 h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -207,7 +207,7 @@ export default function CarTable({ cars }: { cars: Car[] }) {
           </DropdownMenu>
           <SheetTrigger asChild>
             <Button className="bg-primary hover:bg-primary/90" onClick={() => setSelectedCar(null)}>
-                <PlusCircle className="mr-2 h-4 w-4" /> Add Car
+                <PlusCircle className="mr-2 h-4 w-4" /> Ajouter une voiture
             </Button>
           </SheetTrigger>
         </div>
@@ -254,7 +254,7 @@ export default function CarTable({ cars }: { cars: Car[] }) {
                     colSpan={columns.length}
                     className="h-24 text-center"
                   >
-                    No results.
+                    Aucun résultat.
                   </TableCell>
                 </TableRow>
               )}
@@ -268,7 +268,7 @@ export default function CarTable({ cars }: { cars: Car[] }) {
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
-            Previous
+            Précédent
           </Button>
           <Button
             variant="outline"
@@ -276,13 +276,13 @@ export default function CarTable({ cars }: { cars: Car[] }) {
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >
-            Next
+            Suivant
           </Button>
         </div>
       </div>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>{selectedCar ? "Edit Car" : "Add a New Car"}</SheetTitle>
+          <SheetTitle>{selectedCar ? "Modifier la voiture" : "Ajouter une nouvelle voiture"}</SheetTitle>
         </SheetHeader>
         <CarForm car={selectedCar} onFinished={() => setIsSheetOpen(false)} />
       </SheetContent>

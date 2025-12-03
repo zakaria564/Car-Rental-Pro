@@ -8,10 +8,10 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
 const navItems = [
-  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/dashboard/cars', icon: Car, label: 'Cars' },
+  { href: '/dashboard', icon: LayoutDashboard, label: 'Tableau de bord' },
+  { href: '/dashboard/cars', icon: Car, label: 'Voitures' },
   { href: '/dashboard/clients', icon: Users, label: 'Clients' },
-  { href: '/dashboard/rentals', icon: KeyRound, label: 'Rentals' },
+  { href: '/dashboard/rentals', icon: KeyRound, label: 'Locations' },
 ];
 
 export function DashboardNav() {
@@ -32,7 +32,7 @@ export function DashboardNav() {
         >
           <item.icon className="h-4 w-4" />
           {item.label}
-          {item.label === 'Rentals' && (
+          {item.label === 'Locations' && (
              <Badge className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground hover:bg-accent">
               2
             </Badge>

@@ -20,9 +20,9 @@ export default function LoginPage() {
           <div className="inline-block mx-auto">
             <Logo />
           </div>
-          <CardTitle className="text-2xl font-bold">Car Rental Pro</CardTitle>
+          <CardTitle className="text-2xl font-bold">Location Auto Pro</CardTitle>
           <CardDescription>
-            Enter your email below to login to your account
+            Entrez votre email ci-dessous pour vous connecter à votre compte
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -32,34 +32,34 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="m@example.com"
+                placeholder="m@exemple.com"
                 required
                 defaultValue="admin@example.com"
               />
             </div>
             <div className="space-y-2">
               <div className="flex items-center">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">Mot de passe</Label>
                 <Link
                   href="#"
                   className="ml-auto inline-block text-sm underline"
                 >
-                  Forgot your password?
+                  Mot de passe oublié ?
                 </Link>
               </div>
               <Input id="password" type="password" required defaultValue="password" />
             </div>
             <Button type="submit" className="w-full bg-primary hover:bg-primary/90" asChild>
-              <Link href="/dashboard">Login</Link>
+              <Link href="/dashboard">Connexion</Link>
             </Button>
             <Button variant="outline" className="w-full">
-              Login with Google
+              Connexion avec Google
             </Button>
           </div>
           <div className="mt-4 text-center text-sm">
-            Don&apos;t have an account?{' '}
+            Vous n'avez pas de compte ?{' '}
             <Link href="#" className="underline">
-              Sign up
+              S'inscrire
             </Link>
           </div>
         </CardContent>

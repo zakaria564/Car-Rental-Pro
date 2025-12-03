@@ -14,15 +14,15 @@ export default async function DashboardPage() {
 
   return (
     <>
-      <DashboardHeader title="Dashboard" description="An overview of your rental business." />
+      <DashboardHeader title="Tableau de bord" description="Un aperçu de votre activité de location." />
       <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
-        <StatCard title="Total Cars" value={cars.length.toString()} icon={Car} />
-        <StatCard title="Available Cars" value={`${availableCars} / ${cars.length}`} icon={Car} color="text-green-500" />
-        <StatCard title="Active Rentals" value={activeRentals.toString()} icon={KeyRound} />
-        <StatCard title="Total Revenue (Month)" value={`$${totalRevenue.toLocaleString()}`} icon={DollarSign} />
+        <StatCard title="Voitures totales" value={cars.length.toString()} icon={Car} />
+        <StatCard title="Voitures disponibles" value={`${availableCars} / ${cars.length}`} icon={Car} color="text-green-500" />
+        <StatCard title="Locations actives" value={activeRentals.toString()} icon={KeyRound} />
+        <StatCard title="Revenu total (mois)" value={`${totalRevenue.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}`} icon={DollarSign} />
       </div>
       <div>
-        <h2 className="text-2xl font-semibold tracking-tight mb-4">Recent Rentals</h2>
+        <h2 className="text-2xl font-semibold tracking-tight mb-4">Locations récentes</h2>
         <RentalTable rentals={rentals.slice(0, 5)} isDashboard={true} />
       </div>
     </>

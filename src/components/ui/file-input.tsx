@@ -29,7 +29,7 @@ const FileInput = React.forwardRef<
         )}
       >
         <Upload className="h-4 w-4" />
-        <span>{fileName || "Choose a file"}</span>
+        <span>{fileName || "Choisir un fichier"}</span>
       </label>
       <input
         id="file-upload"

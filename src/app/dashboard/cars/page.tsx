@@ -10,7 +10,7 @@ export default async function CarsPage() {
 
   return (
     <>
-      <DashboardHeader title="Cars" description="Manage your fleet of vehicles.">
+      <DashboardHeader title="Voitures" description="Gérez votre flotte de véhicules.">
         {/* This button will be part of the CarTable component to handle the sheet opening */}
       </DashboardHeader>
       <CarTable cars={cars} />
