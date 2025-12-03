@@ -1,3 +1,58 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "car-1",
+      "description": "Sleek black sedan",
+      "imageUrl": "https://images.unsplash.com/photo-1645994994459-3bcca728769a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxibGFjayUyMHNlZGFufGVufDB8fHx8MTc2NDc5OTYwOHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "black sedan"
+    },
+    {
+      "id": "car-2",
+      "description": "Modern white SUV",
+      "imageUrl": "https://images.unsplash.com/photo-1684849311607-ad25cec710a7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHx3aGl0ZSUyMHN1dnxlbnwwfHx8fDE3NjQ3ODc5Nzh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "white suv"
+    },
+    {
+      "id": "car-3",
+      "description": "Red sports car",
+      "imageUrl": "https://images.unsplash.com/photo-1696581081941-ee00d3ed0a5e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxyZWQlMjBzcG9ydHNfY2FyfGVufDB8fHx8MTc2NDc5OTYwOHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "red sports_car"
+    },
+    {
+      "id": "car-4",
+      "description": "Blue compact car",
+      "imageUrl": "https://images.unsplash.com/photo-1682775783098-27d31241eb7b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxibHVlJTIwY2FyfGVufDB8fHx8MTc2NDc5OTYwOHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "blue car"
+    },
+    {
+      "id": "car-5",
+      "description": "Gray minivan",
+      "imageUrl": "https://images.unsplash.com/photo-1726789657560-2ef68b81d0ce?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxncmF5JTIwbWluaXZhbnxlbnwwfHx8fDE3NjQ3OTk2MDh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "gray minivan"
+    },
+    {
+      "id": "car-6",
+      "description": "Silver convertible",
+      "imageUrl": "https://images.unsplash.com/photo-1614196049037-85dbbeb6a4db?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxzaWx2ZXIlMjBjb252ZXJ0aWJsZXxlbnwwfHx8fDE3NjQ2ODgxNDZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "silver convertible"
+    },
+    {
+      "id": "car-7",
+      "description": "Vintage green truck",
+      "imageUrl": "https://images.unsplash.com/photo-1759682237599-514f6b0c3c69?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHx2aW50YWdlJTIwdHJ1Y2t8ZW58MHx8fHwxNzY0Nzk5NjA4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "vintage truck"
+    },
+    {
+      "id": "client-cin-1",
+      "description": "Client ID Card Photo",
+      "imageUrl": "https://images.unsplash.com/photo-1637070155805-e6fbee6ec2cf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxpZCUyMGNhcmR8ZW58MHx8fHwxNzY0NzIzNDM1fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "id card"
+    },
+    {
+      "id": "client-cin-2",
+      "description": "Client ID Card Photo",
+      "imageUrl": "https://images.unsplash.com/photo-1591030386265-400828f609ca?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8aWQlMjBjYXJkfGVufDB8fHx8MTc2NDcyMzQzNXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "id card"
+    }
+  ]
 }
