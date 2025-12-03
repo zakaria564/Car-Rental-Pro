@@ -15,6 +15,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { PlusCircle, MoreHorizontal } from "lucide-react";
+import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -70,7 +71,7 @@ export default function RentalTable({ rentals, isDashboard = false }: RentalTabl
     {
       accessorKey: "dateFin",
       header: "Return Date",
-      cell: ({ row }) => new Date(row.getValue("dateFin")).toLocaleDateString(),
+      cell: ({ row }) => format(new Date(row.getValue("dateFin")), "MM/dd/yyyy"),
     },
     {
       accessorKey: "prixTotal",
