@@ -41,6 +41,7 @@ import type { Rental } from "@/lib/definitions";
 import { formatCurrency } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import RentalForm from "./rental-form";
+import { useToast } from "@/hooks/use-toast";
 
 type RentalTableProps = {
   rentals: Rental[];
@@ -48,12 +49,21 @@ type RentalTableProps = {
 };
 
 export default function RentalTable({ rentals, isDashboard = false }: RentalTableProps) {
+  const { toast } = useToast();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [selectedRental, setSelectedRental] = React.useState<Rental | null>(null);
+
+  const handleViewDetails = (rentalId: string) => {
+    toast({ title: "Action déclenchée", description: `Affichage des détails pour la location ${rentalId}` });
+  };
+
+  const handleEndRental = (rentalId: string) => {
+    toast({ title: "Action déclenchée", description: `Terminaison de la location ${rentalId}` });
+  };
 
   const columns: ColumnDef<Rental>[] = [
     {
@@ -107,9 +117,13 @@ export default function RentalTable({ rentals, isDashboard = false }: RentalTabl
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem>Voir les détails</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleViewDetails(rental.id)}>
+                Voir les détails
+              </DropdownMenuItem>
               {rental.statut === 'en_cours' && (
-                <DropdownMenuItem>Terminer la location</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleEndRental(rental.id)}>
+                  Terminer la location
+                </DropdownMenuItem>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
