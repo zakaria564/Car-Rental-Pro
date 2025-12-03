@@ -43,6 +43,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import RentalForm from "./rental-form";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Separator } from "../ui/separator";
 import Image from "next/image";
 
@@ -97,8 +98,9 @@ function RentalDetails({ rental }: { rental: Rental }) {
 }
 
 
-export default function RentalTable({ rentals, isDashboard = false }: RentalTableProps) {
+export default function RentalTable({ rentals: initialRentals, isDashboard = false }: RentalTableProps) {
   const { toast } = useToast();
+  const [rentals, setRentals] = React.useState(initialRentals);
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
@@ -106,8 +108,23 @@ export default function RentalTable({ rentals, isDashboard = false }: RentalTabl
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [selectedRental, setSelectedRental] = React.useState<Rental | null>(null);
 
+  React.useEffect(() => {
+    setRentals(initialRentals);
+  }, [initialRentals]);
+
   const handleEndRental = (rentalId: string) => {
-    toast({ title: "Action déclenchée", description: `Terminaison de la location ${rentalId}` });
+    setRentals(prevRentals =>
+      prevRentals.map(r =>
+        r.id === rentalId
+          ? {
+              ...r,
+              statut: 'terminee',
+              voiture: { ...r.voiture, disponible: true },
+            }
+          : r
+      )
+    );
+    toast({ title: "Location terminée", description: `La location ${rentalId} a été marquée comme terminée.` });
   };
 
   const columns: ColumnDef<Rental>[] = [
@@ -154,36 +171,55 @@ export default function RentalTable({ rentals, isDashboard = false }: RentalTabl
         const rental = row.original;
         return (
           <Dialog>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0">
-                  <span className="sr-only">Ouvrir le menu</span>
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                <DialogTrigger asChild>
-                    <DropdownMenuItem>
-                        Voir les détails
-                    </DropdownMenuItem>
-                </DialogTrigger>
-                {rental.statut === 'en_cours' && (
-                  <DropdownMenuItem onClick={() => handleEndRental(rental.id)}>
-                    Terminer la location
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <DialogContent className="sm:max-w-2xl">
-                <DialogHeader>
-                    <DialogTitle>Détails de la location #{rental.id}</DialogTitle>
-                    <DialogDescription>
-                        Créée le {format(new Date(rental.createdAt), "dd LLL, y 'à' HH:mm", { locale: fr })}
-                    </DialogDescription>
-                </DialogHeader>
-                <RentalDetails rental={rental} />
-            </DialogContent>
+            <AlertDialog>
+                <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
+                    <span className="sr-only">Ouvrir le menu</span>
+                    <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                    <DialogTrigger asChild>
+                        <DropdownMenuItem>
+                            Voir les détails
+                        </DropdownMenuItem>
+                    </DialogTrigger>
+                    {rental.statut === 'en_cours' && (
+                    <>
+                        <DropdownMenuSeparator />
+                        <AlertDialogTrigger asChild>
+                            <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                                Terminer la location
+                            </DropdownMenuItem>
+                        </AlertDialogTrigger>
+                    </>
+                    )}
+                </DropdownMenuContent>
+                </DropdownMenu>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Êtes-vous sûr de vouloir terminer cette location ?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                        Cette action est irréversible. La voiture sera marquée comme disponible et le statut de la location sera "Terminée".
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleEndRental(rental.id)}>Confirmer</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+                <DialogContent className="sm:max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Détails de la location #{rental.id}</DialogTitle>
+                        <DialogDescription>
+                            Créée le {format(new Date(rental.createdAt), "dd LLL, y 'à' HH:mm", { locale: fr })}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <RentalDetails rental={rental} />
+                </DialogContent>
+            </AlertDialog>
           </Dialog>
         );
       },
@@ -312,3 +348,5 @@ export default function RentalTable({ rentals, isDashboard = false }: RentalTabl
     </Sheet>
   );
 }
+
+    
