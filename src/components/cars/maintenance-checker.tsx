@@ -1,6 +1,7 @@
 
 "use client";
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -22,7 +23,7 @@ function SubmitButton() {
 
 export default function MaintenanceChecker({ carId }: { carId: string }) {
     const initialState: MaintenanceState = { message: null, errors: {} };
-    const [state, dispatch] = useFormState(checkMaintenance, initialState);
+    const [state, dispatch] = useActionState(checkMaintenance, initialState);
 
     return (
         <div className="space-y-4">
