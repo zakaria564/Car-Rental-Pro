@@ -16,10 +16,9 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import type { Car } from "@/lib/definitions";
-import { FileInput } from "../ui/file-input";
+import { PhotoFormField } from "../ui/file-input";
 import { useRouter } from "next/navigation";
 import { useFirebase } from "@/firebase";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
@@ -60,6 +59,8 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     defaultValues,
     mode: "onChange",
   });
+  
+  const photoRef = form.register("photo");
 
   async function onSubmit(data: CarFormValues) {
     const { photo, ...carData } = data;
@@ -173,19 +174,13 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="photo"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Photo</FormLabel>
-              <FormControl>
-                 <FileInput {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <FormItem>
+          <FormLabel>Photo</FormLabel>
+          <FormControl>
+            <PhotoFormField {...photoRef} />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
         <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={form.formState.isSubmitting}>
           {form.formState.isSubmitting ? 'Enregistrement...' : (car ? 'Mettre à jour la voiture' : 'Ajouter une voiture')}
         </Button>

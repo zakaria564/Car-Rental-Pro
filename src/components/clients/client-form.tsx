@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import type { Client } from "@/lib/definitions";
-import { FileInput } from "../ui/file-input";
+import { PhotoFormField } from "../ui/file-input";
 import { useRouter } from "next/navigation";
 import { useFirebase } from "@/firebase";
 import { addDoc, collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
@@ -54,6 +54,8 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
     defaultValues,
     mode: "onChange",
   });
+  
+  const photoCINRef = form.register("photoCIN");
 
   async function onSubmit(data: ClientFormValues) {
     const { photoCIN, ...clientData } = data;
@@ -153,19 +155,13 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="photoCIN"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Photo de la CIN</FormLabel>
-              <FormControl>
-                <FileInput {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <FormItem>
+          <FormLabel>Photo de la CIN</FormLabel>
+          <FormControl>
+             <PhotoFormField {...photoCINRef} />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
         <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={form.formState.isSubmitting}>
           {form.formState.isSubmitting ? 'Enregistrement...' : (client ? 'Mettre à jour le client' : 'Ajouter un client')}
         </Button>
