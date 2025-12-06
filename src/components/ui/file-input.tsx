@@ -5,100 +5,27 @@ import * as React from "react";
 import { Upload } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { Input } from "./input";
+import { useFormContext } from "react-hook-form";
 
 // This component is designed to be used with react-hook-form.
 // It uses a render prop pattern for the label to allow associating it
 // with the input element, which is necessary for the form library to work correctly.
 
-type FileInputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> & {
-  renderLabel: (props: { htmlFor: string }) => React.ReactNode;
-};
-
-const FileInput = React.forwardRef<HTMLInputElement, FileInputProps>(
-  ({ className, renderLabel, ...props }, ref) => {
-    const id = React.useId();
-
-    return (
-      <>
-        {renderLabel({ htmlFor: id })}
-        <input
-          id={id}
-          type="file"
-          accept="image/*"
-          className={cn("sr-only", className)}
-          ref={ref}
-          {...props}
-        />
-      </>
-    );
-  }
-);
-FileInput.displayName = "FileInput";
-
-
-const FileInputLabel = React.forwardRef<
-  HTMLLabelElement,
-  React.LabelHTMLAttributes<HTMLLabelElement> & { fileName?: string | null; }
->(({ className, fileName, ...props }, ref) => {
-  return (
-    <label
-      ref={ref}
-      className={cn(
-        "flex h-10 w-full items-center justify-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm text-muted-foreground ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-        className
-      )}
-      {...props}
-    >
-      <Upload className="h-4 w-4" />
-      <span>{fileName || "Choisir un fichier"}</span>
-    </label>
-  );
-});
-FileInputLabel.displayName = "FileInputLabel";
-
-
-// Simplified CarForm-specific file field
 const PhotoFormField = React.forwardRef<
   HTMLInputElement,
   Omit<React.InputHTMLAttributes<HTMLInputElement>, "type">
->(({ className, onChange, ...props }, ref) => {
-  const id = React.useId();
-  const [fileName, setFileName] = React.useState<string | null>(null);
-  
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    setFileName(file ? file.name : null);
-    // Forward the event to the original onChange handler from react-hook-form
-    if (onChange) {
-      onChange(event);
+>(({ name, ...props }, ref) => {
+    if (!name) {
+        console.error("PhotoFormField requires a name prop");
+        return null;
     }
-  };
-
-  return (
-    <div className="relative">
-      <label
-        htmlFor={id}
-        className={cn(
-          "flex h-10 w-full items-center justify-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm text-muted-foreground ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-          className
-        )}
-      >
-        <Upload className="h-4 w-4" />
-        <span>{fileName || "Choisir un fichier"}</span>
-      </label>
-      <input
-        id={id}
-        type="file"
-        ref={ref}
-        className="sr-only"
-        accept="image/*"
-        {...props}
-        onChange={handleFileChange}
-      />
-    </div>
-  );
+    const { register } = useFormContext();
+    return (
+        <Input type="file" accept="image/*" {...register(name)} {...props} />
+    )
 });
 PhotoFormField.displayName = "PhotoFormField";
 
 
-export { FileInput, FileInputLabel, PhotoFormField };
+export { PhotoFormField };

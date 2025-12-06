@@ -1,8 +1,10 @@
+
 'use client';
 
 import { FirebaseApp } from 'firebase/app';
 import { Auth } from 'firebase/auth';
 import { Firestore } from 'firebase/firestore';
+import { FirebaseStorage } from 'firebase/storage';
 import React, { createContext, useContext } from 'react';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
@@ -11,6 +13,7 @@ interface FirebaseContextType {
   app: FirebaseApp | null;
   firestore: Firestore | null;
   auth: Auth | null;
+  storage: FirebaseStorage | null;
 }
 
 // Create the context
@@ -18,6 +21,7 @@ const FirebaseContext = createContext<FirebaseContextType>({
     app: null,
     firestore: null,
     auth: null,
+    storage: null,
 });
 
 // Custom hook to use the Firebase context
@@ -27,12 +31,12 @@ export function useFirebase() {
     // This error should not be thrown if the provider is correctly set up.
     throw new Error('useFirebase must be used within a FirebaseProvider');
   }
-   if (!context.app || !context.firestore || !context.auth) {
+   if (!context.app || !context.firestore || !context.auth || !context.storage) {
     // This can happen during the initial client-side render while Firebase is initializing.
     // We throw to signal that services are not ready. Components should handle this.
     throw new Error('Firebase services are not yet available.');
   }
-  return context as { app: FirebaseApp; firestore: Firestore; auth: Auth };
+  return context as { app: FirebaseApp; firestore: Firestore; auth: Auth; storage: FirebaseStorage };
 }
 
 // Provider component
@@ -44,6 +48,7 @@ export function FirebaseProvider({
   app: FirebaseApp | null;
   firestore: Firestore | null;
   auth: Auth | null;
+  storage: FirebaseStorage | null;
 }) {
   return (
     <FirebaseContext.Provider value={value}>

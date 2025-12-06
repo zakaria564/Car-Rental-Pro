@@ -22,6 +22,7 @@ import { PhotoFormField } from "../ui/file-input";
 import { useRouter } from "next/navigation";
 import { useFirebase } from "@/firebase";
 import { addDoc, collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 
@@ -38,7 +39,7 @@ const carFormSchema = z.object({
   prixParJour: z.coerce.number().min(1, "Le prix doit être supérieur à 0."),
   etat: z.enum(["new", "good", "fair", "poor"]),
   disponible: z.boolean().default(true),
-  photo: z.any().optional(),
+  photo: z.instanceof(FileList).optional(),
 });
 
 type CarFormValues = z.infer<typeof carFormSchema>;
@@ -46,10 +47,11 @@ type CarFormValues = z.infer<typeof carFormSchema>;
 export default function CarForm({ car, onFinished }: { car: Car | null, onFinished: () => void }) {
   const router = useRouter();
   const { toast } = useToast();
-  const { firestore } = useFirebase();
+  const { firestore, storage } = useFirebase();
 
   const defaultValues: Partial<CarFormValues> = car ? {
     ...car,
+    photo: undefined,
   } : {
     marque: "",
     modele: "",
@@ -74,50 +76,73 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
   const photoRef = form.register("photo");
 
   async function onSubmit(data: CarFormValues) {
-    const { photo, ...carData } = data;
-    
-    const carPayload = {
-      ...carData,
-      photoURL: car?.photoURL || "https://picsum.photos/seed/car-default/600/400",
-      createdAt: car?.createdAt || serverTimestamp(),
-    };
+    if (!firestore || !storage) return;
 
-    if (car) {
-        const carRef = doc(firestore, 'cars', car.id);
-        setDoc(carRef, carPayload, { merge: true }).catch(serverError => {
-            const permissionError = new FirestorePermissionError({
-                path: carRef.path,
-                operation: 'update',
-                requestResourceData: carPayload
-            }, serverError);
-            errorEmitter.emit('permission-error', permissionError);
-        });
+    form.formState.isSubmitting = true;
+    let photoURL = car?.photoURL || "https://picsum.photos/seed/car-default/600/400";
+    const carId = car?.id || doc(collection(firestore, 'cars')).id;
 
+    try {
+        const photoFile = data.photo?.[0];
+        if (photoFile) {
+            toast({ title: "Téléversement de l'image..." });
+            const storageRef = ref(storage, `cars/${carId}/${photoFile.name}`);
+            const uploadResult = await uploadBytes(storageRef, photoFile);
+            photoURL = await getDownloadURL(uploadResult.ref);
+            toast({ title: "Image téléversée avec succès!" });
+        }
+
+        const { photo, ...carData } = data;
+        
+        const carPayload = {
+          ...carData,
+          photoURL,
+          createdAt: car?.createdAt || serverTimestamp(),
+        };
+
+        if (car) {
+            const carRef = doc(firestore, 'cars', car.id);
+            setDoc(carRef, carPayload, { merge: true }).catch(serverError => {
+                const permissionError = new FirestorePermissionError({
+                    path: carRef.path,
+                    operation: 'update',
+                    requestResourceData: carPayload
+                }, serverError);
+                errorEmitter.emit('permission-error', permissionError);
+            });
+            toast({
+                title: "Voiture mise à jour",
+                description: "L'opération a été initiée.",
+            });
+        } else {
+            const carRef = doc(firestore, 'cars', carId);
+            setDoc(carRef, carPayload).catch(serverError => {
+              const permissionError = new FirestorePermissionError({
+                  path: carRef.path,
+                  operation: 'create',
+                  requestResourceData: carPayload
+              }, serverError);
+              errorEmitter.emit('permission-error', permissionError);
+            });
+            toast({
+              title: "Voiture ajoutée",
+              description: "L'opération a été initiée.",
+            });
+        }
+
+        onFinished();
+        router.refresh();
+
+    } catch (error: any) {
+        console.error("Erreur lors de la soumission du formulaire:", error);
         toast({
-            title: "Voiture mise à jour",
-            description: "L'opération a été initiée.",
+            variant: "destructive",
+            title: "Une erreur est survenue",
+            description: error.message || "Impossible de sauvegarder la voiture. Veuillez réessayer.",
         });
-
-    } else {
-        const carsCollection = collection(firestore, 'cars');
-
-        addDoc(carsCollection, carPayload).catch(serverError => {
-          const permissionError = new FirestorePermissionError({
-              path: carsCollection.path,
-              operation: 'create',
-              requestResourceData: carPayload
-          }, serverError);
-          errorEmitter.emit('permission-error', permissionError);
-        });
-
-        toast({
-          title: "Voiture ajoutée",
-          description: "L'opération a été initiée.",
-        });
+    } finally {
+        form.formState.isSubmitting = false;
     }
-
-    onFinished();
-    router.refresh();
   }
 
   return (
@@ -288,14 +313,22 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
             </FormItem>
           )}
         />
-        <FormItem>
-          <FormLabel>Photo</FormLabel>
-          <FormControl>
-            <PhotoFormField {...photoRef} />
-          </FormControl>
-          <FormDescription>Le téléversement de fichiers n'est pas encore implémenté. Une image par défaut sera utilisée.</FormDescription>
-          <FormMessage />
-        </FormItem>
+        <FormField
+            control={form.control}
+            name="photo"
+            render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Photo</FormLabel>
+                    <FormControl>
+                        <Input type="file" accept="image/*" {...photoRef} />
+                    </FormControl>
+                     <FormDescription>
+                        {car ? "Laissez vide pour conserver l'image actuelle." : "Si aucune image n'est choisie, une image par défaut sera utilisée."}
+                    </FormDescription>
+                    <FormMessage />
+                </FormItem>
+            )}
+        />
         <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={form.formState.isSubmitting}>
           {form.formState.isSubmitting ? 'Enregistrement...' : (car ? 'Mettre à jour la voiture' : 'Ajouter une voiture')}
         </Button>

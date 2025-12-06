@@ -1,8 +1,10 @@
+
 'use client';
 
 import { FirebaseApp, getApp, getApps, initializeApp } from 'firebase/app';
 import { Auth, getAuth } from 'firebase/auth';
 import { Firestore, getFirestore } from 'firebase/firestore';
+import { FirebaseStorage, getStorage } from "firebase/storage";
 
 // This function ensures that Firebase is initialized only once.
 const getFirebaseApp = (): FirebaseApp => {
@@ -24,6 +26,7 @@ export function getFirebaseServices() {
   const app = getFirebaseApp();
   const auth = getAuth(app);
   const firestore = getFirestore(app);
+  const storage = getStorage(app);
 
-  return { app, auth, firestore };
+  return { app, auth, firestore, storage };
 }
