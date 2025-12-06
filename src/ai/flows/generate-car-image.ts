@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -11,7 +12,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 
-export const GenerateCarImageInputSchema = z.object({
+const GenerateCarImageInputSchema = z.object({
   marque: z.string().describe('The make of the car (e.g., Tesla).'),
   modele: z.string().describe('The model of the car (e.g., Model S).'),
   modeleAnnee: z.number().describe('The model year of the car (e.g., 2023).'),
@@ -20,7 +21,7 @@ export const GenerateCarImageInputSchema = z.object({
 
 export type GenerateCarImageInput = z.infer<typeof GenerateCarImageInputSchema>;
 
-export const GenerateCarImageOutputSchema = z.object({
+const GenerateCarImageOutputSchema = z.object({
   imageUrl: z.string().describe("The data URI of the generated car image, in PNG format. Expected format: 'data:image/png;base64,<encoded_data>'."),
 });
 
@@ -47,9 +48,10 @@ const generateCarImageFlow = ai.defineFlow(
     outputSchema: GenerateCarImageOutputSchema,
   },
   async (input) => {
+    const promptText = await generateCarImagePrompt.render({ input });
     const { media } = await ai.generate({
         model: 'googleai/imagen-4.0-fast-generate-001',
-        prompt: await generateCarImagePrompt(input),
+        prompt: promptText.prompt,
     });
     
     const imageUrl = media.url;
