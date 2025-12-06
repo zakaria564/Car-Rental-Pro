@@ -35,6 +35,7 @@ const FileInput = React.forwardRef<
       <input
         id={id}
         type="file"
+        accept="image/*"
         className="sr-only"
         ref={ref}
         {...props}
