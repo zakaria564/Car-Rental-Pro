@@ -1,3 +1,4 @@
+
 "use client";
 
 import { cn } from '@/lib/utils';
@@ -30,7 +31,7 @@ const carParts = [
 
     // Rear
     { id: 'lunette_ar', label: 'Lunette Arrière', x: 45, y: 10, w: 10, h: 8 },
-    { id: 'coffre_1', label: 'Coffre', x_35, y: 20, w: 10, h: 5 },
+    { id: 'coffre_1', label: 'Coffre', x: 35, y: 20, w: 10, h: 5 },
     { id: 'coffre_2', label: 'Coffre', x: 55, y: 20, w: 10, h: 5 },
     { id: 'parechoc_ar_1', label: 'Pare-choc Arrière', x: 35, y: 3, w: 10, h: 4 },
     { id: 'parechoc_ar_2', label: 'Pare-choc Arrière', x: 55, y: 3, w: 10, h: 4 },
@@ -51,7 +52,7 @@ export type DamagePart = typeof carParts[number]['id'];
 
 type CarDamageDiagramProps = {
   damages: { [key in DamagePart]?: boolean };
-  onDamagesChange: (damages: { [key in Damagepart]?: boolean }) => void;
+  onDamagesChange: (damages: { [key in DamagePart]?: boolean }) => void;
   readOnly?: boolean;
 };
 
