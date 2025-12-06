@@ -31,6 +31,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "..
 import { Checkbox } from "../ui/checkbox";
 import { Textarea } from "../ui/textarea";
 import { Slider } from "../ui/slider";
+import CarDamageDiagram from "./car-damage-diagram";
 
 const rentalFormSchema = z.object({
   clientId: z.string({ required_error: "Veuillez sélectionner un client." }),
@@ -68,13 +69,15 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
     resolver: zodResolver(rentalFormSchema),
     mode: "onChange",
     defaultValues: {
-      carburantNiveau: 0.5
+      carburantNiveau: 0.5,
+      dommagesChecklist: {
+        av_g: false, av_d: false, ar_g: false, ar_d: false, capot: false, toit: false, coffre: false, parechoc_av: false, parechoc_ar: false,
+      }
     }
   });
   
   const selectedCarId = form.watch("voitureId");
   const dateRange = form.watch("dateRange");
-  const fuelLevel = form.watch("carburantNiveau");
 
   const availableCars = MOCK_CARS.filter(car => car.disponible);
 
@@ -108,14 +111,6 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
     onFinished();
   }
   
-  const carDamagePoints = [
-      { id: 'av_g', label: 'Avant Gauche' }, { id: 'av_d', label: 'Avant Droit' },
-      { id: 'ar_g', label: 'Arrière Gauche' }, { id: 'ar_d', label: 'Arrière Droit' },
-      { id: 'capot', label: 'Capot' }, { id: 'toit', label: 'Toit' },
-      { id: 'coffre', label: 'Coffre' }, { id: 'parechoc_av', label: 'Pare-choc AV' },
-      { id: 'parechoc_ar', label: 'Pare-choc AR' },
-  ] as const;
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mt-4">
@@ -304,26 +299,22 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
                     </div>
 
                     <div>
-                        <FormLabel>Checklist des dommages</FormLabel>
-                         <div className="p-4 border rounded-md grid grid-cols-2 sm:grid-cols-3 gap-4 mt-2">
-                            {carDamagePoints.map((point) => (
-                                <FormField
-                                  key={point.id}
-                                  control={form.control}
-                                  name={`dommagesChecklist.${point.id}`}
-                                  render={({ field }) => (
-                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                      <FormControl>
-                                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                                      </FormControl>
-                                      <div className="space-y-1 leading-none">
-                                        <FormLabel>{point.label}</FormLabel>
-                                      </div>
-                                    </FormItem>
-                                  )}
-                                />
-                            ))}
-                        </div>
+                        <FormField
+                            control={form.control}
+                            name="dommagesChecklist"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Checklist des dommages</FormLabel>
+                                    <FormControl>
+                                        <CarDamageDiagram 
+                                            damages={field.value || {}} 
+                                            onDamagesChange={field.onChange} 
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                     </div>
                     
                      <FormField
@@ -362,5 +353,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
     </Form>
   );
 }
+
+    
 
     
