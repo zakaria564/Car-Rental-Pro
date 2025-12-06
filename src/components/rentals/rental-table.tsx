@@ -318,7 +318,7 @@ export default function RentalTable({ rentals, isDashboard = false }: RentalTabl
           />
           <SheetTrigger asChild>
             <Button className="ml-auto bg-primary hover:bg-primary/90" onClick={() => setSelectedRental(null)}>
-              <PlusCircle className="mr-2 h-4 w-4" /> Nouvelle location
+              <PlusCircle className="mr-2 h-4 w-4" /> Ajouter contrat
             </Button>
           </SheetTrigger>
         </div>
@@ -363,7 +363,7 @@ export default function RentalTable({ rentals, isDashboard = false }: RentalTabl
       </div>
       <SheetContent className="sm:max-w-[600px] flex flex-col">
         <SheetHeader>
-          <SheetTitle>{selectedRental ? "Modifier la location" : "Créer une nouvelle location"}</SheetTitle>
+          <SheetTitle>{selectedRental ? "Modifier le contrat" : "Ajouter un nouveau contrat"}</SheetTitle>
         </SheetHeader>
         <ScrollArea className="flex-grow pr-6">
             <RentalForm rental={selectedRental} onFinished={() => setIsSheetOpen(false)} />
@@ -372,3 +372,5 @@ export default function RentalTable({ rentals, isDashboard = false }: RentalTabl
     </Sheet>
   );
 }
+
+    

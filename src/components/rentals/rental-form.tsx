@@ -185,8 +185,8 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
         await updateDoc(carDocRef, { disponible: false });
 
         toast({
-            title: "Contrat de location créé",
-            description: `La location pour ${selectedClient.nom} a été créée avec succès.`,
+            title: "Contrat créé",
+            description: `Le contrat pour ${selectedClient.nom} a été créé avec succès.`,
         });
         onFinished();
         router.refresh();
@@ -210,7 +210,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mt-4">
         <Accordion type="multiple" defaultValue={['item-1', 'item-2']} className="w-full">
             <AccordionItem value="item-1">
-                <AccordionTrigger>Détails de la Location</AccordionTrigger>
+                <AccordionTrigger>Détails du contrat</AccordionTrigger>
                 <AccordionContent className="space-y-4 px-1">
                     <FormField
                       control={form.control}
@@ -501,7 +501,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
         
         <Card className="bg-muted/50">
             <CardHeader>
-                <CardTitle className="text-lg">Résumé de la location</CardTitle>
+                <CardTitle className="text-lg">Résumé du contrat</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
                 <div className="flex justify-between"><span>Prix par jour :</span> <span className="font-medium">{selectedCar ? formatCurrency(selectedCar.prixParJour, 'MAD') : '0,00 MAD'}</span></div>
@@ -511,9 +511,11 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
         </Card>
 
         <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={form.formState.isSubmitting || !form.formState.isValid}>
-          {form.formState.isSubmitting ? "Enregistrement..." : (rental ? 'Mettre à jour le contrat' : 'Créer la location')}
+          {form.formState.isSubmitting ? "Enregistrement..." : (rental ? 'Mettre à jour le contrat' : 'Ajouter le contrat')}
         </Button>
       </form>
     </Form>
   );
 }
+
+    
