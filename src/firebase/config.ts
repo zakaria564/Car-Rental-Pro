@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import { FirebaseApp, FirebaseOptions, getApp, getApps, initializeApp } from 'firebase/app';
 import { Auth, getAuth, connectAuthEmulator } from 'firebase/auth';
 import { Firestore, getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
