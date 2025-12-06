@@ -9,7 +9,6 @@ import { cn } from "@/lib/utils";
 // This component is designed to be used with react-hook-form.
 // It uses a render prop pattern for the label to allow associating it
 // with the input element, which is necessary for the form library to work correctly.
-// The input itself is hidden and controlled by the form library.
 
 type FileInputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> & {
   renderLabel: (props: { htmlFor: string }) => React.ReactNode;
@@ -62,15 +61,17 @@ FileInputLabel.displayName = "FileInputLabel";
 const PhotoFormField = React.forwardRef<
   HTMLInputElement,
   Omit<React.InputHTMLAttributes<HTMLInputElement>, "type">
->(({ className, ...props }, ref) => {
+>(({ className, onChange, ...props }, ref) => {
   const id = React.useId();
   const [fileName, setFileName] = React.useState<string | null>(null);
   
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     setFileName(file ? file.name : null);
-    // Forward the event to the original onChange handler if it exists
-    props.onChange?.(event);
+    // Forward the event to the original onChange handler from react-hook-form
+    if (onChange) {
+      onChange(event);
+    }
   };
 
   return (
@@ -101,4 +102,3 @@ PhotoFormField.displayName = "PhotoFormField";
 
 
 export { FileInput, FileInputLabel, PhotoFormField };
-
