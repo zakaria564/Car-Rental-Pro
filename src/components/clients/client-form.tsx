@@ -27,6 +27,7 @@ import { FirestorePermissionError } from "@/firebase/errors";
 const clientFormSchema = z.object({
   nom: z.string().min(2, "Le nom doit comporter au moins 2 caractères."),
   cin: z.string().min(5, "La CIN semble trop courte."),
+  permisNo: z.string().min(5, "Le numéro de permis semble trop court."),
   telephone: z.string().min(10, "Le numéro de téléphone semble incorrect."),
   adresse: z.string().min(10, "L'adresse est trop courte."),
   photoCIN: z.any().optional(),
@@ -44,6 +45,7 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
   } : {
     nom: "",
     cin: "",
+    permisNo: "",
     telephone: "",
     adresse: "",
     photoCIN: undefined,
@@ -124,6 +126,19 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
               <FormLabel>Carte d'identité nationale (CIN)</FormLabel>
               <FormControl>
                 <Input placeholder="AB123456" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+         <FormField
+          control={form.control}
+          name="permisNo"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Numéro de permis de conduire</FormLabel>
+              <FormControl>
+                <Input placeholder="CD789123" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

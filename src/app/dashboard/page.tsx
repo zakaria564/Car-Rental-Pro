@@ -30,6 +30,8 @@ export default function DashboardPage() {
   React.useEffect(() => {
     if (!firestore) return;
     setLoading(true);
+    const now = new Date();
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
     const carsUnsubscribe = onSnapshot(collection(firestore, "cars"), (snapshot) => {
       const carsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CarType));
@@ -40,7 +42,7 @@ export default function DashboardPage() {
     });
 
     const rentalsUnsubscribe = onSnapshot(collection(firestore, "rentals"), (snapshot) => {
-      const rentalsData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, createdAt: doc.data().createdAt?.toDate().toISOString() } as Rental));
+      const rentalsData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Rental));
       setRentals(rentalsData);
       setLoading(false);
     }, (err) => {
@@ -58,7 +60,18 @@ export default function DashboardPage() {
 
   const availableCars = cars.filter(c => c.disponible).length;
   const activeRentals = rentals.filter(r => r.statut === 'en_cours').length;
-  const totalRevenue = rentals.reduce((acc, r) => acc + (r.location.montantAPayer || 0), 0);
+  
+  const now = new Date();
+  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const monthlyRevenue = rentals.reduce((acc, r) => {
+    const rentalDate = r.createdAt.toDate();
+    if (rentalDate >= firstDayOfMonth) {
+      return acc + (r.location.montantAPayer || 0);
+    }
+    return acc;
+  }, 0);
+
 
   return (
     <>
@@ -85,7 +98,7 @@ export default function DashboardPage() {
             <StatCard title="Voitures totales" value={cars.length.toString()} icon={Car} />
             <StatCard title="Voitures disponibles" value={`${availableCars} / ${cars.length}`} icon={Car} color="text-green-500" />
             <StatCard title="Locations actives" value={activeRentals.toString()} icon={KeyRound} />
-            <StatCard title="Revenu total (mois)" value={formatCurrency(totalRevenue, 'MAD')} icon={DollarSign} />
+            <StatCard title="Revenu total (mois)" value={formatCurrency(monthlyRevenue, 'MAD')} icon={DollarSign} />
         </div>
         <div>
             <h2 className="text-2xl font-semibold tracking-tight mb-4">Locations récentes</h2>

@@ -86,7 +86,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
     resolver: zodResolver(rentalFormSchema),
     mode: "onChange",
     defaultValues: rental ? {
-        clientId: rental.locataire.cin, // Assuming cin is used as id
+        clientId: rental.locataire.cin,
         voitureId: rental.vehicule.immatriculation,
         dateRange: { from: new Date(rental.location.dateDebut), to: new Date(rental.location.dateFin)},
         caution: rental.location.depot,
@@ -106,7 +106,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
   const selectedCarId = form.watch("voitureId");
   const dateRange = form.watch("dateRange");
 
-  const availableCars = cars.filter(car => car.disponible || car.id === rental?.vehicule.immatriculation);
+  const availableCars = cars.filter(car => car.disponible || (rental && car.id === rental.vehicule.immatriculation));
 
   const selectedCar = React.useMemo(() => {
     return cars.find(car => car.id === selectedCarId);
@@ -119,7 +119,8 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
 
   const rentalDays = React.useMemo(() => {
     if (dateRange?.from && dateRange?.to) {
-        return differenceInCalendarDays(dateRange.to, dateRange.from) + 1;
+        const days = differenceInCalendarDays(dateRange.to, dateRange.from);
+        return days >= 0 ? days + 1 : 0;
     }
     return 0;
   }, [dateRange]);
@@ -139,7 +140,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
 
     const rentalPayload = {
       locataire: {
-        cin: selectedClient.id,
+        cin: selectedClient.cin,
         nomPrenom: selectedClient.nom,
         permisNo: selectedClient.permisNo || 'N/A',
         telephone: selectedClient.telephone,
@@ -147,30 +148,30 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
       vehicule: {
         immatriculation: selectedCar.id,
         marque: `${selectedCar.marque} ${selectedCar.modele}`,
-        modeleAnnee: selectedCar.modeleAnnee,
-        couleur: selectedCar.couleur,
-        nbrPlaces: selectedCar.nbrPlaces,
-        puissance: selectedCar.puissance,
-        carburantType: selectedCar.carburantType,
+        modeleAnnee: selectedCar.modeleAnnee || new Date().getFullYear(),
+        couleur: selectedCar.couleur || "Inconnue",
+        nbrPlaces: selectedCar.nbrPlaces || 5,
+        puissance: selectedCar.puissance || 7,
+        carburantType: selectedCar.carburantType || 'Essence',
         photoURL: selectedCar.photoURL
       },
       livraison: {
-        dateHeure: new Date().toISOString(),
+        dateHeure: serverTimestamp(),
         kilometrage: data.kilometrageDepart,
         carburantNiveau: data.carburantNiveauDepart,
         roueSecours: data.roueSecours,
         posteRadio: data.posteRadio,
         lavage: data.lavage,
         dommages: Object.keys(data.dommagesDepart || {}).filter(k => data.dommagesDepart?.[k]),
-        dommagesNotes: data.dommagesDepartNotes,
+        dommagesNotes: data.dommagesDepartNotes || "",
       },
       reception: {},
       location: {
-        dateDebut: data.dateRange.from.toISOString(),
-        dateFin: data.dateRange.to.toISOString(),
+        dateDebut: data.dateRange.from,
+        dateFin: data.dateRange.to,
         prixParJour: selectedCar.prixParJour,
         nbrJours: rentalDays,
-        depot: data.caution,
+        depot: data.caution || 0,
         montantAPayer: prixTotal,
       },
       statut: 'en_cours',
@@ -223,7 +224,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
                               <SelectTrigger><SelectValue placeholder="Sélectionner un client" /></SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {clients.map(client => <SelectItem key={client.id} value={client.id}>{client.nom}</SelectItem>)}
+                              {clients.map(client => <SelectItem key={client.id} value={client.id}>{client.nom} ({client.cin})</SelectItem>)}
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -241,7 +242,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
                               <SelectTrigger><SelectValue placeholder="Sélectionner une voiture disponible" /></SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {availableCars.map(car => <SelectItem key={car.id} value={car.id}>{car.marque} {car.modele}</SelectItem>)}
+                              {availableCars.map(car => <SelectItem key={car.id} value={car.id}>{car.marque} {car.modele} ({car.immat})</SelectItem>)}
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -511,7 +512,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
         </Card>
 
         <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={form.formState.isSubmitting || !form.formState.isValid}>
-          {form.formState.isSubmitting ? "Enregistrement..." : (rental ? 'Mettre à jour le contrat' : 'Ajouter le contrat')}
+          {form.formState.isSubmitting ? "Enregistrement..." : (rental ? 'Mettre à jour le contrat' : 'Créer le contrat')}
         </Button>
       </form>
     </Form>

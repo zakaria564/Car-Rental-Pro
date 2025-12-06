@@ -65,7 +65,6 @@ function RentalDetails({ rental }: { rental: Rental }) {
                 <p><strong>CIN/Passeport:</strong> {rental.locataire.cin}</p>
                 <p><strong>N° de Permis:</strong> {rental.locataire.permisNo}</p>
                 <p><strong>Téléphone:</strong> {rental.locataire.telephone}</p>
-                {rental.locataire.deuxiemeChauffeur && <p className="col-span-2"><strong>2ème Chauffeur:</strong> {rental.locataire.deuxiemeChauffeur}</p>}
             </div>
             <Separator />
              <div className="grid grid-cols-2 gap-x-4 gap-y-2">
@@ -91,22 +90,24 @@ function RentalDetails({ rental }: { rental: Rental }) {
             <Separator />
             <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                 <h3 className="font-semibold text-base col-span-2">Détails de Livraison (Départ)</h3>
-                <p><strong>Date & Heure:</strong> {format(new Date(rental.livraison.dateHeure), "dd/MM/yyyy HH:mm", { locale: fr })}</p>
+                <p><strong>Date & Heure:</strong> {format(rental.livraison.dateHeure.toDate(), "dd/MM/yyyy HH:mm", { locale: fr })}</p>
                 <p><strong>Kilométrage:</strong> {rental.livraison.kilometrage.toLocaleString()} km</p>
                 <p><strong>Niveau Carburant:</strong> {rental.livraison.carburantNiveau * 100}%</p>
                 <p><strong>Roue de Secours:</strong> {rental.livraison.roueSecours ? 'Oui' : 'Non'}</p>
                 <p><strong>Poste Radio:</strong> {rental.livraison.posteRadio ? 'Oui' : 'Non'}</p>
                 <p><strong>Lavage:</strong> {rental.livraison.lavage ? 'Propre' : 'Sale'}</p>
                 {rental.livraison.dommages && rental.livraison.dommages.length > 0 && <p className="col-span-2"><strong>Dommages:</strong> {rental.livraison.dommages.join(', ')}</p>}
+                 {rental.livraison.dommagesNotes && <p className="col-span-2"><strong>Notes (Départ):</strong> {rental.livraison.dommagesNotes}</p>}
             </div>
             <Separator />
              {rental.reception.dateHeure && (
                 <>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                         <h3 className="font-semibold text-base col-span-2">Détails de Réception (Retour)</h3>
-                        <p><strong>Date & Heure:</strong> {format(new Date(rental.reception.dateHeure), "dd/MM/yyyy HH:mm", { locale: fr })}</p>
+                        <p><strong>Date & Heure:</strong> {format(rental.reception.dateHeure.toDate(), "dd/MM/yyyy HH:mm", { locale: fr })}</p>
                         <p><strong>Kilométrage:</strong> {rental.reception.kilometrage?.toLocaleString()} km</p>
                         <p><strong>Niveau Carburant:</strong> {rental.reception.carburantNiveau ? rental.reception.carburantNiveau * 100 + '%' : 'N/A'}</p>
+                        {rental.reception.dommagesNotes && <p className="col-span-2"><strong>Notes (Retour):</strong> {rental.reception.dommagesNotes}</p>}
                     </div>
                     <Separator />
                 </>
@@ -166,7 +167,7 @@ export default function RentalTable({ rentals, isDashboard = false }: RentalTabl
     {
       accessorKey: "location.dateFin",
       header: "Date de retour",
-      cell: ({ row }) => format(new Date(row.original.location.dateFin), "dd/MM/yyyy", { locale: fr }),
+      cell: ({ row }) => format(row.original.location.dateFin.toDate(), "dd/MM/yyyy", { locale: fr }),
     },
     {
       accessorKey: "location.montantAPayer",
@@ -236,7 +237,7 @@ export default function RentalTable({ rentals, isDashboard = false }: RentalTabl
                     <DialogHeader>
                         <DialogTitle>Détails du contrat de location #{rental.id?.substring(0,6)}</DialogTitle>
                         <DialogDescription>
-                            Créé le {rental.createdAt ? format(new Date(rental.createdAt.seconds * 1000), "dd LLL, y 'à' HH:mm", { locale: fr }) : 'N/A'}
+                            Créé le {rental.createdAt ? format(rental.createdAt.toDate(), "dd LLL, y 'à' HH:mm", { locale: fr }) : 'N/A'}
                         </DialogDescription>
                     </DialogHeader>
                     <RentalDetails rental={rental} />
@@ -363,7 +364,7 @@ export default function RentalTable({ rentals, isDashboard = false }: RentalTabl
       </div>
       <SheetContent className="sm:max-w-[600px] flex flex-col">
         <SheetHeader>
-          <SheetTitle>{selectedRental ? "Modifier le contrat" : "Ajouter un nouveau contrat"}</SheetTitle>
+          <SheetTitle>{selectedRental ? "Modifier le contrat" : "Créer un nouveau contrat"}</SheetTitle>
         </SheetHeader>
         <ScrollArea className="flex-grow pr-6">
             <RentalForm rental={selectedRental} onFinished={() => setIsSheetOpen(false)} />

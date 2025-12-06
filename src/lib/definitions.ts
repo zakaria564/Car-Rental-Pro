@@ -9,12 +9,12 @@ export type Car = {
   photoURL: string;
   disponible: boolean;
   prixParJour: number;
-  createdAt: string;
-  modeleAnnee: number;
-  couleur: string;
-  nbrPlaces: number;
-  puissance: number;
-  carburantType: 'Diesel' | 'Essence' | 'Electrique';
+  createdAt: any; // Can be Timestamp
+  modeleAnnee?: number;
+  couleur?: string;
+  nbrPlaces?: number;
+  puissance?: number;
+  carburantType?: 'Diesel' | 'Essence' | 'Electrique';
 };
 
 export type Client = {
@@ -24,19 +24,17 @@ export type Client = {
   telephone: string;
   adresse: string;
   photoCIN: string;
-  createdAt: string;
+  createdAt: any; // Can be Timestamp
   permisNo?: string;
 };
 
-export type Contrat = {
-  id?: string;
-  contratId?: string;
+export type Rental = {
+  id: string;
   locataire: {
     cin: string;
     nomPrenom: string;
     permisNo: string;
     telephone: string;
-    deuxiemeChauffeur?: string;
   };
   vehicule: {
     immatriculation: string;
@@ -45,36 +43,36 @@ export type Contrat = {
     couleur: string;
     nbrPlaces: number;
     puissance: number;
-    carburantType: 'Diesel' | 'Essence' | 'Electrique';
+    carburantType: string;
     photoURL: string;
   };
   livraison: {
-    dateHeure: string; // Should be Timestamp
+    dateHeure: any; // Timestamp
     kilometrage: number;
-    carburantNiveau: number; // Float (0 to 1)
+    carburantNiveau: number;
     roueSecours: boolean;
     posteRadio: boolean;
     lavage: boolean;
-    dommages?: string[];
+    dommages: string[];
     dommagesNotes?: string;
   };
   reception: {
-    dateHeure?: string; // Should be Timestamp
+    dateHeure?: any; // Timestamp
     kilometrage?: number;
     carburantNiveau?: number;
     dommages?: string[];
     dommagesNotes?: string;
   };
   location: {
-    dateDebut: string;
-    dateFin: string;
+    dateDebut: any; // Timestamp
+    dateFin: any; // Timestamp
     prixParJour: number;
     nbrJours: number;
     depot?: number;
     montantAPayer: number;
   };
   statut: 'en_cours' | 'terminee';
-  createdAt: string;
+  createdAt: any; // Timestamp
 };
 
-export type Rental = Contrat; // Alias for backward compatibility
+export type Contrat = Rental;

@@ -27,6 +27,7 @@
       "properties": {
         "nom": { "type": "string" },
         "cin": { "type": "string" },
+        "permisNo": { "type": "string" },
         "telephone": { "type": "string" },
         "adresse": { "type": "string" },
         "photoCIN": { "type": "string", "format": "uri" },
@@ -35,18 +36,70 @@
       "required": ["nom", "cin", "telephone", "adresse"]
     },
     "rental": {
-        "title": "Rental",
-        "description": "Represents a rental contract.",
-        "type": "object",
-        "properties": {
-            "clientId": { "type": "string" },
-            "voitureId": { "type": "string" },
+      "title": "Rental",
+      "description": "Represents a rental contract.",
+      "type": "object",
+      "properties": {
+        "locataire": {
+          "type": "object",
+          "properties": {
+            "cin": { "type": "string" },
+            "nomPrenom": { "type": "string" },
+            "permisNo": { "type": "string" },
+            "telephone": { "type": "string" }
+          }
+        },
+        "vehicule": {
+          "type": "object",
+          "properties": {
+            "immatriculation": { "type": "string" },
+            "marque": { "type": "string" },
+            "modeleAnnee": { "type": "number" },
+            "couleur": { "type": "string" },
+            "nbrPlaces": { "type": "number" },
+            "puissance": { "type": "number" },
+            "carburantType": { "type": "string" },
+            "photoURL": { "type": "string", "format": "uri" }
+          }
+        },
+        "livraison": {
+          "type": "object",
+          "properties": {
+            "dateHeure": { "type": "string", "format": "date-time" },
+            "kilometrage": { "type": "number" },
+            "carburantNiveau": { "type": "number" },
+            "roueSecours": { "type": "boolean" },
+            "posteRadio": { "type": "boolean" },
+            "lavage": { "type": "boolean" },
+            "dommages": { "type": "array", "items": { "type": "string" } },
+            "dommagesNotes": { "type": "string" }
+          }
+        },
+        "reception": {
+          "type": "object",
+          "properties": {
+            "dateHeure": { "type": "string", "format": "date-time" },
+            "kilometrage": { "type": "number" },
+            "carburantNiveau": { "type": "number" },
+            "dommages": { "type": "array", "items": { "type": "string" } },
+            "dommagesNotes": { "type": "string" }
+          }
+        },
+        "location": {
+          "type": "object",
+          "properties": {
             "dateDebut": { "type": "string", "format": "date-time" },
             "dateFin": { "type": "string", "format": "date-time" },
-            "statut": { "type": "string", "enum": ["en_cours", "terminee"] },
-            "createdAt": { "type": "string", "format": "date-time" }
+            "prixParJour": { "type": "number" },
+            "nbrJours": { "type": "number" },
+            "depot": { "type": "number" },
+            "montantAPayer": { "type": "number" }
+          }
         },
-        "required": ["clientId", "voitureId", "dateDebut", "dateFin", "statut"]
+        "statut": { "type": "string", "enum": ["en_cours", "terminee"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["locataire", "vehicule", "livraison", "location", "statut"]
     }
   },
   "auth": {

@@ -4,7 +4,7 @@ import { DashboardHeader } from "@/components/dashboard-header";
 import RentalTable from "@/components/rentals/rental-table";
 import React from "react";
 import { useFirebase } from "@/firebase";
-import { collection, onSnapshot } from "firebase/firestore";
+import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import type { Rental } from "@/lib/definitions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -30,8 +30,8 @@ export default function RentalsPage() {
   React.useEffect(() => {
     if (!firestore) return;
 
-    const rentalsCollection = collection(firestore, "rentals");
-    const unsubscribe = onSnapshot(rentalsCollection, (snapshot) => {
+    const rentalsQuery = query(collection(firestore, "rentals"), orderBy("createdAt", "desc"));
+    const unsubscribe = onSnapshot(rentalsQuery, (snapshot) => {
       const rentalsData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Rental));
       setRentals(rentalsData);
       setLoading(false);
@@ -40,7 +40,7 @@ export default function RentalsPage() {
       setLoading(false);
       setError("Impossible de charger les locations. Vérifiez vos permissions.");
       const permissionError = new FirestorePermissionError({
-        path: rentalsCollection.path,
+        path: collection(firestore, "rentals").path,
         operation: 'list'
       }, serverError);
       errorEmitter.emit('permission-error', permissionError);
@@ -52,7 +52,7 @@ export default function RentalsPage() {
 
   return (
     <>
-      <DashboardHeader title="Locations" description="Gérez tous les enregistrements de location de voitures." />
+      <DashboardHeader title="Contrats" description="Gérez tous les enregistrements de location de voitures." />
       {loading ? (
         <div className="space-y-2">
             <Skeleton className="h-12 w-full" />
