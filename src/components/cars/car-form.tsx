@@ -18,13 +18,13 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import type { Car } from "@/lib/definitions";
-import { PhotoFormField } from "../ui/file-input";
 import { useRouter } from "next/navigation";
 import { useFirebase } from "@/firebase";
 import { addDoc, collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { getDownloadURL, ref, uploadBytes, uploadString } from "firebase/storage";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
+import { generateCarImageAction } from "@/lib/actions";
 
 const carFormSchema = z.object({
   marque: z.string().min(2, "La marque doit comporter au moins 2 caractères."),
@@ -79,24 +79,46 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     if (!firestore || !storage) return;
 
     form.formState.isSubmitting = true;
-    let photoURL = car?.photoURL || "https://picsum.photos/seed/car-default/600/400";
+    let photoURL = car?.photoURL;
     const carId = car?.id || doc(collection(firestore, 'cars')).id;
 
     try {
         const photoFile = data.photo?.[0];
+
         if (photoFile) {
             toast({ title: "Téléversement de l'image..." });
             const storageRef = ref(storage, `cars/${carId}/${photoFile.name}`);
             const uploadResult = await uploadBytes(storageRef, photoFile);
             photoURL = await getDownloadURL(uploadResult.ref);
             toast({ title: "Image téléversée avec succès!" });
+        } else if (!car) { // Only generate if it's a new car without a photo
+            toast({ title: "Génération d'une image par l'IA..." });
+            const { imageUrl, error } = await generateCarImageAction({
+                marque: data.marque,
+                modele: data.modele,
+                modeleAnnee: data.modeleAnnee,
+                couleur: data.couleur,
+            });
+
+            if (error || !imageUrl) {
+                toast({ variant: "destructive", title: "Erreur de génération d'image", description: error || "L'IA n'a pas pu générer d'image." });
+                // Fallback to a generic image
+                photoURL = `https://picsum.photos/seed/${carId}/600/400`;
+            } else {
+                const storageRef = ref(storage, `cars/${carId}/ai_generated.png`);
+                // The imageUrl is a data URI, we need to upload it as a string.
+                await uploadString(storageRef, imageUrl, 'data_url');
+                photoURL = await getDownloadURL(storageRef);
+                toast({ title: "Image générée et téléversée avec succès!" });
+            }
         }
+
 
         const { photo, ...carData } = data;
         
         const carPayload = {
           ...carData,
-          photoURL,
+          photoURL: photoURL || `https://picsum.photos/seed/${carId}/600/400`, // Final fallback
           createdAt: car?.createdAt || serverTimestamp(),
         };
 
@@ -323,7 +345,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                         <Input type="file" accept="image/*" {...photoRef} />
                     </FormControl>
                      <FormDescription>
-                        {car ? "Laissez vide pour conserver l'image actuelle." : "Si aucune image n'est choisie, une image par défaut sera utilisée."}
+                        {car ? "Laissez vide pour conserver l'image actuelle." : "Si aucune image n'est choisie, une image sera générée par l'IA."}
                     </FormDescription>
                     <FormMessage />
                 </FormItem>
