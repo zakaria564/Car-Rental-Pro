@@ -7,6 +7,10 @@ import type { Car } from "@/lib/definitions";
 import { collection, onSnapshot } from "firebase/firestore";
 import React from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 export default function CarsPage() {
   const [cars, setCars] = React.useState<Car[]>([]);
@@ -29,14 +33,21 @@ export default function CarsPage() {
   React.useEffect(() => {
     if (!firestore) return; // Don't run if firestore is not available yet.
 
-    const unsubscribe = onSnapshot(collection(firestore, "cars"), (snapshot) => {
+    const carsCollection = collection(firestore, "cars");
+    const unsubscribe = onSnapshot(carsCollection, (snapshot) => {
       const carsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Car));
       setCars(carsData);
       setLoading(false);
-    }, (err) => {
-        console.error("Error fetching cars:", err);
-        setError("Impossible de charger les voitures. Veuillez réessayer plus tard.");
+      setError(null);
+    }, (serverError) => {
         setLoading(false);
+        setError("Impossible de charger les voitures. Vérifiez vos permissions.");
+
+        const permissionError = new FirestorePermissionError({
+            path: carsCollection.path,
+            operation: 'list'
+        }, serverError);
+        errorEmitter.emit('permission-error', permissionError);
     });
 
     return () => unsubscribe();
@@ -53,7 +64,11 @@ export default function CarsPage() {
             <Skeleton className="h-12 w-full" />
         </div>
       ) : error ? (
-        <div className="text-red-500">{error}</div>
+         <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Erreur de chargement</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+        </Alert>
       ) : (
         <CarTable cars={cars} />
       )}
