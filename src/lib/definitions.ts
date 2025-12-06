@@ -56,11 +56,14 @@ export type Contrat = {
     posteRadio: boolean;
     lavage: boolean;
     dommages?: string[];
+    dommagesNotes?: string;
   };
   reception: {
     dateHeure?: string; // Should be Timestamp
     kilometrage?: number;
     carburantNiveau?: number;
+    dommages?: string[];
+    dommagesNotes?: string;
   };
   location: {
     dateDebut: string;

@@ -1,6 +1,6 @@
 
 'use client';
-import { Car, Users, KeyRound, DollarSign } from "lucide-react";
+import { Car, KeyRound, DollarSign } from "lucide-react";
 import { StatCard } from "@/components/stat-card";
 import RentalTable from "@/components/rentals/rental-table";
 import { DashboardHeader } from "@/components/dashboard-header";
@@ -40,7 +40,7 @@ export default function DashboardPage() {
     });
 
     const rentalsUnsubscribe = onSnapshot(collection(firestore, "rentals"), (snapshot) => {
-      const rentalsData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Rental));
+      const rentalsData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, createdAt: doc.data().createdAt?.toDate().toISOString() } as Rental));
       setRentals(rentalsData);
       setLoading(false);
     }, (err) => {
@@ -58,7 +58,7 @@ export default function DashboardPage() {
 
   const availableCars = cars.filter(c => c.disponible).length;
   const activeRentals = rentals.filter(r => r.statut === 'en_cours').length;
-  const totalRevenue = rentals.reduce((acc, r) => acc + r.location.montantAPayer, 0);
+  const totalRevenue = rentals.reduce((acc, r) => acc + (r.location.montantAPayer || 0), 0);
 
   return (
     <>

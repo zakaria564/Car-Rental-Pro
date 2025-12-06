@@ -234,9 +234,9 @@ export default function RentalTable({ rentals, isDashboard = false }: RentalTabl
                 </AlertDialogContent>
                 <DialogContent className="sm:max-w-3xl">
                     <DialogHeader>
-                        <DialogTitle>Détails du contrat de location #{rental.id}</DialogTitle>
+                        <DialogTitle>Détails du contrat de location #{rental.id?.substring(0,6)}</DialogTitle>
                         <DialogDescription>
-                            Créé le {format(new Date(rental.createdAt), "dd LLL, y 'à' HH:mm", { locale: fr })}
+                            Créé le {rental.createdAt ? format(new Date(rental.createdAt.seconds * 1000), "dd LLL, y 'à' HH:mm", { locale: fr }) : 'N/A'}
                         </DialogDescription>
                     </DialogHeader>
                     <RentalDetails rental={rental} />
