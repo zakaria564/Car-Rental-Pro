@@ -114,7 +114,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
                   <SelectTrigger><SelectValue placeholder="Sélectionner une voiture disponible" /></SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {availableCars.map(car => <SelectItem key={car.id} value={car.id}>{car.marque} {car.modele}</SelectItem>)}
+                  {availableCars.map(car => <SelectItem key={car.id} value={car.id}>{car.marque}</SelectItem>)}
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -173,7 +173,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
             <FormItem>
               <FormLabel>Caution (MAD)</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="500" {...field} />
+                <Input type="number" placeholder="5000" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

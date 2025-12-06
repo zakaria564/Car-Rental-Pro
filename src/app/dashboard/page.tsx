@@ -11,7 +11,7 @@ export default async function DashboardPage() {
   const cars = await getCars();
   const availableCars = cars.filter(c => c.disponible).length;
   const activeRentals = rentals.filter(r => r.statut === 'en_cours').length;
-  const totalRevenue = rentals.reduce((acc, r) => acc + r.prixTotal, 0);
+  const totalRevenue = rentals.reduce((acc, r) => acc + r.location.montantAPayer, 0);
 
   return (
     <>

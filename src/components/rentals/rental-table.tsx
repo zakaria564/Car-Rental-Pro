@@ -55,46 +55,69 @@ type RentalTableProps = {
 
 function RentalDetails({ rental }: { rental: Rental }) {
     return (
-        <div className="space-y-4">
-            <div>
-                <h3 className="font-semibold text-lg mb-2">Détails de la voiture</h3>
-                <div className="flex items-start gap-4">
-                    <Image
-                        src={rental.voiture.photoURL}
-                        alt={`${rental.voiture.marque} ${rental.voiture.modele}`}
+      <ScrollArea className="h-[70vh] pr-4">
+        <div className="space-y-4 text-sm">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                <h3 className="font-semibold text-base col-span-2">Locataire</h3>
+                <p><strong>Nom & Prénom:</strong> {rental.locataire.nomPrenom}</p>
+                <p><strong>CIN/Passeport:</strong> {rental.locataire.cin}</p>
+                <p><strong>N° de Permis:</strong> {rental.locataire.permisNo}</p>
+                <p><strong>Téléphone:</strong> {rental.locataire.telephone}</p>
+                {rental.locataire.deuxiemeChauffeur && <p className="col-span-2"><strong>2ème Chauffeur:</strong> {rental.locataire.deuxiemeChauffeur}</p>}
+            </div>
+            <Separator />
+             <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                <h3 className="font-semibold text-base col-span-2">Véhicule</h3>
+                <div className="col-span-2">
+                   <Image
+                        src={rental.vehicule.photoURL}
+                        alt={rental.vehicule.marque}
                         width={128}
                         height={96}
-                        className="rounded-md object-cover"
+                        className="rounded-md object-cover float-right ml-4 mb-2"
                         data-ai-hint="car photo"
                     />
-                    <div className="text-sm space-y-1">
-                        <p><strong>Marque/Modèle :</strong> {rental.voiture.marque} {rental.voiture.modele}</p>
-                        <p><strong>Immatriculation :</strong> {rental.voiture.immat}</p>
-                        <p><strong>État :</strong> <span className="capitalize">{rental.voiture.etat}</span></p>
+                    <p><strong>Immatriculation:</strong> {rental.vehicule.immatriculation}</p>
+                    <p><strong>Marque/Modèle:</strong> {rental.vehicule.marque}</p>
+                    <p><strong>Année Modèle:</strong> {rental.vehicule.modeleAnnee}</p>
+                    <p><strong>Couleur:</strong> {rental.vehicule.couleur}</p>
+                    <p><strong>Nbr de Places:</strong> {rental.vehicule.nbrPlaces}</p>
+                    <p><strong>Puissance:</strong> {rental.vehicule.puissance} ch</p>
+                    <p><strong>Carburant:</strong> {rental.vehicule.carburantType}</p>
+                </div>
+            </div>
+            <Separator />
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                <h3 className="font-semibold text-base col-span-2">Détails de Livraison (Départ)</h3>
+                <p><strong>Date & Heure:</strong> {format(new Date(rental.livraison.dateHeure), "dd/MM/yyyy HH:mm", { locale: fr })}</p>
+                <p><strong>Kilométrage:</strong> {rental.livraison.kilometrage.toLocaleString()} km</p>
+                <p><strong>Niveau Carburant:</strong> {rental.livraison.carburantNiveau * 100}%</p>
+                <p><strong>Roue de Secours:</strong> {rental.livraison.roueSecours ? 'Oui' : 'Non'}</p>
+                <p><strong>Poste Radio:</strong> {rental.livraison.posteRadio ? 'Oui' : 'Non'}</p>
+                <p><strong>Lavage:</strong> {rental.livraison.lavage ? 'Propre' : 'Sale'}</p>
+                {rental.livraison.dommages && <p className="col-span-2"><strong>Dommages:</strong> {rental.livraison.dommages.join(', ')}</p>}
+            </div>
+            <Separator />
+             {rental.reception.dateHeure && (
+                <>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                        <h3 className="font-semibold text-base col-span-2">Détails de Réception (Retour)</h3>
+                        <p><strong>Date & Heure:</strong> {format(new Date(rental.reception.dateHeure), "dd/MM/yyyy HH:mm", { locale: fr })}</p>
+                        <p><strong>Kilométrage:</strong> {rental.reception.kilometrage?.toLocaleString()} km</p>
+                        <p><strong>Niveau Carburant:</strong> {rental.reception.carburantNiveau ? rental.reception.carburantNiveau * 100 + '%' : 'N/A'}</p>
                     </div>
-                </div>
-            </div>
-            <Separator />
-            <div>
-                <h3 className="font-semibold text-lg mb-2">Informations sur le client</h3>
-                <div className="text-sm space-y-1">
-                    <p><strong>Nom :</strong> {rental.client.nom}</p>
-                    <p><strong>CIN :</strong> {rental.client.cin}</p>
-                    <p><strong>Téléphone :</strong> {rental.client.telephone}</p>
-                    <p><strong>Adresse :</strong> {rental.client.adresse}</p>
-                </div>
-            </div>
-            <Separator />
-            <div>
-                <h3 className="font-semibold text-lg mb-2">Informations sur la location</h3>
-                <div className="text-sm space-y-1">
-                    <p><strong>Période :</strong> du {format(new Date(rental.dateDebut), "dd LLL, y", { locale: fr })} au {format(new Date(rental.dateFin), "dd LLL, y", { locale: fr })}</p>
-                    <p><strong>Prix par jour :</strong> {formatCurrency(rental.prixParJour, 'MAD')}</p>
-                    <p><strong>Caution :</strong> {formatCurrency(rental.caution, 'MAD')}</p>
-                    <p className="font-bold text-base mt-2"><strong>Prix Total :</strong> {formatCurrency(rental.prixTotal, 'MAD')}</p>
-                </div>
+                    <Separator />
+                </>
+             )}
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                <h3 className="font-semibold text-base col-span-2">Détails Financiers</h3>
+                <p><strong>Prix/Jour:</strong> {formatCurrency(rental.location.prixParJour, 'MAD')}</p>
+                <p><strong>Nombre de Jours:</strong> {rental.location.nbrJours}</p>
+                <p><strong>Dépôt de Garantie:</strong> {rental.location.depot ? formatCurrency(rental.location.depot, 'MAD') : 'N/A'}</p>
+                <p className="font-bold text-lg"><strong>Montant à Payer:</strong> {formatCurrency(rental.location.montantAPayer, 'MAD')}</p>
             </div>
         </div>
+      </ScrollArea>
     );
 }
 
@@ -116,43 +139,43 @@ export default function RentalTable({ rentals: initialRentals, isDashboard = fal
   const handleEndRental = (rentalId: string) => {
     setRentals(prevRentals =>
       prevRentals.map(r =>
-        r.id === rentalId
+        r.contratId === rentalId
           ? {
               ...r,
               statut: 'terminee',
-              voiture: { ...r.voiture, disponible: true },
             }
           : r
       )
     );
+    // Here you would also update car availability
     toast({ title: "Location terminée", description: `La location ${rentalId} a été marquée comme terminée.` });
   };
 
   const columns: ColumnDef<Rental>[] = [
     {
-      accessorKey: "voiture",
+      accessorKey: "vehicule",
       header: "Voiture",
       cell: ({ row }) => {
         const rental = row.original;
-        return `${rental.voiture.marque} ${rental.voiture.modele}`;
+        return rental.vehicule.marque;
       }
     },
     {
-      accessorKey: "client",
+      accessorKey: "locataire",
       header: "Client",
-      cell: ({ row }) => row.original.client.nom,
+      cell: ({ row }) => row.original.locataire.nomPrenom,
     },
     {
-      accessorKey: "dateFin",
+      accessorKey: "location.dateFin",
       header: "Date de retour",
-      cell: ({ row }) => format(new Date(row.getValue("dateFin")), "dd/MM/yyyy", { locale: fr }),
+      cell: ({ row }) => format(new Date(row.original.location.dateFin), "dd/MM/yyyy", { locale: fr }),
     },
     {
-      accessorKey: "prixTotal",
+      accessorKey: "location.montantAPayer",
       header: () => <div className="text-right">Prix Total</div>,
       cell: ({ row }) => (
         <div className="text-right font-medium">
-          {formatCurrency(row.getValue("prixTotal"), 'MAD')}
+          {formatCurrency(row.original.location.montantAPayer, 'MAD')}
         </div>
       ),
     },
@@ -203,19 +226,19 @@ export default function RentalTable({ rentals: initialRentals, isDashboard = fal
                     <AlertDialogHeader>
                         <AlertDialogTitle>Êtes-vous sûr de vouloir terminer cette location ?</AlertDialogTitle>
                         <AlertDialogDescription>
-                        Cette action est irréversible. La voiture sera marquée comme disponible et le statut de la location sera "Terminée".
+                        Cette action est irréversible. Le statut de la location sera "Terminée".
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Annuler</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleEndRental(rental.id)}>Confirmer</AlertDialogAction>
+                        <AlertDialogAction onClick={() => handleEndRental(rental.contratId)}>Confirmer</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
-                <DialogContent className="sm:max-w-2xl">
+                <DialogContent className="sm:max-w-3xl">
                     <DialogHeader>
-                        <DialogTitle>Détails de la location #{rental.id}</DialogTitle>
+                        <DialogTitle>Détails du contrat de location #{rental.contratId}</DialogTitle>
                         <DialogDescription>
-                            Créée le {format(new Date(rental.createdAt), "dd LLL, y 'à' HH:mm", { locale: fr })}
+                            Créé le {format(new Date(rental.createdAt), "dd LLL, y 'à' HH:mm", { locale: fr })}
                         </DialogDescription>
                     </DialogHeader>
                     <RentalDetails rental={rental} />
@@ -289,9 +312,9 @@ export default function RentalTable({ rentals: initialRentals, isDashboard = fal
         <div className="flex items-center py-4 gap-2">
           <Input
             placeholder="Filtrer par client..."
-            value={(table.getColumn("client")?.getFilterValue() as string) ?? ""}
+            value={(table.getColumn("locataire")?.getFilterValue() as string) ?? ""}
             onChange={(event) =>
-              table.getColumn("client")?.setFilterValue(event.target.value)
+              table.getColumn("locataire")?.setFilterValue(event.target.value)
             }
             className="max-w-sm"
           />
@@ -351,5 +374,3 @@ export default function RentalTable({ rentals: initialRentals, isDashboard = fal
     </Sheet>
   );
 }
-
-    
