@@ -3,32 +3,47 @@
 import { cn } from '@/lib/utils';
 import React from 'react';
 
-// Simplified car parts for the diagram
+// More detailed car parts for the diagram
 const carParts = [
-    // Pare-chocs
-    { id: 'parechoc_av', label: 'Pare-choc Avant', path: "M32,95 C35,100 65,100 68,95 H32" },
-    { id: 'parechoc_ar', label: 'Pare-choc Arrière', path: "M32,5 C35,0 65,0 68,5 H32" },
-    // Côtés
-    { id: 'cote_g', label: 'Côté Gauche', path: "M25,15 V85 H30 V15 H25" },
-    { id: 'cote_d', label: 'Côté Droit', path: "M75,15 V85 H70 V15 H75" },
-    // Portes
-    { id: 'porte_avg', label: 'Porte Avant Gauche', path: "M30,50 V85 H38 V50 H30" },
-    { id: 'porte_arg', label: 'Porte Arrière Gauche', path: "M30,15 V50 H38 V15 H30" },
-    { id: 'porte_avd', label: 'Porte Avant Droite', path: "M70,50 V85 H62 V50 H70" },
-    { id: 'porte_ard', label: 'Porte Arrière Droite', path: "M70,15 V50 H62 V15 H70" },
-    // Ailes
-    { id: 'aile_avg', label: 'Aile Avant Gauche', path: "M25,85 H32 L35,95 H28 L25,85" },
-    { id: 'aile_arg', label: 'Aile Arrière Gauche', path: "M25,15 H32 L35,5 H28 L25,15" },
-    { id: 'aile_avd', label: 'Aile Avant Droite', path: "M75,85 H68 L65,95 H72 L75,85" },
-    { id: 'aile_ard', label: 'Aile Arrière Droite', path: "M75,15 H68 L65,5 H72 L75,15" },
-    // Capot & Coffre
-    { id: 'capot', label: 'Capot', path: "M40,80 H60 V95 H40 V80" },
-    { id: 'coffre', label: 'Coffre', path: "M40,5 H60 V20 H40 V5" },
-    // Toit
-    { id: 'toit', label: 'Toit', path: "M40,40 H60 V60 H40 V40" },
+    // Front
+    { id: 'parechoc_av', label: 'Pare-choc Avant', path: "M26,90.5 h48" },
+    { id: 'capot', label: 'Capot', path: "M26,80 h48 v10 h-48z" },
+    { id: 'phare_avg', label: 'Phare Avant Gauche', path: "M27,88 h10 v5 h-10z" },
+    { id: 'phare_avd', label: 'Phare Avant Droit', path: "M63,88 h10 v5 h-10z" },
+    { id: 'parebrise', label: 'Pare-brise', path: "M28,68 h44 v10 h-44z" },
+    
+    // Left Side
+    { id: 'aile_avg', label: 'Aile Avant Gauche', path: "M20,68 v20 h6 v-20z" },
+    { id: 'retro_g', label: 'Rétroviseur Gauche', path: "M16,62 v10 l4,2 v-14 l-4,2" },
+    { id: 'porte_avg', label: 'Porte Avant Gauche', path: "M20,45 v21 h6 v-21z" },
+    { id: 'porte_arg', label: 'Porte Arrière Gauche', path: "M20,25 v18 h6 v-18z" },
+    { id: 'aile_arg', label: 'Aile Arrière Gauche', path: "M20,5 v18 h6 v-18z" },
+    
+    // Right Side
+    { id: 'aile_avd', label: 'Aile Avant Droite', path: "M74,68 v20 h6 v-20z" },
+    { id: 'retro_d', label: 'Rétroviseur Droit', path: "M80,62 l4,2 v10 l-4,2 v-14" },
+    { id: 'porte_avd', label: 'Porte Avant Droite', path: "M74,45 v21 h6 v-21z" },
+    { id: 'porte_ard', label: 'Porte Arrière Droite', path: "M74,25 v18 h6 v-18z" },
+    { id: 'aile_ard', label: 'Aile Arrière Droite', path: "M74,5 v18 h6 v-18z" },
+
+    // Rear
+    { id: 'lunette_ar', label: 'Lunette Arrière', path: "M28,8 h44 v10 h-44z" },
+    { id: 'coffre', label: 'Coffre', path: "M26,20 h48 v10 h-48z" },
+    { id: 'parechoc_ar', label: 'Pare-choc Arrière', path: "M26,3 h48" },
+    { id: 'phare_arg', label: 'Phare Arrière Gauche', path: "M27,1 h10 v5 h-10z" },
+    { id: 'phare_ard', label: 'Phare Arrière Droit', path: "M63,1 h10 v5 h-10z" },
+
+    // Top
+    { id: 'toit', label: 'Toit', path: "M28,32 h44 v34 h-44z" },
+
+    // Wheels
+    { id: 'roue_avg', label: 'Roue Avant Gauche', path: "M14,68 a6,6 0 1,0 12,0 a6,6 0 1,0 -12,0" },
+    { id: 'roue_arg', label: 'Roue Arrière Gauche', path: "M14,20 a6,6 0 1,0 12,0 a6,6 0 1,0 -12,0" },
+    { id: 'roue_avd', label: 'Roue Avant Droite', path: "M74,68 a6,6 0 1,0 12,0 a6,6 0 1,0 -12,0" },
+    { id: 'roue_ard', label: 'Roue Arrière Droite', path: "M74,20 a6,6 0 1,0 12,0 a6,6 0 1,0 -12,0" },
 ] as const;
 
-type DamagePart = typeof carParts[number]['id'];
+export type DamagePart = typeof carParts[number]['id'];
 
 type CarDamageDiagramProps = {
   damages: { [key in DamagePart]?: boolean };
@@ -47,43 +62,63 @@ const CarDamageDiagram: React.FC<CarDamageDiagramProps> = ({ damages, onDamagesC
 
   return (
     <div className="w-full flex justify-center p-4 border rounded-md bg-muted/20">
-      <svg viewBox="0 -5 100 110" className="w-full max-w-xs" >
+      <svg viewBox="0 0 100 100" className="w-full max-w-xs" >
         <g stroke="hsl(var(--muted-foreground))" strokeWidth="0.5" fill="hsl(var(--card))">
             {/* Car Body Outline */}
             <path 
-                d="M30,5 C30,0 70,0 70,5 L75,15 V85 L70,95 C70,100 30,100 30,95 L25,85 V15 L30,5 Z" 
+                d="M20,5 L80,5 L80,95 L20,95 Z" 
                 strokeWidth="1.5" 
                 fill="hsl(var(--muted))"
+                transform="translate(0, -2)"
             />
+
+            {/* Base shape */}
+            <path d="M26,5 a4,4 0 0,0 -4,4 v82 a4,4 0 0,0 4,4 h48 a4,4 0 0,0 4,-4 v-82 a4,4 0 0,0 -4,-4 H26z" strokeWidth="1" />
             
             {/* Windows */}
-            <path d="M38,20 H62 V38 H38 V20 Z" /> {/* Rear window */}
-            <path d="M38,62 H62 V80 H38 V62 Z" /> {/* Front window */}
-            <path d="M38,40 H62 V60 H38 V40 Z" /> {/* Roof area between windows */}
+            <path d="M28,8 h44 v10 h-44z" /> {/* Rear window */}
+            <path d="M28,68 h44 v10 h-44z" /> {/* Front window */}
+            
+            {/* Roof */}
+            <path d="M28,20 h44 v46 h-44z" strokeWidth="1" /> {/* Roof area */}
+            
+            {/* Hood/Trunk lines */}
+            <path d="M26,30 h48" />
+            <path d="M26,80 h48" />
 
+            {/* Wheels */}
+            <circle cx="20" cy="26" r="6" strokeWidth="1"/>
+            <circle cx="80" cy="26" r="6" strokeWidth="1"/>
+            <circle cx="20" cy="74" r="6" strokeWidth="1"/>
+            <circle cx="80" cy="74" r="6" strokeWidth="1"/>
+           
             {/* Mirrors */}
-            <path d="M22,60 L25,62 V68 L22,70 Z" /> {/* Left mirror */}
-            <path d="M78,60 L75,62 V68 L78,70 Z" /> {/* Right mirror */}
+            <path d="M16,62 v10 l4,2 v-14 l-4,2" strokeWidth="1" />
+            <path d="M84,62 v10 l-4,2 v-14 l4,2" strokeWidth="1" />
 
             {/* Lights */}
-            <rect x="35" y="93" width="8" height="4" className="fill-yellow-300/50" />
-            <rect x="57" y="93" width="8" height="4" className="fill-yellow-300/50" />
-            <rect x="35" y="3" width="8" height="4" className="fill-red-500/50" />
-            <rect x="57" y="3" width="8" height="4" className="fill-red-500/50" />
+            <rect x="27" y="1" width="10" height="5" className="fill-red-500/50" />
+            <rect x="63" y="1" width="10" height="5" className="fill-red-500/50" />
+            <rect x="27" y="88" width="10" height="5" className="fill-yellow-300/50" />
+            <rect x="63" y="88" width="10" height="5" className="fill-yellow-300/50" />
 
             {/* Interactive Parts Overlay */}
-            {carParts.map((part) => (
-                <path
-                    key={part.id}
-                    d={part.path}
-                    onClick={() => handlePartClick(part.id)}
-                    className={cn(
-                        "fill-transparent transition-colors",
-                        readOnly ? "" : "cursor-pointer hover:fill-yellow-300/50",
-                        damages[part.id] && "fill-destructive/70"
-                    )}
-                />
-            ))}
+            <g fill="transparent" stroke="transparent" strokeWidth="2">
+                {carParts.map((part) => (
+                    <path
+                        key={part.id}
+                        d={part.path}
+                        onClick={() => handlePartClick(part.id)}
+                        className={cn(
+                            "transition-colors",
+                            readOnly ? "" : "cursor-pointer hover:fill-yellow-300/50 hover:stroke-yellow-400",
+                            damages[part.id] && "fill-destructive/70 stroke-destructive"
+                        )}
+                    >
+                      <title>{part.label}</title>
+                    </path>
+                ))}
+            </g>
         </g>
       </svg>
     </div>
