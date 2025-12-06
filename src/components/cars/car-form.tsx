@@ -17,7 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import type { Car } from "@/lib/definitions";
 import { FileInput } from "../ui/file-input";
 
@@ -43,6 +43,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     prixParJour: 0,
     etat: "new",
     disponible: true,
+    photo: undefined,
   };
 
   const form = useForm<CarFormValues>({

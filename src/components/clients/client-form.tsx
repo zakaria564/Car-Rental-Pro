@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import type { Client } from "@/lib/definitions";
 import { FileInput } from "../ui/file-input";
 
@@ -37,6 +37,7 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
     cin: "",
     telephone: "",
     adresse: "",
+    photoCIN: undefined,
   };
 
   const form = useForm<ClientFormValues>({
