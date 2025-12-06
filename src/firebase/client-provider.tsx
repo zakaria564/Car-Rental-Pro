@@ -1,20 +1,26 @@
 'use client';
 import { getFirebaseServices } from '@/firebase/config';
 import { FirebaseProvider } from '@/firebase/provider';
-import React, { useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
+
+type FirebaseServices = ReturnType<typeof getFirebaseServices>;
 
 // This provider is responsible for initializing Firebase on the client side.
 // It should be used as a wrapper around the root of your application.
 export function FirebaseClientProvider({ children }: { children: React.ReactNode }) {
-  const services = useMemo(() => {
+  const [services, setServices] = useState<FirebaseServices | null>(null);
+
+  useEffect(() => {
+    // This code will only run on the client side
     if (typeof window !== 'undefined') {
-      return getFirebaseServices();
+      const firebaseServices = getFirebaseServices();
+      setServices(firebaseServices);
     }
-    return null;
   }, []);
 
   if (!services) {
-    // You can return a loader here if you want
+    // You can return a loader here if you want, while Firebase is initializing.
+    // Returning children directly might cause components to try and use Firebase before it's ready.
     return <>{children}</>;
   }
 
