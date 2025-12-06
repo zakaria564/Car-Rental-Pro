@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
 
-export default function SignupPage() {
+export default function LoginPage() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-background">
       <Card className="mx-auto max-w-sm w-full">
@@ -20,17 +20,13 @@ export default function SignupPage() {
           <div className="inline-block mx-auto">
             <Logo />
           </div>
-          <CardTitle className="text-2xl font-bold">Créer un compte</CardTitle>
+          <CardTitle className="text-2xl font-bold">Location Auto Pro</CardTitle>
           <CardDescription>
-            Entrez vos informations pour créer un nouveau compte
+            Entrez votre email ci-dessous pour vous connecter à votre compte
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nom complet</Label>
-              <Input id="name" placeholder="Jean Dupont" required />
-            </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -38,23 +34,34 @@ export default function SignupPage() {
                 type="email"
                 placeholder="m@exemple.com"
                 required
+                defaultValue="admin@example.com"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Mot de passe</Label>
-              <Input id="password" type="password" required />
+              <div className="flex items-center">
+                <Label htmlFor="password">Mot de passe</Label>
+                <Link
+                  href="#"
+                  className="ml-auto inline-block text-sm underline"
+                >
+                  Mot de passe oublié ?
+                </Link>
+              </div>
+              <Input id="password" type="password" required defaultValue="password" />
             </div>
-            <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
-              S'inscrire
+            <Button type="submit" className="w-full bg-primary hover:bg-primary/90" asChild>
+                <Link href="/dashboard">
+                    Connexion
+                </Link>
             </Button>
             <Button variant="outline" className="w-full">
-              S'inscrire avec Google
+              Connexion avec Google
             </Button>
           </div>
           <div className="mt-4 text-center text-sm">
-            Vous avez déjà un compte ?{' '}
-            <Link href="/login" className="underline">
-              Se connecter
+            Vous n'avez pas de compte ?{' '}
+            <Link href="/" className="underline">
+              S'inscrire
             </Link>
           </div>
         </CardContent>
