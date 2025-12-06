@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import type { Rental } from "@/lib/definitions";
+import type { Rental, Car as CarType, Client } from "@/lib/definitions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { CalendarIcon } from "lucide-react";
@@ -24,7 +24,6 @@ import { Calendar } from "../ui/calendar";
 import { cn, formatCurrency } from "@/lib/utils";
 import { format, differenceInCalendarDays } from "date-fns";
 import { fr } from 'date-fns/locale';
-import { MOCK_CARS, MOCK_CLIENTS } from "@/lib/mock-data";
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
@@ -32,6 +31,11 @@ import { Checkbox } from "../ui/checkbox";
 import { Textarea } from "../ui/textarea";
 import { Slider } from "../ui/slider";
 import CarDamageDiagram, { type DamagePart } from "./car-damage-diagram";
+import { useFirebase } from "@/firebase";
+import { collection, onSnapshot, addDoc, serverTimestamp, doc, setDoc, updateDoc } from "firebase/firestore";
+import { useRouter } from "next/navigation";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
 
 const rentalFormSchema = z.object({
   clientId: z.string({ required_error: "Veuillez sélectionner un client." }),
@@ -41,7 +45,6 @@ const rentalFormSchema = z.object({
     to: z.date({ required_error: "Une date de fin est requise." }),
   }),
   caution: z.coerce.number().min(0, "La caution ne peut pas être négative.").optional(),
-  // Delivery details (Départ)
   kilometrageDepart: z.coerce.number().min(0, "Le kilométrage doit être positif."),
   carburantNiveauDepart: z.number().min(0).max(1),
   roueSecours: z.boolean().default(false),
@@ -49,8 +52,6 @@ const rentalFormSchema = z.object({
   lavage: z.boolean().default(false),
   dommagesDepartNotes: z.string().optional(),
   dommagesDepart: z.record(z.string(), z.boolean()).optional(),
-
-  // Reception details (Retour) - optional as they are filled later
   kilometrageRetour: z.coerce.number().min(0, "Le kilométrage doit être positif.").optional(),
   carburantNiveauRetour: z.number().min(0).max(1).optional(),
   dommagesRetourNotes: z.string().optional(),
@@ -61,12 +62,40 @@ type RentalFormValues = z.infer<typeof rentalFormSchema>;
 
 export default function RentalForm({ rental, onFinished }: { rental: Rental | null, onFinished: () => void }) {
   const { toast } = useToast();
+  const router = useRouter();
+  const { firestore } = useFirebase();
+
+  const [cars, setCars] = React.useState<CarType[]>([]);
+  const [clients, setClients] = React.useState<Client[]>([]);
+
+  React.useEffect(() => {
+    if (!firestore) return;
+    const carsUnsubscribe = onSnapshot(collection(firestore, "cars"), (snapshot) => {
+      setCars(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CarType)));
+    });
+    const clientsUnsubscribe = onSnapshot(collection(firestore, "clients"), (snapshot) => {
+      setClients(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Client)));
+    });
+    return () => {
+      carsUnsubscribe();
+      clientsUnsubscribe();
+    };
+  }, [firestore]);
   
   const form = useForm<RentalFormValues>({
     resolver: zodResolver(rentalFormSchema),
     mode: "onChange",
     defaultValues: rental ? {
-        // Map existing rental data here if needed
+        clientId: rental.locataire.cin, // Assuming cin is used as id
+        voitureId: rental.vehicule.immatriculation,
+        dateRange: { from: new Date(rental.location.dateDebut), to: new Date(rental.location.dateFin)},
+        caution: rental.location.depot,
+        kilometrageDepart: rental.livraison.kilometrage,
+        carburantNiveauDepart: rental.livraison.carburantNiveau,
+        roueSecours: rental.livraison.roueSecours,
+        posteRadio: rental.livraison.posteRadio,
+        lavage: rental.livraison.lavage,
+        // dommagesDepartNotes and dommagesDepart would need mapping
       } : {
       carburantNiveauDepart: 0.5,
       dommagesDepart: {},
@@ -77,11 +106,16 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
   const selectedCarId = form.watch("voitureId");
   const dateRange = form.watch("dateRange");
 
-  const availableCars = MOCK_CARS.filter(car => car.disponible || car.id === rental?.vehicule.immatriculation);
+  const availableCars = cars.filter(car => car.disponible || car.id === rental?.vehicule.immatriculation);
 
   const selectedCar = React.useMemo(() => {
-    return MOCK_CARS.find(car => car.id === selectedCarId);
-  }, [selectedCarId]);
+    return cars.find(car => car.id === selectedCarId);
+  }, [selectedCarId, cars]);
+  
+  const selectedClient = React.useMemo(() => {
+    return clients.find(client => client.id === form.watch("clientId"));
+    }, [form.watch("clientId"), clients]);
+
 
   const rentalDays = React.useMemo(() => {
     if (dateRange?.from && dateRange?.to) {
@@ -97,16 +131,78 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
     return 0;
   }, [selectedCar, rentalDays]);
 
-  function onSubmit(data: RentalFormValues) {
-    toast({
-      title: "Contrat de location créé",
-      description: (
-        <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-          <code className="text-white">{JSON.stringify({...data, prixTotal}, null, 2)}</code>
-        </pre>
-      ),
-    });
-    onFinished();
+  async function onSubmit(data: RentalFormValues) {
+    if (!selectedCar || !selectedClient) {
+        toast({ variant: "destructive", title: "Erreur", description: "Veuillez sélectionner un client et une voiture." });
+        return;
+    }
+
+    const rentalPayload = {
+      locataire: {
+        cin: selectedClient.id,
+        nomPrenom: selectedClient.nom,
+        permisNo: selectedClient.permisNo || 'N/A',
+        telephone: selectedClient.telephone,
+      },
+      vehicule: {
+        immatriculation: selectedCar.id,
+        marque: `${selectedCar.marque} ${selectedCar.modele}`,
+        modeleAnnee: selectedCar.modeleAnnee,
+        couleur: selectedCar.couleur,
+        nbrPlaces: selectedCar.nbrPlaces,
+        puissance: selectedCar.puissance,
+        carburantType: selectedCar.carburantType,
+        photoURL: selectedCar.photoURL
+      },
+      livraison: {
+        dateHeure: new Date().toISOString(),
+        kilometrage: data.kilometrageDepart,
+        carburantNiveau: data.carburantNiveauDepart,
+        roueSecours: data.roueSecours,
+        posteRadio: data.posteRadio,
+        lavage: data.lavage,
+        dommages: Object.keys(data.dommagesDepart || {}).filter(k => data.dommagesDepart?.[k]),
+        dommagesNotes: data.dommagesDepartNotes,
+      },
+      reception: {},
+      location: {
+        dateDebut: data.dateRange.from.toISOString(),
+        dateFin: data.dateRange.to.toISOString(),
+        prixParJour: selectedCar.prixParJour,
+        nbrJours: rentalDays,
+        depot: data.caution,
+        montantAPayer: prixTotal,
+      },
+      statut: 'en_cours',
+      createdAt: serverTimestamp(),
+    };
+
+    const rentalsCollection = collection(firestore, 'rentals');
+    const carDocRef = doc(firestore, 'cars', selectedCar.id);
+
+    try {
+        await addDoc(rentalsCollection, rentalPayload);
+        await updateDoc(carDocRef, { disponible: false });
+
+        toast({
+            title: "Contrat de location créé",
+            description: `La location pour ${selectedClient.nom} a été créée avec succès.`,
+        });
+        onFinished();
+        router.refresh();
+    } catch (serverError: any) {
+        const permissionError = new FirestorePermissionError({
+            path: rentalsCollection.path,
+            operation: 'create',
+            requestResourceData: rentalPayload
+        }, serverError);
+        errorEmitter.emit('permission-error', permissionError);
+         toast({
+            variant: "destructive",
+            title: "Erreur lors de la création",
+            description: "Une erreur est survenue. Vérifiez vos permissions et réessayez.",
+        });
+    }
   }
   
   return (
@@ -127,7 +223,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
                               <SelectTrigger><SelectValue placeholder="Sélectionner un client" /></SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {MOCK_CLIENTS.map(client => <SelectItem key={client.id} value={client.id}>{client.nom}</SelectItem>)}
+                              {clients.map(client => <SelectItem key={client.id} value={client.id}>{client.nom}</SelectItem>)}
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -414,14 +510,10 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
             </CardContent>
         </Card>
 
-        <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={!form.formState.isValid}>
-          {rental ? 'Mettre à jour le contrat' : 'Créer la location'}
+        <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={form.formState.isSubmitting || !form.formState.isValid}>
+          {form.formState.isSubmitting ? "Enregistrement..." : (rental ? 'Mettre à jour le contrat' : 'Créer la location')}
         </Button>
       </form>
     </Form>
   );
 }
-
-    
-
-    

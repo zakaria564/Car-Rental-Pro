@@ -15,9 +15,14 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import type { Client } from "@/lib/definitions";
 import { FileInput } from "../ui/file-input";
+import { useRouter } from "next/navigation";
+import { useFirebase } from "@/firebase";
+import { addDoc, collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
 
 const clientFormSchema = z.object({
   nom: z.string().min(2, "Le nom doit comporter au moins 2 caractères."),
@@ -30,6 +35,10 @@ const clientFormSchema = z.object({
 type ClientFormValues = z.infer<typeof clientFormSchema>;
 
 export default function ClientForm({ client, onFinished }: { client: Client | null, onFinished: () => void }) {
+  const router = useRouter();
+  const { toast } = useToast();
+  const { firestore } = useFirebase();
+  
   const defaultValues: Partial<ClientFormValues> = client ? {
     ...client,
   } : {
@@ -46,16 +55,47 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
     mode: "onChange",
   });
 
-  function onSubmit(data: ClientFormValues) {
-    toast({
-      title: "Formulaire soumis",
-      description: (
-        <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-          <code className="text-white">{JSON.stringify(data, null, 2)}</code>
-        </pre>
-      ),
-    });
+  async function onSubmit(data: ClientFormValues) {
+    const { photoCIN, ...clientData } = data;
+    
+    const clientPayload = {
+      ...clientData,
+      photoCIN: "https://picsum.photos/seed/cin-default/400/250",
+      createdAt: serverTimestamp(),
+    };
+
+    if (client) {
+      const clientRef = doc(firestore, 'clients', client.id);
+      setDoc(clientRef, clientPayload, { merge: true }).catch(serverError => {
+        const permissionError = new FirestorePermissionError({
+            path: clientRef.path,
+            operation: 'update',
+            requestResourceData: clientPayload
+        }, serverError);
+        errorEmitter.emit('permission-error', permissionError);
+      });
+       toast({
+        title: "Client mis à jour",
+        description: "L'opération a été initiée.",
+      });
+    } else {
+      const clientsCollection = collection(firestore, 'clients');
+      addDoc(clientsCollection, clientPayload).catch(serverError => {
+        const permissionError = new FirestorePermissionError({
+            path: clientsCollection.path,
+            operation: 'create',
+            requestResourceData: clientPayload
+        }, serverError);
+        errorEmitter.emit('permission-error', permissionError);
+      });
+       toast({
+        title: "Client ajouté",
+        description: "L'opération a été initiée.",
+      });
+    }
+
     onFinished();
+    router.refresh();
   }
 
   return (
@@ -126,8 +166,8 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
-          {client ? 'Mettre à jour le client' : 'Ajouter un client'}
+        <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={form.formState.isSubmitting}>
+          {form.formState.isSubmitting ? 'Enregistrement...' : (client ? 'Mettre à jour le client' : 'Ajouter un client')}
         </Button>
       </form>
     </Form>

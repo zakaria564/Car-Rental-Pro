@@ -1,4 +1,5 @@
 
+
 export type Car = {
   id: string;
   marque: string;
@@ -24,11 +25,12 @@ export type Client = {
   adresse: string;
   photoCIN: string;
   createdAt: string;
-  permisNo: string;
+  permisNo?: string;
 };
 
 export type Contrat = {
-  contratId: string;
+  id?: string;
+  contratId?: string;
   locataire: {
     cin: string;
     nomPrenom: string;

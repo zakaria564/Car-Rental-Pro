@@ -47,6 +47,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Separator } from "../ui/separator";
 import Image from "next/image";
 import { ScrollArea } from "../ui/scroll-area";
+import { doc, updateDoc } from "firebase/firestore";
+import { useFirebase } from "@/firebase";
 
 type RentalTableProps = {
   rentals: Rental[];
@@ -95,7 +97,7 @@ function RentalDetails({ rental }: { rental: Rental }) {
                 <p><strong>Roue de Secours:</strong> {rental.livraison.roueSecours ? 'Oui' : 'Non'}</p>
                 <p><strong>Poste Radio:</strong> {rental.livraison.posteRadio ? 'Oui' : 'Non'}</p>
                 <p><strong>Lavage:</strong> {rental.livraison.lavage ? 'Propre' : 'Sale'}</p>
-                {rental.livraison.dommages && <p className="col-span-2"><strong>Dommages:</strong> {rental.livraison.dommages.join(', ')}</p>}
+                {rental.livraison.dommages && rental.livraison.dommages.length > 0 && <p className="col-span-2"><strong>Dommages:</strong> {rental.livraison.dommages.join(', ')}</p>}
             </div>
             <Separator />
              {rental.reception.dateHeure && (
@@ -122,9 +124,9 @@ function RentalDetails({ rental }: { rental: Rental }) {
 }
 
 
-export default function RentalTable({ rentals: initialRentals, isDashboard = false }: RentalTableProps) {
+export default function RentalTable({ rentals, isDashboard = false }: RentalTableProps) {
   const { toast } = useToast();
-  const [rentals, setRentals] = React.useState(initialRentals);
+  const { firestore } = useFirebase();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
@@ -132,23 +134,19 @@ export default function RentalTable({ rentals: initialRentals, isDashboard = fal
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [selectedRental, setSelectedRental] = React.useState<Rental | null>(null);
 
-  React.useEffect(() => {
-    setRentals(initialRentals);
-  }, [initialRentals]);
-
-  const handleEndRental = (rentalId: string) => {
-    setRentals(prevRentals =>
-      prevRentals.map(r =>
-        r.contratId === rentalId
-          ? {
-              ...r,
-              statut: 'terminee',
-            }
-          : r
-      )
-    );
-    // Here you would also update car availability
-    toast({ title: "Location terminée", description: `La location ${rentalId} a été marquée comme terminée.` });
+  const handleEndRental = async (rental: Rental) => {
+    if (!rental.id || !rental.vehicule.immatriculation) return;
+    const rentalDocRef = doc(firestore, 'rentals', rental.id);
+    const carDocRef = doc(firestore, 'cars', rental.vehicule.immatriculation);
+    
+    try {
+        await updateDoc(rentalDocRef, { statut: 'terminee' });
+        await updateDoc(carDocRef, { disponible: true });
+        toast({ title: "Location terminée", description: `La location a été marquée comme terminée.` });
+    } catch(e) {
+        console.error(e);
+        toast({ variant: 'destructive', title: "Erreur", description: "Impossible de terminer la location."});
+    }
   };
 
   const columns: ColumnDef<Rental>[] = [
@@ -226,17 +224,17 @@ export default function RentalTable({ rentals: initialRentals, isDashboard = fal
                     <AlertDialogHeader>
                         <AlertDialogTitle>Êtes-vous sûr de vouloir terminer cette location ?</AlertDialogTitle>
                         <AlertDialogDescription>
-                        Cette action est irréversible. Le statut de la location sera "Terminée".
+                        Cette action est irréversible. Le statut de la location sera "Terminée" et la voiture sera marquée comme disponible.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Annuler</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleEndRental(rental.contratId)}>Confirmer</AlertDialogAction>
+                        <AlertDialogAction onClick={() => handleEndRental(rental)}>Confirmer</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
                 <DialogContent className="sm:max-w-3xl">
                     <DialogHeader>
-                        <DialogTitle>Détails du contrat de location #{rental.contratId}</DialogTitle>
+                        <DialogTitle>Détails du contrat de location #{rental.id}</DialogTitle>
                         <DialogDescription>
                             Créé le {format(new Date(rental.createdAt), "dd LLL, y 'à' HH:mm", { locale: fr })}
                         </DialogDescription>
