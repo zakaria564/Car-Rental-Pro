@@ -1,6 +1,7 @@
 'use client';
 import { getFirebaseServices } from '@/firebase/config';
 import { FirebaseProvider } from '@/firebase/provider';
+import { Skeleton } from '@/components/ui/skeleton';
 import React, { useEffect, useState } from 'react';
 
 type FirebaseServices = ReturnType<typeof getFirebaseServices>;
@@ -19,9 +20,17 @@ export function FirebaseClientProvider({ children }: { children: React.ReactNode
   }, []);
 
   if (!services) {
-    // You can return a loader here if you want, while Firebase is initializing.
-    // Returning children directly might cause components to try and use Firebase before it's ready.
-    return <>{children}</>;
+    // Show a loading skeleton while Firebase is initializing.
+    // This ensures that descendant components are mounted and can use hooks.
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-full max-w-md p-4 space-y-4">
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-20 w-full" />
+        </div>
+      </div>
+    );
   }
 
   return <FirebaseProvider {...services}>{children}</FirebaseProvider>;
