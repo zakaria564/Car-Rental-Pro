@@ -49,7 +49,7 @@ const rentalFormSchema = z.object({
   dommages: z.string().optional(),
   dommagesChecklist: z.object({
       av_g: z.boolean().default(false).describe("Avant Gauche"),
-      av_d: z_boolean().default(false).describe("Avant Droit"),
+      av_d: z.boolean().default(false).describe("Avant Droit"),
       ar_g: z.boolean().default(false).describe("Arrière Gauche"),
       ar_d: z.boolean().default(false).describe("Arrière Droit"),
       capot: z.boolean().default(false).describe("Capot"),
@@ -362,6 +362,5 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
     </Form>
   );
 }
-
 
     
