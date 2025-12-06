@@ -59,7 +59,7 @@ const CarDamageDiagram: React.FC<CarDamageDiagramProps> = ({ damages, onDamagesC
             {/* Windows */}
             <path d="M38,20 H62 V38 H38 V20 Z" /> {/* Rear window */}
             <path d="M38,62 H62 V80 H38 V62 Z" /> {/* Front window */}
-            <path d: "M38,40 H62 V60 H38 V40 Z" /> {/* Roof area between windows */}
+            <path d="M38,40 H62 V60 H38 V40 Z" /> {/* Roof area between windows */}
 
             {/* Mirrors */}
             <path d="M22,60 L25,62 V68 L22,70 Z" /> {/* Left mirror */}
