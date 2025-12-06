@@ -6,48 +6,52 @@ import React from 'react';
 // More detailed car parts for the diagram
 const carParts = [
     // Front
-    { id: 'parechoc_av', label: 'Pare-choc Avant', path: "M26,90.5 h48" },
-    { id: 'capot', label: 'Capot', path: "M26,80 h48 v10 h-48z" },
-    { id: 'phare_avg', label: 'Phare Avant Gauche', path: "M27,88 h10 v5 h-10z" },
-    { id: 'phare_avd', label: 'Phare Avant Droit', path: "M63,88 h10 v5 h-10z" },
-    { id: 'parebrise', label: 'Pare-brise', path: "M28,68 h44 v10 h-44z" },
+    { id: 'parechoc_av_1', label: 'Pare-choc Avant', x: 35, y: 88, w: 10, h: 4 },
+    { id: 'parechoc_av_2', label: 'Pare-choc Avant', x: 55, y: 88, w: 10, h: 4 },
+    { id: 'capot_1', label: 'Capot', x: 35, y: 82, w: 10, h: 5 },
+    { id: 'capot_2', label: 'Capot', x: 55, y: 82, w: 10, h: 5 },
+    { id: 'phare_avg', label: 'Phare Avant Gauche', x: 27, y: 88, w: 5, h: 4 },
+    { id: 'phare_avd', label: 'Phare Avant Droit', x: 68, y: 88, w: 5, h: 4 },
+    { id: 'parebrise', label: 'Pare-brise', x: 45, y: 70, w: 10, h: 8 },
     
     // Left Side
-    { id: 'aile_avg', label: 'Aile Avant Gauche', path: "M20,68 v20 h6 v-20z" },
-    { id: 'retro_g', label: 'Rétroviseur Gauche', path: "M16,62 v10 l4,2 v-14 l-4,2" },
-    { id: 'porte_avg', label: 'Porte Avant Gauche', path: "M20,45 v21 h6 v-21z" },
-    { id: 'porte_arg', label: 'Porte Arrière Gauche', path: "M20,25 v18 h6 v-18z" },
-    { id: 'aile_arg', label: 'Aile Arrière Gauche', path: "M20,5 v18 h6 v-18z" },
+    { id: 'aile_avg_1', label: 'Aile Avant Gauche', x: 22, y: 75, w: 4, h: 10 },
+    { id: 'retro_g', label: 'Rétroviseur Gauche', x: 17, y: 65, w: 4, h: 4 },
+    { id: 'porte_avg_1', label: 'Porte Avant Gauche', x: 22, y: 55, w: 4, h: 10 },
+    { id: 'porte_arg_1', label: 'Porte Arrière Gauche', x: 22, y: 35, w: 4, h: 10 },
+    { id: 'aile_arg_1', label: 'Aile Arrière Gauche', x: 22, y: 15, w: 4, h: 10 },
     
     // Right Side
-    { id: 'aile_avd', label: 'Aile Avant Droite', path: "M74,68 v20 h6 v-20z" },
-    { id: 'retro_d', label: 'Rétroviseur Droit', path: "M80,62 l4,2 v10 l-4,2 v-14" },
-    { id: 'porte_avd', label: 'Porte Avant Droite', path: "M74,45 v21 h6 v-21z" },
-    { id: 'porte_ard', label: 'Porte Arrière Droite', path: "M74,25 v18 h6 v-18z" },
-    { id: 'aile_ard', label: 'Aile Arrière Droite', path: "M74,5 v18 h6 v-18z" },
+    { id: 'aile_avd_1', label: 'Aile Avant Droite', x: 74, y: 75, w: 4, h: 10 },
+    { id: 'retro_d', label: 'Rétroviseur Droit', x: 79, y: 65, w: 4, h: 4 },
+    { id: 'porte_avd_1', label: 'Porte Avant Droite', x: 74, y: 55, w: 4, h: 10 },
+    { id: 'porte_ard_1', label: 'Porte Arrière Droite', x: 74, y: 35, w: 4, h: 10 },
+    { id: 'aile_ard_1', label: 'Aile Arrière Droite', x: 74, y: 15, w: 4, h: 10 },
 
     // Rear
-    { id: 'lunette_ar', label: 'Lunette Arrière', path: "M28,8 h44 v10 h-44z" },
-    { id: 'coffre', label: 'Coffre', path: "M26,20 h48 v10 h-48z" },
-    { id: 'parechoc_ar', label: 'Pare-choc Arrière', path: "M26,3 h48" },
-    { id: 'phare_arg', label: 'Phare Arrière Gauche', path: "M27,1 h10 v5 h-10z" },
-    { id: 'phare_ard', label: 'Phare Arrière Droit', path: "M63,1 h10 v5 h-10z" },
+    { id: 'lunette_ar', label: 'Lunette Arrière', x: 45, y: 10, w: 10, h: 8 },
+    { id: 'coffre_1', label: 'Coffre', x_35, y: 20, w: 10, h: 5 },
+    { id: 'coffre_2', label: 'Coffre', x: 55, y: 20, w: 10, h: 5 },
+    { id: 'parechoc_ar_1', label: 'Pare-choc Arrière', x: 35, y: 3, w: 10, h: 4 },
+    { id: 'parechoc_ar_2', label: 'Pare-choc Arrière', x: 55, y: 3, w: 10, h: 4 },
+    { id: 'phare_arg', label: 'Phare Arrière Gauche', x: 27, y: 4, w: 5, h: 4 },
+    { id: 'phare_ard', label: 'Phare Arrière Droit', x: 68, y: 4, w: 5, h: 4 },
 
     // Top
-    { id: 'toit', label: 'Toit', path: "M28,32 h44 v34 h-44z" },
+    { id: 'toit_1', label: 'Toit', x: 45, y: 45, w: 10, h: 10 },
 
     // Wheels
-    { id: 'roue_avg', label: 'Roue Avant Gauche', path: "M14,68 a6,6 0 1,0 12,0 a6,6 0 1,0 -12,0" },
-    { id: 'roue_arg', label: 'Roue Arrière Gauche', path: "M14,20 a6,6 0 1,0 12,0 a6,6 0 1,0 -12,0" },
-    { id: 'roue_avd', label: 'Roue Avant Droite', path: "M74,68 a6,6 0 1,0 12,0 a6,6 0 1,0 -12,0" },
-    { id: 'roue_ard', label: 'Roue Arrière Droite', path: "M74,20 a6,6 0 1,0 12,0 a6,6 0 1,0 -12,0" },
+    { id: 'roue_avg', label: 'Roue Avant Gauche', x: 14, y: 72, w: 6, h: 6 },
+    { id: 'roue_arg', label: 'Roue Arrière Gauche', x: 14, y: 22, w: 6, h: 6 },
+    { id: 'roue_avd', label: 'Roue Avant Droite', x: 80, y: 72, w: 6, h: 6 },
+    { id: 'roue_ard', label: 'Roue Arrière Droite', x: 80, y: 22, w: 6, h: 6 },
 ] as const;
 
 export type DamagePart = typeof carParts[number]['id'];
 
 type CarDamageDiagramProps = {
   damages: { [key in DamagePart]?: boolean };
-  onDamagesChange: (damages: { [key in DamagePart]?: boolean }) => void;
+  onDamagesChange: (damages: { [key in Damagepart]?: boolean }) => void;
   readOnly?: boolean;
 };
 
@@ -102,21 +106,24 @@ const CarDamageDiagram: React.FC<CarDamageDiagramProps> = ({ damages, onDamagesC
             <rect x="27" y="88" width="10" height="5" className="fill-yellow-300/50" />
             <rect x="63" y="88" width="10" height="5" className="fill-yellow-300/50" />
 
-            {/* Interactive Parts Overlay */}
-            <g fill="transparent" stroke="transparent" strokeWidth="2">
+            {/* Interactive Squares Overlay */}
+            <g stroke="hsl(var(--muted-foreground))" strokeWidth="0.2">
                 {carParts.map((part) => (
-                    <path
+                    <rect
                         key={part.id}
-                        d={part.path}
+                        x={part.x}
+                        y={part.y}
+                        width={part.w}
+                        height={part.h}
                         onClick={() => handlePartClick(part.id)}
                         className={cn(
-                            "transition-colors",
+                            "transition-colors fill-transparent",
                             readOnly ? "" : "cursor-pointer hover:fill-yellow-300/50 hover:stroke-yellow-400",
                             damages[part.id] && "fill-destructive/70 stroke-destructive"
                         )}
                     >
                       <title>{part.label}</title>
-                    </path>
+                    </rect>
                 ))}
             </g>
         </g>
