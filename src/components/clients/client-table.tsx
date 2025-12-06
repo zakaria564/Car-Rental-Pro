@@ -2,7 +2,6 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -40,6 +39,12 @@ import type { Client } from "@/lib/definitions";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import ClientForm from "./client-form";
 import { ScrollArea } from "../ui/scroll-area";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "../ui/alert-dialog";
+import { useFirebase } from "@/firebase";
+import { deleteDoc, doc } from "firebase/firestore";
+import { useToast } from "@/hooks/use-toast";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
 
 export default function ClientTable({ clients }: { clients: Client[] }) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -48,6 +53,30 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
   const [rowSelection, setRowSelection] = React.useState({});
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [selectedClient, setSelectedClient] = React.useState<Client | null>(null);
+  const { firestore } = useFirebase();
+  const { toast } = useToast();
+
+  const handleDeleteClient = async (clientId: string) => {
+    const clientDocRef = doc(firestore, 'clients', clientId);
+    
+    deleteDoc(clientDocRef).catch(serverError => {
+        const permissionError = new FirestorePermissionError({
+            path: clientDocRef.path,
+            operation: 'delete'
+        }, serverError);
+        errorEmitter.emit('permission-error', permissionError);
+        toast({
+            variant: "destructive",
+            title: "Erreur de suppression",
+            description: "Vous n'avez pas la permission de supprimer ce client.",
+        });
+    });
+
+    toast({
+        title: "Client supprimé",
+        description: "Le client a été supprimé de la base de données.",
+    });
+  };
 
   const columns: ColumnDef<Client>[] = [
     {
@@ -81,21 +110,37 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
       cell: ({ row }) => {
         const client = row.original;
         return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Ouvrir le menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => { setSelectedClient(client); setIsSheetOpen(true); }}>
-                Modifier
-              </DropdownMenuItem>
-              <DropdownMenuItem>Supprimer</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <AlertDialog>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">Ouvrir le menu</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => { setSelectedClient(client); setIsSheetOpen(true); }}>
+                  Modifier
+                </DropdownMenuItem>
+                 <AlertDialogTrigger asChild>
+                    <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">Supprimer</DropdownMenuItem>
+                  </AlertDialogTrigger>
+              </DropdownMenuContent>
+            </DropdownMenu>
+             <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Cette action est irréversible. Le client {client.nom} sera définitivement supprimé.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Annuler</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => handleDeleteClient(client.id)} className="bg-destructive hover:bg-destructive/90">Supprimer</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+          </AlertDialog>
         );
       },
     },
@@ -244,3 +289,5 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
     </Sheet>
   );
 }
+
+    
