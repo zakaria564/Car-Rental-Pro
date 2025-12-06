@@ -2,6 +2,8 @@
 'use server';
 
 import { predictCarMaintenance, CarMaintenancePredictionOutput } from '@/ai/flows/car-maintenance-prediction';
+import { getFirebaseServices } from '@/firebase';
+import { addDoc, collection } from 'firebase/firestore';
 import { z } from 'zod';
 
 const MaintenanceSchema = z.object({
@@ -42,5 +44,46 @@ export async function checkMaintenance(
   } catch (error) {
     console.error(error);
     return { message: "Erreur d'API : Impossible d'obtenir la prédiction de l'entretien." };
+  }
+}
+
+const carFormSchema = z.object({
+  marque: z.string().min(2, "La marque doit comporter au moins 2 caractères."),
+  modele: z.string().min(1, "Le modèle est requis."),
+  immat: z.string().min(5, "La plaque d'immatriculation semble trop courte."),
+  prixParJour: z.coerce.number().min(1, "Le prix doit être supérieur à 0."),
+  etat: z.enum(["new", "good", "fair", "poor"]),
+  disponible: z.boolean().default(true),
+  photoURL: z.string().url("L'URL de la photo n'est pas valide").optional(),
+});
+
+export async function addCar(data: unknown) {
+  const validatedFields = carFormSchema.safeParse(data);
+
+  if (!validatedFields.success) {
+    console.error('Validation failed', validatedFields.error.flatten().fieldErrors);
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: 'Erreur de validation.',
+    };
+  }
+
+  const { firestore } = getFirebaseServices();
+
+  try {
+    await addDoc(collection(firestore, 'cars'), {
+      ...validatedFields.data,
+      createdAt: new Date().toISOString(),
+      // Add other default fields from Car definition if needed
+      modeleAnnee: new Date().getFullYear(),
+      couleur: 'Inconnue',
+      nbrPlaces: 5,
+      puissance: 7,
+      carburantType: 'Essence',
+    });
+    return { message: 'Voiture ajoutée avec succès.' };
+  } catch (e) {
+    console.error(e);
+    return { message: 'Erreur lors de l\'ajout de la voiture.' };
   }
 }

@@ -1,0 +1,69 @@
+{
+  "entities": {
+    "car": {
+      "title": "Car",
+      "description": "Represents a car available for rent.",
+      "type": "object",
+      "properties": {
+        "marque": { "type": "string", "description": "Brand of the car." },
+        "modele": { "type": "string", "description": "Model of the car." },
+        "immat": { "type": "string", "description": "License plate." },
+        "prixParJour": { "type": "number", "description": "Price per day." },
+        "etat": {
+          "type": "string",
+          "description": "Condition of the car.",
+          "enum": ["new", "good", "fair", "poor"]
+        },
+        "disponible": { "type": "boolean", "description": "Availability status." },
+        "photoURL": { "type": "string", "format": "uri", "description": "URL of the car's photo." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp." }
+      },
+      "required": ["marque", "modele", "immat", "prixParJour", "etat", "disponible"]
+    },
+    "client": {
+      "title": "Client",
+      "description": "Represents a client.",
+      "type": "object",
+      "properties": {
+        "nom": { "type": "string" },
+        "cin": { "type": "string" },
+        "telephone": { "type": "string" },
+        "adresse": { "type": "string" },
+        "photoCIN": { "type": "string", "format": "uri" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["nom", "cin", "telephone", "adresse"]
+    },
+    "rental": {
+        "title": "Rental",
+        "description": "Represents a rental contract.",
+        "type": "object",
+        "properties": {
+            "clientId": { "type": "string" },
+            "voitureId": { "type": "string" },
+            "dateDebut": { "type": "string", "format": "date-time" },
+            "dateFin": { "type": "string", "format": "date-time" },
+            "statut": { "type": "string", "enum": ["en_cours", "terminee"] },
+            "createdAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["clientId", "voitureId", "dateDebut", "dateFin", "statut"]
+    }
+  },
+  "auth": {
+    "providers": ["anonymous"]
+  },
+  "firestore": {
+    "/cars/{carId}": {
+      "schema": { "$ref": "#/entities/car" },
+      "description": "Stores car documents."
+    },
+    "/clients/{clientId}": {
+      "schema": { "$ref": "#/entities/client" },
+      "description": "Stores client documents."
+    },
+    "/rentals/{rentalId}": {
+        "schema": { "$ref": "#/entities/rental" },
+        "description": "Stores rental contract documents."
+    }
+  }
+}

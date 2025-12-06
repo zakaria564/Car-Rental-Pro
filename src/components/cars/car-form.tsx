@@ -17,9 +17,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import type { Car } from "@/lib/definitions";
 import { FileInput } from "../ui/file-input";
+import { addCar } from "@/lib/actions";
+import { useRouter } from "next/navigation";
 
 const carFormSchema = z.object({
   marque: z.string().min(2, "La marque doit comporter au moins 2 caractères."),
@@ -34,6 +36,8 @@ const carFormSchema = z.object({
 type CarFormValues = z.infer<typeof carFormSchema>;
 
 export default function CarForm({ car, onFinished }: { car: Car | null, onFinished: () => void }) {
+  const router = useRouter();
+  const { toast } = useToast();
   const defaultValues: Partial<CarFormValues> = car ? {
     ...car,
   } : {
@@ -52,16 +56,25 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     mode: "onChange",
   });
 
-  function onSubmit(data: CarFormValues) {
-    toast({
-      title: "Formulaire soumis",
-      description: (
-        <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-          <code className="text-white">{JSON.stringify(data, null, 2)}</code>
-        </pre>
-      ),
-    });
-    onFinished();
+  async function onSubmit(data: CarFormValues) {
+    const { photo, ...carData } = data;
+    // TODO: Handle photo upload and get URL
+    const carPayload = {
+      ...carData,
+      photoURL: "https://picsum.photos/seed/car-default/600/400"
+    };
+
+    const result = await addCar(carPayload);
+    if (result.message) {
+      toast({
+        title: car ? "Voiture mise à jour" : "Voiture ajoutée",
+        description: result.message,
+      });
+      if (!result.errors) {
+        onFinished();
+        router.refresh();
+      }
+    }
   }
 
   return (
@@ -155,8 +168,8 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
-          {car ? 'Mettre à jour la voiture' : 'Ajouter une voiture'}
+        <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={form.formState.isSubmitting}>
+          {form.formState.isSubmitting ? 'Enregistrement...' : (car ? 'Mettre à jour la voiture' : 'Ajouter une voiture')}
         </Button>
       </form>
     </Form>
