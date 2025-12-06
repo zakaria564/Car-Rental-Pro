@@ -112,7 +112,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mt-4">
-        <Accordion type="multiple" defaultValue={['item-1', 'item-2', 'item-3']} className="w-full">
+        <Accordion type="multiple" defaultValue={['item-1', 'item-2']} className="w-full">
             <AccordionItem value="item-1">
                 <AccordionTrigger>Détails de la Location</AccordionTrigger>
                 <AccordionContent className="space-y-4 px-1">
@@ -410,7 +410,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
             <CardContent className="space-y-2 text-sm">
                 <div className="flex justify-between"><span>Prix par jour :</span> <span className="font-medium">{selectedCar ? formatCurrency(selectedCar.prixParJour, 'MAD') : '0,00 MAD'}</span></div>
                 <div className="flex justify-between"><span>Durée de la location :</span> <span className="font-medium">{rentalDays} jour(s)</span></div>
-                <div className="flex justify-between font-semibold"><span>Sous-total :</span> <span>{formatCurrency(prixTotal, 'MAD')}</span></div>
+                <div className="flex justify-between font-semibold text-lg"><span>Montant à Payer :</span> <span>{formatCurrency(prixTotal, 'MAD')}</span></div>
             </CardContent>
         </Card>
 
@@ -421,5 +421,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
     </Form>
   );
 }
+
+    
 
     
