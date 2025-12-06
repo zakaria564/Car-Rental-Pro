@@ -306,7 +306,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
             <FormItem>
               <FormLabel>Prix par jour (MAD)</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="99.99" {...field} value={field.value ?? ""} onChange={(e) => field.onChange(e.target.valueAsNumber)} />
+                <Input type="number" placeholder="99.99" {...field} value={field.value ?? ""} onChange={(e) => field.onChange(e.target.valueAsNumber || undefined)} />
               </FormControl>
               <FormMessage />
             </FormItem>
