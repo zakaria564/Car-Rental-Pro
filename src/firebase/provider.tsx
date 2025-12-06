@@ -4,6 +4,7 @@ import { FirebaseApp } from 'firebase/app';
 import { Auth } from 'firebase/auth';
 import { Firestore } from 'firebase/firestore';
 import React, { createContext, useContext } from 'react';
+import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 // Define the context shape
 interface FirebaseContextType {
@@ -13,7 +14,11 @@ interface FirebaseContextType {
 }
 
 // Create the context
-const FirebaseContext = createContext<FirebaseContextType | null>(null);
+const FirebaseContext = createContext<FirebaseContextType>({
+    app: null,
+    firestore: null,
+    auth: null,
+});
 
 // Custom hook to use the Firebase context
 export function useFirebase() {
@@ -24,8 +29,7 @@ export function useFirebase() {
   }
    if (!context.app || !context.firestore || !context.auth) {
     // This can happen during the initial client-side render while Firebase is initializing.
-    // We can either throw an error or return a loading state. For now, we throw.
-    // In a real app, you might want to return a loading status.
+    // We throw to signal that services are not ready. Components should handle this.
     throw new Error('Firebase services are not yet available.');
   }
   return context as { app: FirebaseApp; firestore: Firestore; auth: Auth };
@@ -41,5 +45,10 @@ export function FirebaseProvider({
   firestore: Firestore | null;
   auth: Auth | null;
 }) {
-  return <FirebaseContext.Provider value={value}>{children}</FirebaseContext.Provider>;
+  return (
+    <FirebaseContext.Provider value={value}>
+        {children}
+        <FirebaseErrorListener />
+    </FirebaseContext.Provider>
+  );
 }
