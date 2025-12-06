@@ -21,14 +21,20 @@ import type { Car } from "@/lib/definitions";
 import { PhotoFormField } from "../ui/file-input";
 import { useRouter } from "next/navigation";
 import { useFirebase } from "@/firebase";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 
 const carFormSchema = z.object({
   marque: z.string().min(2, "La marque doit comporter au moins 2 caractères."),
   modele: z.string().min(1, "Le modèle est requis."),
+  modeleAnnee: z.coerce.number().min(1990, "L'année doit être supérieure à 1990.").max(new Date().getFullYear() + 1),
   immat: z.string().min(5, "La plaque d'immatriculation semble trop courte."),
+  kilometrage: z.coerce.number().min(0, "Le kilométrage ne peut être négatif."),
+  couleur: z.string().min(3, "La couleur est requise."),
+  nbrPlaces: z.coerce.number().min(2, "Le nombre de places est requis.").max(9),
+  puissance: z.coerce.number().min(4, "La puissance est requise."),
+  carburantType: z.enum(['Diesel', 'Essence', 'Electrique']),
   prixParJour: z.coerce.number().min(1, "Le prix doit être supérieur à 0."),
   etat: z.enum(["new", "good", "fair", "poor"]),
   disponible: z.boolean().default(true),
@@ -48,6 +54,11 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     marque: "",
     modele: "",
     immat: "",
+    kilometrage: 0,
+    couleur: "",
+    nbrPlaces: 5,
+    puissance: 7,
+    carburantType: "Essence",
     prixParJour: undefined,
     etat: "new",
     disponible: true,
@@ -67,30 +78,43 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     
     const carPayload = {
       ...carData,
-      photoURL: "https://picsum.photos/seed/car-default/600/400",
-      createdAt: serverTimestamp(),
-      modeleAnnee: new Date().getFullYear(),
-      couleur: 'Inconnue',
-      nbrPlaces: 5,
-      puissance: 7,
-      carburantType: 'Essence',
+      photoURL: car?.photoURL || "https://picsum.photos/seed/car-default/600/400",
+      createdAt: car?.createdAt || serverTimestamp(),
     };
 
-    const carsCollection = collection(firestore, 'cars');
+    if (car) {
+        const carRef = doc(firestore, 'cars', car.id);
+        setDoc(carRef, carPayload, { merge: true }).catch(serverError => {
+            const permissionError = new FirestorePermissionError({
+                path: carRef.path,
+                operation: 'update',
+                requestResourceData: carPayload
+            }, serverError);
+            errorEmitter.emit('permission-error', permissionError);
+        });
 
-    addDoc(carsCollection, carPayload).catch(serverError => {
-      const permissionError = new FirestorePermissionError({
-          path: carsCollection.path,
-          operation: 'create',
-          requestResourceData: carPayload
-      }, serverError);
-      errorEmitter.emit('permission-error', permissionError);
-    });
+        toast({
+            title: "Voiture mise à jour",
+            description: "L'opération a été initiée.",
+        });
 
-    toast({
-      title: car ? "Voiture mise à jour" : "Voiture ajoutée",
-      description: "L'opération a été initiée.",
-    });
+    } else {
+        const carsCollection = collection(firestore, 'cars');
+
+        addDoc(carsCollection, carPayload).catch(serverError => {
+          const permissionError = new FirestorePermissionError({
+              path: carsCollection.path,
+              operation: 'create',
+              requestResourceData: carPayload
+          }, serverError);
+          errorEmitter.emit('permission-error', permissionError);
+        });
+
+        toast({
+          title: "Voiture ajoutée",
+          description: "L'opération a été initiée.",
+        });
+    }
 
     onFinished();
     router.refresh();
@@ -98,7 +122,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 mt-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-4">
         <FormField
           control={form.control}
           name="marque"
@@ -127,6 +151,19 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
         />
         <FormField
           control={form.control}
+          name="modeleAnnee"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Année</FormLabel>
+              <FormControl>
+                <Input type="number" placeholder="2023" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
           name="immat"
           render={({ field }) => (
             <FormItem>
@@ -134,6 +171,83 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
               <FormControl>
                 <Input placeholder="VOITURE-123" {...field} />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="kilometrage"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Kilométrage</FormLabel>
+              <FormControl>
+                <Input type="number" placeholder="54000" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="couleur"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Couleur</FormLabel>
+              <FormControl>
+                <Input placeholder="Noir" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <div className="grid grid-cols-2 gap-4">
+            <FormField
+            control={form.control}
+            name="nbrPlaces"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Places</FormLabel>
+                <FormControl>
+                    <Input type="number" placeholder="5" {...field} />
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+            <FormField
+            control={form.control}
+            name="puissance"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Puissance (cv)</FormLabel>
+                <FormControl>
+                    <Input type="number" placeholder="8" {...field} />
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+        </div>
+
+        <FormField
+          control={form.control}
+          name="carburantType"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Carburant</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Type de carburant" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="Essence">Essence</SelectItem>
+                  <SelectItem value="Diesel">Diesel</SelectItem>
+                  <SelectItem value="Electrique">Électrique</SelectItem>
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
@@ -179,6 +293,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
           <FormControl>
             <PhotoFormField {...photoRef} />
           </FormControl>
+          <FormDescription>Le téléversement de fichiers n'est pas encore implémenté. Une image par défaut sera utilisée.</FormDescription>
           <FormMessage />
         </FormItem>
         <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={form.formState.isSubmitting}>

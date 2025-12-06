@@ -1,5 +1,4 @@
 
-
 export type Car = {
   id: string;
   marque: string;
@@ -10,11 +9,12 @@ export type Car = {
   disponible: boolean;
   prixParJour: number;
   createdAt: any; // Can be Timestamp
-  modeleAnnee?: number;
-  couleur?: string;
-  nbrPlaces?: number;
-  puissance?: number;
-  carburantType?: 'Diesel' | 'Essence' | 'Electrique';
+  modeleAnnee: number;
+  kilometrage: number;
+  couleur: string;
+  nbrPlaces: number;
+  puissance: number;
+  carburantType: 'Diesel' | 'Essence' | 'Electrique';
 };
 
 export type Client = {
