@@ -20,8 +20,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import type { Car } from "@/lib/definitions";
 import { FileInput } from "../ui/file-input";
-import { addCar } from "@/lib/actions";
 import { useRouter } from "next/navigation";
+import { useFirebase } from "@/firebase";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
 
 const carFormSchema = z.object({
   marque: z.string().min(2, "La marque doit comporter au moins 2 caractères."),
@@ -38,6 +41,8 @@ type CarFormValues = z.infer<typeof carFormSchema>;
 export default function CarForm({ car, onFinished }: { car: Car | null, onFinished: () => void }) {
   const router = useRouter();
   const { toast } = useToast();
+  const { firestore } = useFirebase();
+
   const defaultValues: Partial<CarFormValues> = car ? {
     ...car,
   } : {
@@ -58,23 +63,36 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
 
   async function onSubmit(data: CarFormValues) {
     const { photo, ...carData } = data;
-    // TODO: Handle photo upload and get URL
+    
     const carPayload = {
       ...carData,
-      photoURL: "https://picsum.photos/seed/car-default/600/400"
+      photoURL: "https://picsum.photos/seed/car-default/600/400",
+      createdAt: serverTimestamp(),
+      modeleAnnee: new Date().getFullYear(),
+      couleur: 'Inconnue',
+      nbrPlaces: 5,
+      puissance: 7,
+      carburantType: 'Essence',
     };
 
-    const result = await addCar(carPayload);
-    if (result.message) {
-      toast({
-        title: car ? "Voiture mise à jour" : "Voiture ajoutée",
-        description: result.message,
-      });
-      if (!result.errors) {
-        onFinished();
-        router.refresh();
-      }
-    }
+    const carsCollection = collection(firestore, 'cars');
+
+    addDoc(carsCollection, carPayload).catch(serverError => {
+      const permissionError = new FirestorePermissionError({
+          path: carsCollection.path,
+          operation: 'create',
+          requestResourceData: carPayload
+      }, serverError);
+      errorEmitter.emit('permission-error', permissionError);
+    });
+
+    toast({
+      title: car ? "Voiture mise à jour" : "Voiture ajoutée",
+      description: "L'opération a été initiée.",
+    });
+
+    onFinished();
+    router.refresh();
   }
 
   return (
