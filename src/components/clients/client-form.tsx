@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/components/ui/use-toast";
 import type { Client } from "@/lib/definitions";
 import { FileInput } from "../ui/file-input";
 
@@ -32,7 +32,12 @@ type ClientFormValues = z.infer<typeof clientFormSchema>;
 export default function ClientForm({ client, onFinished }: { client: Client | null, onFinished: () => void }) {
   const defaultValues: Partial<ClientFormValues> = client ? {
     ...client,
-  } : {};
+  } : {
+    nom: "",
+    cin: "",
+    telephone: "",
+    adresse: "",
+  };
 
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(clientFormSchema),

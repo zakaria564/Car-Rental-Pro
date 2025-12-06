@@ -17,7 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/components/ui/use-toast";
 import type { Car } from "@/lib/definitions";
 import { FileInput } from "../ui/file-input";
 
@@ -36,7 +36,14 @@ type CarFormValues = z.infer<typeof carFormSchema>;
 export default function CarForm({ car, onFinished }: { car: Car | null, onFinished: () => void }) {
   const defaultValues: Partial<CarFormValues> = car ? {
     ...car,
-  } : {};
+  } : {
+    marque: "",
+    modele: "",
+    immat: "",
+    prixParJour: 0,
+    etat: "new",
+    disponible: true,
+  };
 
   const form = useForm<CarFormValues>({
     resolver: zodResolver(carFormSchema),
