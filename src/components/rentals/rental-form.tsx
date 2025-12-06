@@ -48,13 +48,13 @@ const rentalFormSchema = z.object({
   posteRadio: z.boolean().default(false),
   lavage: z.boolean().default(false),
   dommagesDepartNotes: z.string().optional(),
-  dommagesDepart: z.record(z.nativeEnum(Object.values(DamagePart)), z.boolean()).optional(),
+  dommagesDepart: z.record(z.string(), z.boolean()).optional(),
 
   // Reception details (Retour) - optional as they are filled later
   kilometrageRetour: z.coerce.number().min(0, "Le kilométrage doit être positif.").optional(),
   carburantNiveauRetour: z.number().min(0).max(1).optional(),
   dommagesRetourNotes: z.string().optional(),
-  dommagesRetour: z.record(z.nativeEnum(Object.values(DamagePart)), z.boolean()).optional(),
+  dommagesRetour: z.record(z.string(), z.boolean()).optional(),
 });
 
 type RentalFormValues = z.infer<typeof rentalFormSchema>;
@@ -421,3 +421,5 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
     </Form>
   );
 }
+
+    
