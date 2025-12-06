@@ -48,7 +48,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     marque: "",
     modele: "",
     immat: "",
-    prixParJour: 0,
+    prixParJour: undefined,
     etat: "new",
     disponible: true,
     photo: undefined,
@@ -145,7 +145,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
             <FormItem>
               <FormLabel>Prix par jour (MAD)</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="99.99" {...field} />
+                <Input type="number" placeholder="99.99" {...field} value={field.value ?? ""} onChange={(e) => field.onChange(e.target.valueAsNumber)} />
               </FormControl>
               <FormMessage />
             </FormItem>
