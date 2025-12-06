@@ -1,6 +1,6 @@
 import { FirebaseApp, FirebaseOptions, getApp, getApps, initializeApp } from 'firebase/app';
-import { Auth, getAuth, connectAuthEmulator } from 'firebase/auth';
-import { Firestore, getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { Auth, getAuth } from 'firebase/auth';
+import { Firestore, getFirestore } from 'firebase/firestore';
 
 const firebaseConfig: FirebaseOptions = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -11,29 +11,28 @@ const firebaseConfig: FirebaseOptions = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-let app: FirebaseApp;
-let auth: Auth;
-let firestore: Firestore;
-
-function initializeServices() {
-  if (!getApps().length) {
-    app = initializeApp(firebaseConfig);
-    auth = getAuth(app);
-    firestore = getFirestore(app);
-
-    if (process.env.NODE_ENV === 'development') {
-      // connectAuthEmulator(auth, 'http://localhost:9099');
-      // connectFirestoreEmulator(firestore, 'localhost', 8080);
+// This function ensures that Firebase is initialized only once.
+const getFirebaseApp = (): FirebaseApp => {
+  if (typeof window === 'undefined') {
+    // On the server, return a placeholder or throw an error.
+    // For this case, we'll avoid initialization altogether.
+    // A better approach is to ensure this code only runs on the client.
+    if (getApps().length === 0) {
+      return initializeApp(firebaseConfig);
     }
-  } else {
-    app = getApp();
-    auth = getAuth(app);
-    firestore = getFirestore(app);
+    return getApp();
   }
-
-  return { app, auth, firestore };
-}
+  
+  if (getApps().length === 0) {
+    return initializeApp(firebaseConfig);
+  }
+  return getApp();
+};
 
 export function getFirebaseServices() {
-  return initializeServices();
+  const app = getFirebaseApp();
+  const auth = getAuth(app);
+  const firestore = getFirestore(app);
+
+  return { app, auth, firestore };
 }
