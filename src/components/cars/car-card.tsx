@@ -3,19 +3,22 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { Wrench, Pencil, Trash2 } from "lucide-react";
+import { Wrench, Pencil, Trash2, FileText } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Car } from "@/lib/definitions";
 import { formatCurrency } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import CarForm from "./car-form";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import MaintenanceChecker from "./maintenance-checker";
 import { ScrollArea } from "../ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "../ui/alert-dialog";
@@ -30,10 +33,39 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { Separator } from "../ui/separator";
+
+function CarDetails({ car }: { car: Car }) {
+    return (
+        <div className="space-y-4 text-sm">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                <p><strong>Marque:</strong> {car.marque}</p>
+                <p><strong>Modèle:</strong> {car.modele}</p>
+                <p><strong>Année:</strong> {car.modeleAnnee}</p>
+                <p><strong>Immatriculation:</strong> {car.immat}</p>
+                <p><strong>N° de châssis:</strong> {car.numChassis}</p>
+                <p><strong>Couleur:</strong> {car.couleur}</p>
+                <p><strong>Kilométrage:</strong> {car.kilometrage.toLocaleString()} km</p>
+                <p><strong>Carburant:</strong> {car.carburantType}</p>
+                <p><strong>Puissance:</strong> {car.puissance} cv</p>
+                <p><strong>Places:</strong> {car.nbrPlaces}</p>
+                <p><strong>État:</strong> {car.etat}</p>
+                <p><strong>Disponibilité:</strong> <Badge variant={car.disponible ? "default" : "destructive"} className={car.disponible ? 'bg-green-600' : ''}>{car.disponible ? "Disponible" : "Louée"}</Badge></p>
+            </div>
+            <Separator />
+            <div>
+                <p className="font-bold text-lg"><strong>Prix par jour:</strong> {formatCurrency(car.prixParJour, 'MAD')}</p>
+            </div>
+        </div>
+    );
+}
+
 
 export default function CarCard({ car }: { car: Car }) {
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [isMaintenanceDialogOpen, setIsMaintenanceDialogOpen] = React.useState(false);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = React.useState(false);
+
   const { firestore } = useFirebase();
   const { toast } = useToast();
 
@@ -84,70 +116,99 @@ export default function CarCard({ car }: { car: Car }) {
           <div className="font-bold text-xl mb-4">{formatCurrency(car.prixParJour, 'MAD')}<span className="text-xs font-normal text-muted-foreground">/jour</span></div>
           <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
             <Dialog open={isMaintenanceDialogOpen} onOpenChange={setIsMaintenanceDialogOpen}>
-              <AlertDialog>
-                <TooltipProvider>
-                  <div className="w-full flex justify-start items-center gap-1">
-                    <SheetTrigger asChild>
-                      <Button variant="outline" size="sm" className="flex-1 max-w-[120px]">
-                        <Pencil className="h-4 w-4 mr-1" /> Modifier
-                      </Button>
-                    </SheetTrigger>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <DialogTrigger asChild>
-                          <Button variant="outline" size="icon" className="h-9 w-9">
-                            <Wrench className="h-4 w-4" />
-                          </Button>
-                        </DialogTrigger>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Vérifier l'entretien (IA)</p>
-                      </TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="destructive" size="icon" className="h-9 w-9">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Supprimer</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                </TooltipProvider>
+                <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
+                    <AlertDialog>
+                        <TooltipProvider>
+                        <div className="w-full flex justify-start items-center gap-1">
+                             <Tooltip>
+                                <TooltipTrigger asChild>
+                                     <DialogTrigger asChild>
+                                        <Button variant="outline" size="icon" className="h-9 w-9">
+                                            <FileText className="h-4 w-4" />
+                                        </Button>
+                                    </DialogTrigger>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Fiche détails</p>
+                                </TooltipContent>
+                            </Tooltip>
+                            <SheetTrigger asChild>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="outline" size="icon" className="h-9 w-9">
+                                        <Pencil className="h-4 w-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Modifier</p>
+                                </TooltipContent>
+                            </Tooltip>
+                            </SheetTrigger>
+                            <Tooltip>
+                            <TooltipTrigger asChild>
+                                <DialogTrigger asChild onClick={() => setIsMaintenanceDialogOpen(true)}>
+                                <Button variant="outline" size="icon" className="h-9 w-9">
+                                    <Wrench className="h-4 w-4" />
+                                </Button>
+                                </DialogTrigger>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Vérifier l'entretien (IA)</p>
+                            </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                            <TooltipTrigger asChild>
+                                <AlertDialogTrigger asChild>
+                                <Button variant="destructive" size="icon" className="h-9 w-9">
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                                </AlertDialogTrigger>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Supprimer</p>
+                            </TooltipContent>
+                            </Tooltip>
+                        </div>
+                        </TooltipProvider>
 
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Êtes-vous absolument sûr?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Cette action est irréversible. La voiture {car.marque} {car.modele} sera définitivement supprimée.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Annuler</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => handleDeleteCar(car.id)} className="bg-destructive hover:bg-destructive/90">Supprimer</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
+                        <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Êtes-vous absolument sûr?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                            Cette action est irréversible. La voiture {car.marque} {car.modele} sera définitivement supprimée.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteCar(car.id)} className="bg-destructive hover:bg-destructive/90">Supprimer</AlertDialogAction>
+                        </AlertDialogFooter>
+                        </AlertDialogContent>
 
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Vérification IA de l'entretien pour {car.marque} {car.modele}</DialogTitle>
-                  </DialogHeader>
-                  <MaintenanceChecker carId={car.id} />
-                </DialogContent>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Vérification IA de l'entretien pour {car.marque} {car.modele}</DialogTitle>
+                            </DialogHeader>
+                            <MaintenanceChecker carId={car.id} />
+                        </DialogContent>
 
-                <SheetContent className="sm:max-w-[480px]">
-                  <SheetHeader>
-                    <SheetTitle>Modifier la voiture</SheetTitle>
-                  </SheetHeader>
-                  <ScrollArea className="h-full pr-6">
-                    <CarForm car={car} onFinished={() => setIsSheetOpen(false)} />
-                  </ScrollArea>
-                </SheetContent>
-              </AlertDialog>
+                        <SheetContent className="sm:max-w-[480px]">
+                        <SheetHeader>
+                            <SheetTitle>Modifier la voiture</SheetTitle>
+                        </SheetHeader>
+                        <ScrollArea className="h-full pr-6">
+                            <CarForm car={car} onFinished={() => setIsSheetOpen(false)} />
+                        </ScrollArea>
+                        </SheetContent>
+
+                         <DialogContent className="sm:max-w-lg">
+                            <DialogHeader>
+                                <DialogTitle>Détails du véhicule</DialogTitle>
+                                <DialogDescription>{car.marque} {car.modele} - {car.immat}</DialogDescription>
+                            </DialogHeader>
+                            <CarDetails car={car} />
+                        </DialogContent>
+                    </AlertDialog>
+                </Dialog>
             </Dialog>
           </Sheet>
         </div>
@@ -155,3 +216,4 @@ export default function CarCard({ car }: { car: Car }) {
     </Card>
   );
 }
+
