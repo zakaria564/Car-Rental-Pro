@@ -95,13 +95,24 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
         roueSecours: rental.livraison.roueSecours,
         posteRadio: rental.livraison.posteRadio,
         lavage: rental.livraison.lavage,
+        dommagesDepartNotes: rental.livraison.dommagesNotes || "",
+        dommagesDepart: rental.livraison.dommages?.reduce((acc, curr) => ({...acc, [curr]: true}), {}) || {},
         kilometrageRetour: rental.reception.kilometrage,
-        // dommagesDepartNotes and dommagesDepart would need mapping
+        carburantNiveauRetour: rental.reception.carburantNiveau,
+        dommagesRetourNotes: rental.reception.dommagesNotes || "",
+        dommagesRetour: rental.reception.dommages?.reduce((acc, curr) => ({...acc, [curr]: true}), {}) || {},
       } : {
       carburantNiveauDepart: 0.5,
       dommagesDepart: {},
       dommagesRetour: {},
-      kilometrageRetour: '',
+      kilometrageDepart: 0,
+      caution: 0,
+      clientId: "",
+      voitureId: "",
+      dommagesDepartNotes: "",
+      kilometrageRetour: 0,
+      carburantNiveauRetour: 0.5,
+      dommagesRetourNotes: "",
     }
   });
   
@@ -337,7 +348,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
                           <FormLabel>Niveau de carburant: {Math.round(field.value * 100)}%</FormLabel>
                            <FormControl>
                              <Slider
-                                defaultValue={[field.value]}
+                                value={[field.value]}
                                 onValueChange={(values) => field.onChange(values[0])}
                                 max={1}
                                 step={0.125}
@@ -461,7 +472,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
                           <FormLabel>Niveau de carburant au retour: {field.value ? Math.round(field.value * 100) : 0}%</FormLabel>
                            <FormControl>
                              <Slider
-                                defaultValue={[field.value || 0]}
+                                value={[field.value || 0]}
                                 onValueChange={(values) => field.onChange(values[0])}
                                 max={1}
                                 step={0.125}
