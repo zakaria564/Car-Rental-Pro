@@ -49,23 +49,21 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
   const { toast } = useToast();
   const { firestore } = useFirebase();
 
-  const defaultValues: Partial<CarFormValues> = car ? { 
-      ...car,
-  } : {
-    marque: "",
-    modele: "",
-    immat: "",
-    numChassis: "",
-    couleur: "",
-    carburantType: "Essence",
-    etat: "new",
-    disponible: true,
-    photoURL: "",
-    kilometrage: 0,
-    prixParJour: 0,
-    puissance: 0,
-    nbrPlaces: 0,
-    modeleAnnee: new Date().getFullYear(),
+  const defaultValues: Partial<CarFormValues> = { 
+      marque: car?.marque ?? "",
+      modele: car?.modele ?? "",
+      immat: car?.immat ?? "",
+      numChassis: car?.numChassis ?? "",
+      couleur: car?.couleur ?? "",
+      carburantType: car?.carburantType ?? "Essence",
+      etat: car?.etat ?? "new",
+      disponible: car?.disponible ?? true,
+      photoURL: car?.photoURL ?? "",
+      kilometrage: car?.kilometrage ?? 0,
+      prixParJour: car?.prixParJour ?? 0,
+      puissance: car?.puissance ?? 0,
+      nbrPlaces: car?.nbrPlaces ?? 0,
+      modeleAnnee: car?.modeleAnnee ?? new Date().getFullYear(),
   };
 
   const form = useForm<CarFormValues>({
