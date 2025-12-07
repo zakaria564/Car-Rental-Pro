@@ -79,7 +79,6 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
   async function onSubmit(data: CarFormValues) {
     if (!firestore || !storage) return;
 
-    form.formState.isSubmitting = true;
     let photoURL = car?.photoURL;
     const carId = car?.id || doc(collection(firestore, 'cars')).id;
 
@@ -163,8 +162,6 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
             title: "Une erreur est survenue",
             description: error.message || "Impossible de sauvegarder la voiture. Veuillez réessayer.",
         });
-    } finally {
-        form.formState.isSubmitting = false;
     }
   }
 
@@ -364,5 +361,3 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     </Form>
   );
 }
-
-    
