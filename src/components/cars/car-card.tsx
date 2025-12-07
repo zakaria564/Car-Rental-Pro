@@ -62,21 +62,20 @@ export default function CarCard({ car }: { car: Car }) {
   };
 
   return (
-    <Card className="flex flex-col overflow-hidden group">
-      <div className="relative">
-        <Badge variant={car.disponible ? "default" : "destructive"} className={`absolute top-2 right-2 z-10 ${car.disponible ? 'bg-green-600' : ''}`}>
+    <Card className="flex flex-row overflow-hidden group w-full">
+      <div className="relative w-2/5">
+         <Badge variant={car.disponible ? "default" : "destructive"} className={`absolute top-2 right-2 z-10 ${car.disponible ? 'bg-green-600' : ''}`}>
             {car.disponible ? "Disponible" : "Louée"}
         </Badge>
         <Image
             src={car.photoURL}
             alt={`${car.marque} ${car.modele}`}
-            width={400}
-            height={300}
-            className="object-cover aspect-video w-full"
+            fill
+            className="object-cover"
             data-ai-hint="car photo"
         />
       </div>
-      <div className="p-4 flex flex-col flex-grow">
+      <div className="p-4 flex flex-col flex-grow w-3/5">
         <div className="flex-grow">
           <h3 className="text-lg font-bold truncate">{car.marque} {car.modele}</h3>
           <p className="text-sm text-muted-foreground">{car.immat}</p>
@@ -87,9 +86,9 @@ export default function CarCard({ car }: { car: Car }) {
             <Dialog open={isMaintenanceDialogOpen} onOpenChange={setIsMaintenanceDialogOpen}>
               <AlertDialog>
                 <TooltipProvider>
-                  <div className="w-full flex justify-between items-center gap-1">
+                  <div className="w-full flex justify-start items-center gap-1">
                     <SheetTrigger asChild>
-                      <Button variant="outline" size="sm" className="flex-1">
+                      <Button variant="outline" size="sm" className="flex-1 max-w-[120px]">
                         <Pencil className="h-4 w-4 mr-1" /> Modifier
                       </Button>
                     </SheetTrigger>
@@ -122,7 +121,7 @@ export default function CarCard({ car }: { car: Car }) {
 
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Êtes-vous absolutely sûr?</AlertDialogTitle>
+                    <AlertDialogTitle>Êtes-vous absolument sûr?</AlertDialogTitle>
                     <AlertDialogDescription>
                       Cette action est irréversible. La voiture {car.marque} {car.modele} sera définitivement supprimée.
                     </AlertDialogDescription>
