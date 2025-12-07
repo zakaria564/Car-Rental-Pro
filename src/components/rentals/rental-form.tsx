@@ -99,7 +99,8 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
       } : {
       carburantNiveauDepart: 0.5,
       dommagesDepart: {},
-      dommagesRetour: {}
+      dommagesRetour: {},
+      kilometrageRetour: undefined,
     }
   });
   
@@ -440,7 +441,16 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
                         <FormItem>
                           <FormLabel>Kilométrage de retour</FormLabel>
                           <FormControl>
-                            <Input type="number" placeholder="65500" {...field} value={field.value ?? ''} />
+                            <Input
+                                type="number"
+                                placeholder="65500"
+                                {...field}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    field.onChange(value === '' ? undefined : Number(value));
+                                }}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -518,5 +528,8 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
     </Form>
   );
 }
+
+    
+
 
     
