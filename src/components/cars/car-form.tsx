@@ -55,8 +55,9 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
   } : {
     marque: "",
     modele: "",
+    modeleAnnee: undefined,
     immat: "",
-    kilometrage: 0,
+    kilometrage: undefined,
     couleur: "",
     nbrPlaces: 5,
     puissance: 7,
@@ -203,7 +204,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
             <FormItem>
               <FormLabel>Année</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="2023" {...field} />
+                <Input type="number" placeholder="2023" {...field} value={field.value ?? ''} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -229,7 +230,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
             <FormItem>
               <FormLabel>Kilométrage</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="54000" {...field} />
+                <Input type="number" placeholder="54000" {...field} value={field.value ?? ''} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -256,7 +257,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                 <FormItem>
                 <FormLabel>Places</FormLabel>
                 <FormControl>
-                    <Input type="number" placeholder="5" {...field} />
+                    <Input type="number" placeholder="5" {...field} value={field.value ?? ''} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -269,7 +270,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                 <FormItem>
                 <FormLabel>Puissance (cv)</FormLabel>
                 <FormControl>
-                    <Input type="number" placeholder="8" {...field} />
+                    <Input type="number" placeholder="8" {...field} value={field.value ?? ''} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -310,7 +311,6 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                   type="number"
                   placeholder="99.99"
                   {...field}
-                  onChange={(e) => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
                   value={field.value ?? ''}
                 />
               </FormControl>
@@ -364,3 +364,5 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     </Form>
   );
 }
+
+    
