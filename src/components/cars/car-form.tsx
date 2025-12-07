@@ -21,7 +21,6 @@ import type { Car } from "@/lib/definitions";
 import { useRouter } from "next/navigation";
 import { useFirebase } from "@/firebase";
 import { addDoc, collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 
@@ -38,7 +37,7 @@ const carFormSchema = z.object({
   prixParJour: z.coerce.number().min(1, "Le prix doit être supérieur à 0."),
   etat: z.enum(["new", "good", "fair", "poor"]),
   disponible: z.boolean().default(true),
-  photo: z.instanceof(FileList).optional(),
+  photoURL: z.string().url("Veuillez entrer une URL valide.").optional().or(z.literal('')),
 });
 
 type CarFormValues = z.infer<typeof carFormSchema>;
@@ -46,11 +45,10 @@ type CarFormValues = z.infer<typeof carFormSchema>;
 export default function CarForm({ car, onFinished }: { car: Car | null, onFinished: () => void }) {
   const router = useRouter();
   const { toast } = useToast();
-  const { firestore, storage } = useFirebase();
+  const { firestore } = useFirebase();
 
   const defaultValues: Partial<CarFormValues> = car ? {
     ...car,
-    photo: undefined,
   } : {
     marque: "",
     modele: "",
@@ -64,7 +62,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     prixParJour: undefined,
     etat: "new",
     disponible: true,
-    photo: undefined,
+    photoURL: "",
   };
 
   const form = useForm<CarFormValues>({
@@ -72,76 +70,43 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     defaultValues,
     mode: "onChange",
   });
-  
-  const photoRef = form.register("photo");
 
   async function onSubmit(data: CarFormValues) {
-    if (!firestore || !storage) return;
-
-    const { photo, ...carData } = data;
-    const carId = car?.id || doc(collection(firestore, 'cars')).id;
+    if (!firestore) return;
     
-    let photoURL = car?.photoURL;
-    const photoFile = data.photo?.[0];
+    const carId = car?.id || doc(collection(firestore, 'cars')).id;
 
     const carPayload = {
-      ...carData,
+      ...data,
+      photoURL: data.photoURL || `https://picsum.photos/seed/${carId}/600/400`,
       createdAt: car?.createdAt || serverTimestamp(),
     };
 
-    const saveCar = (finalPhotoUrl: string) => {
-        const payloadWithImage = { ...carPayload, photoURL: finalPhotoUrl };
-        const carRef = doc(firestore, 'cars', carId);
-        
-        const operation = car ? setDoc(carRef, payloadWithImage, { merge: true }) : setDoc(carRef, payloadWithImage);
+    const carRef = doc(firestore, 'cars', carId);
+    
+    const operation = car ? setDoc(carRef, carPayload, { merge: true }) : setDoc(carRef, carPayload);
 
-        operation.then(() => {
-            toast({
-                title: car ? "Voiture mise à jour" : "Voiture ajoutée",
-                description: car ? "Les informations ont été mises à jour." : "La nouvelle voiture a été ajoutée.",
-            });
-            onFinished();
-            router.refresh();
-        }).catch(error => {
-             console.error("Erreur lors de la sauvegarde de la voiture:", error);
-             const permissionError = new FirestorePermissionError({
-                path: carRef.path,
-                operation: car ? 'update' : 'create',
-                requestResourceData: payloadWithImage
-            }, error);
-            errorEmitter.emit('permission-error', permissionError);
-
-            toast({
-                variant: "destructive",
-                title: "Une erreur est survenue",
-                description: error.message || "Impossible de sauvegarder la voiture.",
-            });
+    operation.then(() => {
+        toast({
+            title: car ? "Voiture mise à jour" : "Voiture ajoutée",
+            description: car ? "Les informations ont été mises à jour." : "La nouvelle voiture a été ajoutée.",
         });
-    }
+        onFinished();
+        router.refresh();
+    }).catch(error => {
+         const permissionError = new FirestorePermissionError({
+            path: carRef.path,
+            operation: car ? 'update' : 'create',
+            requestResourceData: carPayload
+        }, error);
+        errorEmitter.emit('permission-error', permissionError);
 
-    if (photoFile) {
-        toast({ title: "Téléversement de l'image..." });
-        const storageRef = ref(storage, `cars/${carId}/${photoFile.name}`);
-        uploadBytes(storageRef, photoFile)
-            .then(uploadResult => getDownloadURL(uploadResult.ref))
-            .then(url => {
-                toast({ title: "Image téléversée !" });
-                saveCar(url);
-            })
-            .catch(error => {
-                console.error("Erreur de téléversement:", error);
-                toast({
-                    variant: "destructive",
-                    title: "Erreur de téléversement",
-                    description: "Impossible de téléverser l'image.",
-                });
-                // Even if upload fails, we don't want to leave the form submitting forever
-                form.reset(data); // Resets form state
-            });
-    } else {
-        const finalPhotoUrl = photoURL || `https://picsum.photos/seed/${carId}/600/400`;
-        saveCar(finalPhotoUrl);
-    }
+        toast({
+            variant: "destructive",
+            title: "Une erreur est survenue",
+            description: error.message || "Impossible de sauvegarder la voiture.",
+        });
+    });
   }
 
   return (
@@ -319,15 +284,15 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
         />
         <FormField
             control={form.control}
-            name="photo"
+            name="photoURL"
             render={({ field }) => (
                 <FormItem>
-                    <FormLabel>Photo</FormLabel>
+                    <FormLabel>Photo (URL)</FormLabel>
                     <FormControl>
-                        <Input type="file" accept="image/*" {...photoRef} />
+                        <Input type="text" placeholder="https://exemple.com/image.png" {...field} value={field.value ?? ''} />
                     </FormControl>
                      <FormDescription>
-                        {car ? "Laissez vide pour conserver l'image actuelle." : "Si aucune image n'est choisie, une image par défaut sera utilisée."}
+                        Collez l'URL de l'image ici. Si le champ est laissé vide, une image par défaut sera utilisée.
                     </FormDescription>
                     <FormMessage />
                 </FormItem>
