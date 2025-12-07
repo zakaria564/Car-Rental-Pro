@@ -73,9 +73,9 @@ export default function CarCard({ car }: { car: Car }) {
             <Image
                 src={car.photoURL}
                 alt={`${car.marque} ${car.modele}`}
-                width={400}
-                height={300}
-                className="object-cover aspect-[4/3] w-full"
+                width={300}
+                height={400}
+                className="object-cover aspect-[3/4] w-full"
                 data-ai-hint="car photo"
             />
         </CardHeader>
