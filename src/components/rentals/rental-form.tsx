@@ -448,7 +448,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
                                 value={field.value ?? ''}
                                 onChange={(e) => {
                                     const value = e.target.value;
-                                    field.onChange(value === '' ? undefined : Number(value));
+                                    field.onChange(value === '' ? '' : Number(value));
                                 }}
                             />
                           </FormControl>
@@ -528,8 +528,3 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
     </Form>
   );
 }
-
-    
-
-
-    
