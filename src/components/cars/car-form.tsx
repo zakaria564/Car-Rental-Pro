@@ -24,11 +24,19 @@ import { collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import React from "react";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { CalendarIcon } from "lucide-react";
+import { Calendar } from "../ui/calendar";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 const carFormSchema = z.object({
   marque: z.string().min(2, "La marque doit comporter au moins 2 caractères."),
   modele: z.string().min(1, "Le modèle est requis."),
-  modeleAnnee: z.coerce.number().int("L'année doit être un nombre entier.").min(1990, "L'année doit être supérieure à 1990.").max(new Date().getFullYear() + 1),
+  modeleAnnee: z.date({
+    required_error: "La date de mise en circulation est requise.",
+  }),
   immat: z.string().min(5, "La plaque d'immatriculation semble trop courte."),
   numChassis: z.string().min(17, "Le numéro de châssis doit comporter 17 caractères.").max(17, "Le numéro de châssis doit comporter 17 caractères."),
   kilometrage: z.coerce.number().int("Le kilométrage doit être un nombre entier.").min(0, "Le kilométrage ne peut être négatif."),
@@ -63,7 +71,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
       prixParJour: car?.prixParJour ?? 0,
       puissance: car?.puissance ?? 0,
       nbrPlaces: car?.nbrPlaces ?? 0,
-      modeleAnnee: car?.modeleAnnee ?? new Date().getFullYear(),
+      modeleAnnee: car?.modeleAnnee ? new Date(car.modeleAnnee) : new Date(),
   };
 
   const form = useForm<CarFormValues>({
@@ -83,6 +91,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
 
     const carPayload = {
       ...data,
+      modeleAnnee: data.modeleAnnee.getFullYear(), // We only store the year as per original data model.
       createdAt: car?.createdAt || serverTimestamp(),
       photoURL: data.photoURL || `https://picsum.photos/seed/${carId}/600/400`,
     };
@@ -149,11 +158,40 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
           control={form.control}
           name="modeleAnnee"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel>Année</FormLabel>
-              <FormControl>
-                <Input type="number" placeholder="2023" {...field} />
-              </FormControl>
+            <FormItem className="flex flex-col">
+              <FormLabel>Date de mise en circulation</FormLabel>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full pl-3 text-left font-normal",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
+                      {field.value ? (
+                        format(field.value, "PPP", { locale: fr })
+                      ) : (
+                        <span>Choisir une date</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={field.value}
+                    onSelect={field.onChange}
+                    disabled={(date) =>
+                      date > new Date() || date < new Date("1990-01-01")
+                    }
+                    initialFocus
+                    locale={fr}
+                  />
+                </PopoverContent>
+              </Popover>
               <FormMessage />
             </FormItem>
           )}
@@ -320,3 +358,5 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     </Form>
   );
 }
+
+    
