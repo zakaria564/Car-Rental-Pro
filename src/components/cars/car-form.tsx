@@ -82,7 +82,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     try {
         const { photo, ...carData } = data;
         const carId = car?.id || doc(collection(firestore, 'cars')).id;
-
+        
         let photoURL = car?.photoURL;
         const photoFile = data.photo?.[0];
 
@@ -92,29 +92,14 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
             const uploadResult = await uploadBytes(storageRef, photoFile);
             photoURL = await getDownloadURL(uploadResult.ref);
             toast({ title: "Image téléversée avec succès!" });
-        } else if (!car) {
-            toast({ title: "Génération d'une image par l'IA..." });
-            const { imageUrl, error } = await generateCarImageAction({
-                marque: data.marque,
-                modele: data.modele,
-                modeleAnnee: data.modeleAnnee,
-                couleur: data.couleur,
-            });
-
-            if (error || !imageUrl) {
-                toast({ variant: "destructive", title: "Erreur de génération d'image", description: error || "L'IA n'a pas pu générer d'image." });
-                photoURL = `https://picsum.photos/seed/${carId}/600/400`;
-            } else {
-                const storageRef = ref(storage, `cars/${carId}/ai_generated.png`);
-                await uploadString(storageRef, imageUrl, 'data_url');
-                photoURL = await getDownloadURL(storageRef);
-                toast({ title: "Image générée et téléversée avec succès!" });
-            }
+        } else if (!photoURL) {
+            // If no new photo and no existing photo, use a placeholder
+            photoURL = `https://picsum.photos/seed/${carId}/600/400`;
         }
 
         const carPayload = {
           ...carData,
-          photoURL: photoURL || `https://picsum.photos/seed/${carId}/600/400`,
+          photoURL: photoURL,
           createdAt: car?.createdAt || serverTimestamp(),
         };
 
@@ -195,7 +180,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
             <FormItem>
               <FormLabel>Année</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="2023" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.valueAsNumber)} />
+                <Input type="number" placeholder="2023" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.valueAsNumber || undefined)} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -221,7 +206,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
             <FormItem>
               <FormLabel>Kilométrage</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="54000" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.valueAsNumber)} />
+                <Input type="number" placeholder="54000" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.valueAsNumber || undefined)} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -248,7 +233,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                 <FormItem>
                 <FormLabel>Places</FormLabel>
                 <FormControl>
-                    <Input type="number" placeholder="5" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.valueAsNumber)} />
+                    <Input type="number" placeholder="5" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.valueAsNumber || undefined)} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -261,7 +246,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                 <FormItem>
                 <FormLabel>Puissance (cv)</FormLabel>
                 <FormControl>
-                    <Input type="number" placeholder="8" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.valueAsNumber)} />
+                    <Input type="number" placeholder="8" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.valueAsNumber || undefined)} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -303,7 +288,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                   placeholder="99.99"
                   {...field}
                   value={field.value ?? ''}
-                   onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.valueAsNumber)}
+                   onChange={e => field.onChange(e.target.valueAsNumber || undefined)}
                 />
               </FormControl>
               <FormMessage />
@@ -343,7 +328,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                         <Input type="file" accept="image/*" {...photoRef} />
                     </FormControl>
                      <FormDescription>
-                        {car ? "Laissez vide pour conserver l'image actuelle." : "Si aucune image n'est choisie, une image sera générée par l'IA."}
+                        {car ? "Laissez vide pour conserver l'image actuelle." : "Si aucune image n'est choisie, une image par défaut sera utilisée."}
                     </FormDescription>
                     <FormMessage />
                 </FormItem>
@@ -356,3 +341,5 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     </Form>
   );
 }
+
+    
