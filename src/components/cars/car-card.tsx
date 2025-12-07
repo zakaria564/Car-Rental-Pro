@@ -9,9 +9,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Car } from "@/lib/definitions";
@@ -66,7 +63,7 @@ export default function CarCard({ car }: { car: Car }) {
 
   return (
     <Card className="flex flex-col overflow-hidden">
-        <CardHeader className="p-0 relative">
+        <div className="relative">
             <Badge variant={car.disponible ? "default" : "destructive"} className={`absolute top-2 right-2 z-10 ${car.disponible ? 'bg-green-600' : ''}`}>
                 {car.disponible ? "Disponible" : "Louée"}
             </Badge>
@@ -78,13 +75,13 @@ export default function CarCard({ car }: { car: Car }) {
                 className="object-cover aspect-video w-full"
                 data-ai-hint="car photo"
             />
-        </CardHeader>
-        <div className="flex flex-col flex-grow">
-            <CardContent className="p-3 flex-grow">
-                <CardTitle className="text-base font-bold truncate">{car.marque} {car.modele}</CardTitle>
+        </div>
+        <div className="flex flex-col flex-grow p-3">
+            <CardContent className="p-0 flex-grow mb-2">
+                <h3 className="text-base font-bold truncate">{car.marque} {car.modele}</h3>
                 <p className="text-sm text-muted-foreground">{car.immat}</p>
             </CardContent>
-            <CardFooter className="p-3 pt-0 flex flex-col items-start gap-2">
+            <div className="flex flex-col items-start gap-2">
                 <div className="font-bold text-lg w-full">{formatCurrency(car.prixParJour, 'MAD')}<span className="text-xs font-normal text-muted-foreground">/jour</span></div>
                 <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                     <Dialog open={isMaintenanceDialogOpen} onOpenChange={setIsMaintenanceDialogOpen}>
@@ -154,7 +151,7 @@ export default function CarCard({ car }: { car: Car }) {
                         </SheetContent>
                     </Dialog>
                 </Sheet>
-            </CardFooter>
+            </div>
         </div>
     </Card>
   );
