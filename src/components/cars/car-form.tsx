@@ -48,23 +48,21 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
   const { toast } = useToast();
   const { firestore } = useFirebase();
 
-  const defaultValues: Partial<CarFormValues> = car ? {
-    ...car,
-  } : {
-    marque: "",
-    modele: "",
-    modeleAnnee: undefined,
-    immat: "",
-    numChassis: "",
-    kilometrage: undefined,
-    couleur: "",
-    nbrPlaces: 5,
-    puissance: 7,
-    carburantType: "Essence",
-    prixParJour: undefined,
-    etat: "new",
-    disponible: true,
-    photoURL: "",
+  const defaultValues: Partial<CarFormValues> = {
+    marque: car?.marque ?? "",
+    modele: car?.modele ?? "",
+    modeleAnnee: car?.modeleAnnee,
+    immat: car?.immat ?? "",
+    numChassis: car?.numChassis ?? "",
+    kilometrage: car?.kilometrage,
+    couleur: car?.couleur ?? "",
+    nbrPlaces: car?.nbrPlaces ?? 5,
+    puissance: car?.puissance ?? 7,
+    carburantType: car?.carburantType ?? "Essence",
+    prixParJour: car?.prixParJour,
+    etat: car?.etat ?? "new",
+    disponible: car?.disponible ?? true,
+    photoURL: car?.photoURL ?? "",
   };
 
   const form = useForm<CarFormValues>({
@@ -149,7 +147,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
             <FormItem>
               <FormLabel>Année</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="2023" {...field} value={field.value ?? ''} onChange={e => { const num = e.target.valueAsNumber; field.onChange(isNaN(num) ? '' : num); }} />
+                <Input type="number" placeholder="2023" {...field} onChange={e => { const value = e.target.value; field.onChange(value === '' ? '' : Number(value)); }} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -175,7 +173,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
             <FormItem>
               <FormLabel>Numéro de châssis</FormLabel>
               <FormControl>
-                <Input placeholder="17 caractères alphanumériques" {...field} value={field.value ?? ''} />
+                <Input placeholder="17 caractères alphanumériques" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -188,7 +186,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
             <FormItem>
               <FormLabel>Kilométrage</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="54000" {...field} value={field.value ?? ''} onChange={e => { const num = e.target.valueAsNumber; field.onChange(isNaN(num) ? '' : num); }} />
+                <Input type="number" placeholder="54000" {...field} onChange={e => { const value = e.target.value; field.onChange(value === '' ? '' : Number(value)); }} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -215,7 +213,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                 <FormItem>
                 <FormLabel>Places</FormLabel>
                 <FormControl>
-                    <Input type="number" placeholder="5" {...field} value={field.value ?? ''} onChange={e => { const num = e.target.valueAsNumber; field.onChange(isNaN(num) ? '' : num); }} />
+                    <Input type="number" placeholder="5" {...field} onChange={e => { const value = e.target.value; field.onChange(value === '' ? '' : Number(value)); }} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -228,7 +226,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                 <FormItem>
                 <FormLabel>Puissance (cv)</FormLabel>
                 <FormControl>
-                    <Input type="number" placeholder="8" {...field} value={field.value ?? ''} onChange={e => { const num = e.target.valueAsNumber; field.onChange(isNaN(num) ? '' : num); }} />
+                    <Input type="number" placeholder="8" {...field} onChange={e => { const value = e.target.value; field.onChange(value === '' ? '' : Number(value)); }} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -269,8 +267,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                   type="number"
                   placeholder="99.99"
                   {...field}
-                  value={field.value ?? ''}
-                  onChange={e => { const num = e.target.valueAsNumber; field.onChange(isNaN(num) ? '' : num); }}
+                  onChange={e => { const value = e.target.value; field.onChange(value === '' ? '' : Number(value)); }}
                 />
               </FormControl>
               <FormMessage />
