@@ -100,7 +100,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
       carburantNiveauDepart: 0.5,
       dommagesDepart: {},
       dommagesRetour: {},
-      kilometrageRetour: undefined,
+      kilometrageRetour: '' as any, // Initialize with empty string
     }
   });
   
