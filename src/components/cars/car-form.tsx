@@ -310,8 +310,11 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                   type="number"
                   placeholder="99.99"
                   {...field}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    field.onChange(value === '' ? undefined : Number(value));
+                  }}
                   value={field.value ?? ''}
-                  onChange={(e) => field.onChange(e.target.valueAsNumber || '')}
                 />
               </FormControl>
               <FormMessage />
