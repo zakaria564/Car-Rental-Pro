@@ -3,17 +3,9 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { Wrench, MoreHorizontal } from "lucide-react";
+import { Wrench, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Card,
   CardContent,
@@ -24,7 +16,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { Car } from "@/lib/definitions";
 import { formatCurrency } from "@/lib/utils";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import CarForm from "./car-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import MaintenanceChecker from "./maintenance-checker";
@@ -35,6 +27,12 @@ import { deleteDoc, doc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 export default function CarCard({ car }: { car: Car }) {
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
@@ -81,37 +79,48 @@ export default function CarCard({ car }: { car: Car }) {
                 data-ai-hint="car photo"
             />
         </CardHeader>
-        <CardContent className="p-4 flex-grow">
-            <CardTitle className="text-lg">{car.marque} {car.modele}</CardTitle>
-            <p className="text-sm text-muted-foreground">{car.modeleAnnee} - {car.kilometrage.toLocaleString()} km</p>
+        <CardContent className="p-3 flex-grow">
+            <CardTitle className="text-base font-bold truncate">{car.marque} {car.modele}</CardTitle>
+            <p className="text-sm text-muted-foreground">{car.immat}</p>
         </CardContent>
-        <CardFooter className="p-4 pt-0 flex justify-between items-center">
-            <div className="font-bold text-lg">{formatCurrency(car.prixParJour, 'MAD')}<span className="text-sm font-normal text-muted-foreground">/jour</span></div>
+        <CardFooter className="p-3 pt-0 flex flex-col items-start gap-2">
+            <div className="font-bold text-lg w-full">{formatCurrency(car.prixParJour, 'MAD')}<span className="text-xs font-normal text-muted-foreground">/jour</span></div>
              <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                 <Dialog open={isMaintenanceDialogOpen} onOpenChange={setIsMaintenanceDialogOpen}>
                     <AlertDialog>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Ouvrir le menu</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => setIsSheetOpen(true)}>
-                                Modifier
-                            </DropdownMenuItem>
-                            <AlertDialogTrigger asChild>
-                                <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">Supprimer</DropdownMenuItem>
+                       <TooltipProvider>
+                        <div className="w-full flex justify-between items-center gap-1">
+                             <SheetTrigger asChild>
+                                <Button variant="outline" size="sm" className="flex-1">
+                                    <Pencil className="h-4 w-4 mr-1" /> Modifier
+                                </Button>
+                             </SheetTrigger>
+                            <DialogTrigger asChild>
+                                <Button variant="outline" size="icon" className="h-9 w-9">
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Wrench className="h-4 w-4" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Vérifier l'entretien (IA)</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </Button>
+                            </DialogTrigger>
+                             <AlertDialogTrigger asChild>
+                                <Button variant="destructive" size="icon" className="h-9 w-9">
+                                     <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Trash2 className="h-4 w-4" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Supprimer</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </Button>
                             </AlertDialogTrigger>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => setIsMaintenanceDialogOpen(true)}>
-                                <Wrench className="mr-2 h-4 w-4" />
-                                Vérifier l'entretien
-                            </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                        </div>
+                        </TooltipProvider>
                         <AlertDialogContent>
                             <AlertDialogHeader>
                             <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
