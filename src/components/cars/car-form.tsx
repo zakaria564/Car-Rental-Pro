@@ -79,10 +79,11 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
   async function onSubmit(data: CarFormValues) {
     if (!firestore || !storage) return;
 
-    let photoURL = car?.photoURL;
-    const carId = car?.id || doc(collection(firestore, 'cars')).id;
-
     try {
+        const { photo, ...carData } = data;
+        const carId = car?.id || doc(collection(firestore, 'cars')).id;
+
+        let photoURL = car?.photoURL;
         const photoFile = data.photo?.[0];
 
         if (photoFile) {
@@ -91,7 +92,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
             const uploadResult = await uploadBytes(storageRef, photoFile);
             photoURL = await getDownloadURL(uploadResult.ref);
             toast({ title: "Image téléversée avec succès!" });
-        } else if (!car) { // Only generate if it's a new car without a photo
+        } else if (!car) {
             toast({ title: "Génération d'une image par l'IA..." });
             const { imageUrl, error } = await generateCarImageAction({
                 marque: data.marque,
@@ -102,53 +103,34 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
 
             if (error || !imageUrl) {
                 toast({ variant: "destructive", title: "Erreur de génération d'image", description: error || "L'IA n'a pas pu générer d'image." });
-                // Fallback to a generic image
                 photoURL = `https://picsum.photos/seed/${carId}/600/400`;
             } else {
                 const storageRef = ref(storage, `cars/${carId}/ai_generated.png`);
-                // The imageUrl is a data URI, we need to upload it as a string.
                 await uploadString(storageRef, imageUrl, 'data_url');
                 photoURL = await getDownloadURL(storageRef);
                 toast({ title: "Image générée et téléversée avec succès!" });
             }
         }
 
-
-        const { photo, ...carData } = data;
-        
         const carPayload = {
           ...carData,
-          photoURL: photoURL || `https://picsum.photos/seed/${carId}/600/400`, // Final fallback
+          photoURL: photoURL || `https://picsum.photos/seed/${carId}/600/400`,
           createdAt: car?.createdAt || serverTimestamp(),
         };
 
+        const carRef = doc(firestore, 'cars', carId);
+        
         if (car) {
-            const carRef = doc(firestore, 'cars', car.id);
-            setDoc(carRef, carPayload, { merge: true }).catch(serverError => {
-                const permissionError = new FirestorePermissionError({
-                    path: carRef.path,
-                    operation: 'update',
-                    requestResourceData: carPayload
-                }, serverError);
-                errorEmitter.emit('permission-error', permissionError);
-            });
+            await setDoc(carRef, carPayload, { merge: true });
             toast({
                 title: "Voiture mise à jour",
-                description: "L'opération a été initiée.",
+                description: "Les informations de la voiture ont été mises à jour.",
             });
         } else {
-            const carRef = doc(firestore, 'cars', carId);
-            setDoc(carRef, carPayload).catch(serverError => {
-              const permissionError = new FirestorePermissionError({
-                  path: carRef.path,
-                  operation: 'create',
-                  requestResourceData: carPayload
-              }, serverError);
-              errorEmitter.emit('permission-error', permissionError);
-            });
+            await setDoc(carRef, carPayload);
             toast({
               title: "Voiture ajoutée",
-              description: "L'opération a été initiée.",
+              description: "La nouvelle voiture a été ajoutée avec succès.",
             });
         }
 
@@ -157,10 +139,22 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
 
     } catch (error: any) {
         console.error("Erreur lors de la soumission du formulaire:", error);
+        
+        const isPermissionError = error.code === 'permission-denied';
+        
+        if(isPermissionError) {
+             const permissionError = new FirestorePermissionError({
+                path: `cars/${car?.id || 'new'}`,
+                operation: car ? 'update' : 'create',
+                requestResourceData: data
+            }, error);
+            errorEmitter.emit('permission-error', permissionError);
+        }
+
         toast({
             variant: "destructive",
             title: "Une erreur est survenue",
-            description: error.message || "Impossible de sauvegarder la voiture. Veuillez réessayer.",
+            description: isPermissionError ? "Vous n'avez pas la permission." : (error.message || "Impossible de sauvegarder la voiture."),
         });
     }
   }
@@ -201,7 +195,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
             <FormItem>
               <FormLabel>Année</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="2023" {...field} value={field.value ?? ''} />
+                <Input type="number" placeholder="2023" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.valueAsNumber)} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -227,7 +221,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
             <FormItem>
               <FormLabel>Kilométrage</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="54000" {...field} value={field.value ?? ''} />
+                <Input type="number" placeholder="54000" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.valueAsNumber)} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -254,7 +248,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                 <FormItem>
                 <FormLabel>Places</FormLabel>
                 <FormControl>
-                    <Input type="number" placeholder="5" {...field} value={field.value ?? ''} />
+                    <Input type="number" placeholder="5" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.valueAsNumber)} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -267,7 +261,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                 <FormItem>
                 <FormLabel>Puissance (cv)</FormLabel>
                 <FormControl>
-                    <Input type="number" placeholder="8" {...field} value={field.value ?? ''} />
+                    <Input type="number" placeholder="8" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.valueAsNumber)} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -308,7 +302,8 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                   type="number"
                   placeholder="99.99"
                   {...field}
-                  value={field.value ?? ''}
+                  value={field.value ?? ""}
+                   onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.valueAsNumber)}
                 />
               </FormControl>
               <FormMessage />
