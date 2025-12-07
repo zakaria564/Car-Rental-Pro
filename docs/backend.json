@@ -8,6 +8,7 @@
         "marque": { "type": "string", "description": "Brand of the car." },
         "modele": { "type": "string", "description": "Model of the car." },
         "immat": { "type": "string", "description": "License plate." },
+        "numChassis": { "type": "string", "description": "Chassis number (VIN)." },
         "prixParJour": { "type": "number", "description": "Price per day." },
         "etat": {
           "type": "string",
@@ -24,7 +25,7 @@
         "puissance": { "type": "number", "description": "Fiscal power of the car." },
         "carburantType": { "type": "string", "enum": ["Diesel", "Essence", "Electrique"], "description": "Type of fuel." }
       },
-      "required": ["marque", "modele", "immat", "prixParJour", "etat", "disponible", "modeleAnnee", "kilometrage", "couleur", "nbrPlaces", "puissance", "carburantType"]
+      "required": ["marque", "modele", "immat", "numChassis", "prixParJour", "etat", "disponible", "modeleAnnee", "kilometrage", "couleur", "nbrPlaces", "puissance", "carburantType"]
     },
     "client": {
       "title": "Client",
@@ -58,6 +59,7 @@
         "vehicule": {
           "type": "object",
           "properties": {
+            "carId": { "type": "string" },
             "immatriculation": { "type": "string" },
             "marque": { "type": "string" },
             "modeleAnnee": { "type": "number" },

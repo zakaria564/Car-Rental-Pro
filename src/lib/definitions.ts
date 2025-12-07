@@ -4,6 +4,7 @@ export type Car = {
   marque: string;
   modele: string;
   immat: string;
+  numChassis: string;
   etat: 'new' | 'good' | 'fair' | 'poor';
   photoURL: string;
   disponible: boolean;

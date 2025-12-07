@@ -29,6 +29,7 @@ const carFormSchema = z.object({
   modele: z.string().min(1, "Le modèle est requis."),
   modeleAnnee: z.coerce.number().min(1990, "L'année doit être supérieure à 1990.").max(new Date().getFullYear() + 1),
   immat: z.string().min(5, "La plaque d'immatriculation semble trop courte."),
+  numChassis: z.string().min(17, "Le numéro de châssis doit comporter 17 caractères.").max(17, "Le numéro de châssis doit comporter 17 caractères."),
   kilometrage: z.coerce.number().min(0, "Le kilométrage ne peut être négatif."),
   couleur: z.string().min(3, "La couleur est requise."),
   nbrPlaces: z.coerce.number().min(2, "Le nombre de places est requis.").max(9),
@@ -54,6 +55,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     modele: "",
     modeleAnnee: undefined,
     immat: "",
+    numChassis: "",
     kilometrage: undefined,
     couleur: "",
     nbrPlaces: 5,
@@ -71,19 +73,18 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     mode: "onChange",
   });
 
-  async function onSubmit(data: CarFormValues) {
+  const onSubmit = async (data: CarFormValues) => {
     if (!firestore) return;
-    
+
     const carId = car?.id || doc(collection(firestore, 'cars')).id;
 
     const carPayload = {
-      ...data,
-      photoURL: data.photoURL || `https://picsum.photos/seed/${carId}/600/400`,
-      createdAt: car?.createdAt || serverTimestamp(),
+        ...data,
+        photoURL: data.photoURL || `https://picsum.photos/seed/${carId}/600/400`,
+        createdAt: car?.createdAt || serverTimestamp(),
     };
 
     const carRef = doc(firestore, 'cars', carId);
-    
     const operation = car ? setDoc(carRef, carPayload, { merge: true }) : setDoc(carRef, carPayload);
 
     operation.then(() => {
@@ -93,18 +94,18 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
         });
         onFinished();
         router.refresh();
-    }).catch(error => {
-         const permissionError = new FirestorePermissionError({
+    }).catch(serverError => {
+        const permissionError = new FirestorePermissionError({
             path: carRef.path,
             operation: car ? 'update' : 'create',
             requestResourceData: carPayload
-        }, error);
+        }, serverError);
         errorEmitter.emit('permission-error', permissionError);
 
         toast({
             variant: "destructive",
             title: "Une erreur est survenue",
-            description: error.message || "Impossible de sauvegarder la voiture.",
+            description: "Impossible de sauvegarder la voiture. Vérifiez vos permissions et réessayez.",
         });
     });
   }
@@ -145,7 +146,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
             <FormItem>
               <FormLabel>Année</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="2023" {...field} value={field.value ?? ''} />
+                <Input type="number" placeholder="2023" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.valueAsNumber)} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -166,12 +167,25 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
         />
         <FormField
           control={form.control}
+          name="numChassis"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Numéro de châssis</FormLabel>
+              <FormControl>
+                <Input placeholder="17 caractères alphanumériques" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
           name="kilometrage"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Kilométrage</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="54000" {...field} value={field.value ?? ''}/>
+                <Input type="number" placeholder="54000" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.valueAsNumber)} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -198,7 +212,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                 <FormItem>
                 <FormLabel>Places</FormLabel>
                 <FormControl>
-                    <Input type="number" placeholder="5" {...field} value={field.value ?? ''} />
+                    <Input type="number" placeholder="5" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.valueAsNumber)} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -211,7 +225,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                 <FormItem>
                 <FormLabel>Puissance (cv)</FormLabel>
                 <FormControl>
-                    <Input type="number" placeholder="8" {...field} value={field.value ?? ''}/>
+                    <Input type="number" placeholder="8" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.valueAsNumber)} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -253,6 +267,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                   placeholder="99.99"
                   {...field}
                   value={field.value ?? ''}
+                  onChange={e => field.onChange(e.target.valueAsNumber)}
                 />
               </FormControl>
               <FormMessage />
@@ -289,7 +304,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                 <FormItem>
                     <FormLabel>Photo (URL)</FormLabel>
                     <FormControl>
-                        <Input type="text" placeholder="https://exemple.com/image.png" {...field} value={field.value ?? ''} />
+                        <Input type="text" placeholder="https://exemple.com/image.png" {...field} />
                     </FormControl>
                      <FormDescription>
                         Collez l'URL de l'image ici. Si le champ est laissé vide, une image par défaut sera utilisée.
