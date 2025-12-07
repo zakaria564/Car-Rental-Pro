@@ -23,7 +23,6 @@ import { useFirebase } from "@/firebase";
 import { collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
-import { generateCarImageAction } from "@/lib/actions";
 import React from "react";
 
 const carFormSchema = z.object({
@@ -81,7 +80,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     if (!firestore) return;
     setIsSubmitting(true);
 
-    const carId = car?.id || doc(collection(firestore, 'voitures')).id;
+    const carId = car?.id || doc(collection(firestore, 'cars')).id;
     const isNewCar = !car;
 
     const carPayload = {
@@ -117,7 +116,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
       }).finally(() => {
         setIsSubmitting(false);
       });
-  }
+  };
 
   return (
     <Form {...form}>
@@ -287,7 +286,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Sélectionnez l'état de la voiture" />
-                  </Trigger>
+                  </SelectTrigger>
                 </FormControl>
                 <SelectContent>
                   <SelectItem value="new">Neuf</SelectItem>
@@ -323,3 +322,5 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     </Form>
   );
 }
+
+    
