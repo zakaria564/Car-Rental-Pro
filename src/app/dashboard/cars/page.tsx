@@ -82,8 +82,8 @@ export default function CarsPage() {
         </div>
 
        {loading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {[...Array(12)].map((_, i) => <Skeleton key={i} className="h-72 w-full" />)}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {[...Array(8)].map((_, i) => <Skeleton key={i} className="h-96 w-full" />)}
         </div>
       ) : error ? (
          <Alert variant="destructive">
@@ -92,7 +92,7 @@ export default function CarsPage() {
             <AlertDescription>{error}</AlertDescription>
         </Alert>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredCars.map(car => (
                 <CarCard key={car.id} car={car} />
             ))}
