@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { Wrench, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { Wrench, Pencil, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -74,87 +74,88 @@ export default function CarCard({ car }: { car: Car }) {
                 src={car.photoURL}
                 alt={`${car.marque} ${car.modele}`}
                 width={300}
-                height={400}
-                className="object-cover aspect-[3/4] w-full"
+                height={200}
+                className="object-cover aspect-video w-full"
                 data-ai-hint="car photo"
             />
         </CardHeader>
-        <CardContent className="p-3 flex-grow">
-            <CardTitle className="text-base font-bold truncate">{car.marque} {car.modele}</CardTitle>
-            <p className="text-sm text-muted-foreground">{car.immat}</p>
-        </CardContent>
-        <CardFooter className="p-3 pt-0 flex flex-col items-start gap-2">
-            <div className="font-bold text-lg w-full">{formatCurrency(car.prixParJour, 'MAD')}<span className="text-xs font-normal text-muted-foreground">/jour</span></div>
-             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-                <Dialog open={isMaintenanceDialogOpen} onOpenChange={setIsMaintenanceDialogOpen}>
-                    <AlertDialog>
-                      <TooltipProvider>
-                        <div className="w-full flex justify-between items-center gap-1">
-                            <SheetTrigger asChild>
-                              <Button variant="outline" size="sm" className="flex-1">
-                                  <Pencil className="h-4 w-4 mr-1" /> Modifier
-                              </Button>
-                            </SheetTrigger>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                  <DialogTrigger asChild>
-                                      <Button variant="outline" size="icon" className="h-9 w-9">
-                                          <Wrench className="h-4 w-4" />
-                                      </Button>
-                                  </DialogTrigger>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                  <p>Vérifier l'entretien (IA)</p>
-                              </TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
+        <div className="flex flex-col flex-grow">
+            <CardContent className="p-3 flex-grow">
+                <CardTitle className="text-base font-bold truncate">{car.marque} {car.modele}</CardTitle>
+                <p className="text-sm text-muted-foreground">{car.immat}</p>
+            </CardContent>
+            <CardFooter className="p-3 pt-0 flex flex-col items-start gap-2">
+                <div className="font-bold text-lg w-full">{formatCurrency(car.prixParJour, 'MAD')}<span className="text-xs font-normal text-muted-foreground">/jour</span></div>
+                <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+                    <Dialog open={isMaintenanceDialogOpen} onOpenChange={setIsMaintenanceDialogOpen}>
+                        <AlertDialog>
+                        <TooltipProvider>
+                            <div className="w-full flex justify-between items-center gap-1">
+                                <SheetTrigger asChild>
+                                <Button variant="outline" size="sm" className="flex-1">
+                                    <Pencil className="h-4 w-4 mr-1" /> Modifier
+                                </Button>
+                                </SheetTrigger>
+                                <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <AlertDialogTrigger asChild>
-                                        <Button variant="destructive" size="icon" className="h-9 w-9">
-                                            <Trash2 className="h-4 w-4" />
+                                    <DialogTrigger asChild>
+                                        <Button variant="outline" size="icon" className="h-9 w-9">
+                                            <Wrench className="h-4 w-4" />
                                         </Button>
-                                    </AlertDialogTrigger>
+                                    </DialogTrigger>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                    <p>Supprimer</p>
+                                    <p>Vérifier l'entretien (IA)</p>
                                 </TooltipContent>
-                            </Tooltip>
-                        </div>
-                      </TooltipProvider>
+                                </Tooltip>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <AlertDialogTrigger asChild>
+                                            <Button variant="destructive" size="icon" className="h-9 w-9">
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Supprimer</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </div>
+                        </TooltipProvider>
 
-                      <AlertDialogContent>
-                          <AlertDialogHeader>
-                          <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                              Cette action est irréversible. La voiture {car.marque} {car.modele} sera définitivement supprimée.
-                          </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                          <AlertDialogCancel>Annuler</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDeleteCar(car.id)} className="bg-destructive hover:bg-destructive/90">Supprimer</AlertDialogAction>
-                          </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Cette action est irréversible. La voiture {car.marque} {car.modele} sera définitivement supprimée.
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteCar(car.id)} className="bg-destructive hover:bg-destructive/90">Supprimer</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                        </AlertDialog>
 
-                    <DialogContent>
-                      <DialogHeader>
-                          <DialogTitle>Vérification IA de l'entretien pour {car.marque} {car.modele}</DialogTitle>
-                      </DialogHeader>
-                      <MaintenanceChecker carId={car.id} />
-                    </DialogContent>
+                        <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Vérification IA de l'entretien pour {car.marque} {car.modele}</DialogTitle>
+                        </DialogHeader>
+                        <MaintenanceChecker carId={car.id} />
+                        </DialogContent>
 
-                    <SheetContent className="sm:max-w-[480px]">
-                        <SheetHeader>
-                            <SheetTitle>Modifier la voiture</SheetTitle>
-                        </SheetHeader>
-                        <ScrollArea className="h-full pr-6">
-                            <CarForm car={car} onFinished={() => setIsSheetOpen(false)} />
-                        </ScrollArea>
-                    </SheetContent>
-                </Dialog>
-            </Sheet>
-        </CardFooter>
+                        <SheetContent className="sm:max-w-[480px]">
+                            <SheetHeader>
+                                <SheetTitle>Modifier la voiture</SheetTitle>
+                            </SheetHeader>
+                            <ScrollArea className="h-full pr-6">
+                                <CarForm car={car} onFinished={() => setIsSheetOpen(false)} />
+                            </ScrollArea>
+                        </SheetContent>
+                    </Dialog>
+                </Sheet>
+            </CardFooter>
+        </div>
     </Card>
   );
 }
-
