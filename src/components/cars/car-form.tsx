@@ -85,7 +85,10 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     };
 
     const carRef = doc(firestore, 'cars', carId);
-    const operation = car ? setDoc(carRef, carPayload, { merge: true }) : setDoc(carRef, carPayload);
+    
+    const operation = car 
+        ? setDoc(carRef, carPayload, { merge: true }) 
+        : setDoc(carRef, carPayload);
 
     operation.then(() => {
         toast({
@@ -146,7 +149,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
             <FormItem>
               <FormLabel>Année</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="2023" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.valueAsNumber)} />
+                <Input type="number" placeholder="2023" {...field} value={field.value ?? ''} onChange={e => { const num = e.target.valueAsNumber; field.onChange(isNaN(num) ? '' : num); }} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -185,7 +188,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
             <FormItem>
               <FormLabel>Kilométrage</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="54000" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.valueAsNumber)} />
+                <Input type="number" placeholder="54000" {...field} value={field.value ?? ''} onChange={e => { const num = e.target.valueAsNumber; field.onChange(isNaN(num) ? '' : num); }} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -212,7 +215,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                 <FormItem>
                 <FormLabel>Places</FormLabel>
                 <FormControl>
-                    <Input type="number" placeholder="5" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.valueAsNumber)} />
+                    <Input type="number" placeholder="5" {...field} value={field.value ?? ''} onChange={e => { const num = e.target.valueAsNumber; field.onChange(isNaN(num) ? '' : num); }} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -225,7 +228,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                 <FormItem>
                 <FormLabel>Puissance (cv)</FormLabel>
                 <FormControl>
-                    <Input type="number" placeholder="8" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.valueAsNumber)} />
+                    <Input type="number" placeholder="8" {...field} value={field.value ?? ''} onChange={e => { const num = e.target.valueAsNumber; field.onChange(isNaN(num) ? '' : num); }} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -267,7 +270,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                   placeholder="99.99"
                   {...field}
                   value={field.value ?? ''}
-                  onChange={e => field.onChange(e.target.valueAsNumber)}
+                  onChange={e => { const num = e.target.valueAsNumber; field.onChange(isNaN(num) ? '' : num); }}
                 />
               </FormControl>
               <FormMessage />
@@ -320,3 +323,5 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     </Form>
   );
 }
+
+    
