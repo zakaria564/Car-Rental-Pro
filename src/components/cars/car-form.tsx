@@ -20,7 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Car } from "@/lib/definitions";
 import { useRouter } from "next/navigation";
 import { useFirebase } from "@/firebase";
-import { addDoc, collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 
@@ -57,7 +57,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     kilometrage: car?.kilometrage,
     couleur: car?.couleur ?? "",
     nbrPlaces: car?.nbrPlaces ?? 5,
-    puissance: car?.puissance ?? 7,
+    puissance: car?.puissance,
     carburantType: car?.carburantType ?? "Essence",
     prixParJour: car?.prixParJour,
     etat: car?.etat ?? "new",
@@ -71,44 +71,43 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     mode: "onChange",
   });
 
-  const onSubmit = async (data: CarFormValues) => {
+  const onSubmit = (data: CarFormValues) => {
     if (!firestore) return;
 
-    const carId = car?.id || doc(collection(firestore, 'cars')).id;
+    const carId = car?.id || doc(collection(firestore, 'voitures')).id;
+    const isNewCar = !car;
 
     const carPayload = {
-        ...data,
-        photoURL: data.photoURL || `https://picsum.photos/seed/${carId}/600/400`,
-        createdAt: car?.createdAt || serverTimestamp(),
+      ...data,
+      createdAt: car?.createdAt || serverTimestamp(),
+      photoURL: data.photoURL || `https://picsum.photos/seed/${carId}/600/400`,
     };
 
     const carRef = doc(firestore, 'cars', carId);
     
-    const operation = car 
-        ? setDoc(carRef, carPayload, { merge: true }) 
-        : setDoc(carRef, carPayload);
-
-    operation.then(() => {
+    setDoc(carRef, carPayload, { merge: !isNewCar })
+      .then(() => {
         toast({
-            title: car ? "Voiture mise à jour" : "Voiture ajoutée",
-            description: car ? "Les informations ont été mises à jour." : "La nouvelle voiture a été ajoutée.",
+          title: isNewCar ? "Voiture ajoutée" : "Voiture mise à jour",
+          description: isNewCar ? "La nouvelle voiture a été ajoutée." : "Les informations ont été mises à jour.",
         });
         onFinished();
         router.refresh();
-    }).catch(serverError => {
+      })
+      .catch((serverError) => {
         const permissionError = new FirestorePermissionError({
-            path: carRef.path,
-            operation: car ? 'update' : 'create',
-            requestResourceData: carPayload
+          path: carRef.path,
+          operation: isNewCar ? 'create' : 'update',
+          requestResourceData: carPayload
         }, serverError);
         errorEmitter.emit('permission-error', permissionError);
 
         toast({
-            variant: "destructive",
-            title: "Une erreur est survenue",
-            description: "Impossible de sauvegarder la voiture. Vérifiez vos permissions et réessayez.",
+          variant: "destructive",
+          title: "Une erreur est survenue",
+          description: "Impossible de sauvegarder la voiture. Vérifiez vos permissions et réessayez.",
         });
-    });
+      });
   }
 
   return (
@@ -147,7 +146,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
             <FormItem>
               <FormLabel>Année</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="2023" {...field} onChange={e => { const value = e.target.value; field.onChange(value === '' ? '' : Number(value)); }} />
+                <Input type="number" placeholder="2023" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -166,7 +165,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
             </FormItem>
           )}
         />
-        <FormField
+         <FormField
           control={form.control}
           name="numChassis"
           render={({ field }) => (
@@ -186,7 +185,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
             <FormItem>
               <FormLabel>Kilométrage</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="54000" {...field} onChange={e => { const value = e.target.value; field.onChange(value === '' ? '' : Number(value)); }} />
+                <Input type="number" placeholder="54000" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -213,7 +212,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                 <FormItem>
                 <FormLabel>Places</FormLabel>
                 <FormControl>
-                    <Input type="number" placeholder="5" {...field} onChange={e => { const value = e.target.value; field.onChange(value === '' ? '' : Number(value)); }} />
+                    <Input type="number" placeholder="5" {...field} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -226,7 +225,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                 <FormItem>
                 <FormLabel>Puissance (cv)</FormLabel>
                 <FormControl>
-                    <Input type="number" placeholder="8" {...field} onChange={e => { const value = e.target.value; field.onChange(value === '' ? '' : Number(value)); }} />
+                    <Input type="number" placeholder="8" {...field} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -263,12 +262,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
             <FormItem>
               <FormLabel>Prix par jour (MAD)</FormLabel>
               <FormControl>
-                <Input
-                  type="number"
-                  placeholder="99.99"
-                  {...field}
-                  onChange={e => { const value = e.target.value; field.onChange(value === '' ? '' : Number(value)); }}
-                />
+                <Input type="number" placeholder="99.99" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -320,5 +314,3 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     </Form>
   );
 }
-
-    

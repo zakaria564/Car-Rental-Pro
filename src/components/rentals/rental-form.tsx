@@ -95,7 +95,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
         roueSecours: rental.livraison.roueSecours,
         posteRadio: rental.livraison.posteRadio,
         lavage: rental.livraison.lavage,
-        kilometrageRetour: rental.reception.kilometrage ?? "",
+        kilometrageRetour: rental.reception.kilometrage,
         // dommagesDepartNotes and dommagesDepart would need mapping
       } : {
       carburantNiveauDepart: 0.5,
@@ -447,11 +447,6 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
                                 type="number"
                                 placeholder="65500"
                                 {...field}
-                                value={field.value ?? ''}
-                                onChange={(e) => {
-                                    const value = e.target.value;
-                                    field.onChange(value === '' ? '' : Number(value));
-                                }}
                             />
                           </FormControl>
                           <FormMessage />
@@ -530,5 +525,3 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
     </Form>
   );
 }
-
-    
