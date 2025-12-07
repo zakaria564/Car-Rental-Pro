@@ -136,9 +136,9 @@ export default function RentalTable({ rentals, isDashboard = false }: RentalTabl
   const [selectedRental, setSelectedRental] = React.useState<Rental | null>(null);
 
   const handleEndRental = async (rental: Rental) => {
-    if (!rental.id || !rental.vehicule.immatriculation) return;
+    if (!rental.id || !rental.vehicule.carId) return;
     const rentalDocRef = doc(firestore, 'rentals', rental.id);
-    const carDocRef = doc(firestore, 'cars', rental.vehicule.immatriculation);
+    const carDocRef = doc(firestore, 'cars', rental.vehicule.carId);
     
     try {
         await updateDoc(rentalDocRef, { statut: 'terminee' });
@@ -373,5 +373,7 @@ export default function RentalTable({ rentals, isDashboard = false }: RentalTabl
     </Sheet>
   );
 }
+
+    
 
     

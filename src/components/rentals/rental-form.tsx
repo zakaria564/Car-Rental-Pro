@@ -87,7 +87,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
     mode: "onChange",
     defaultValues: rental ? {
         clientId: rental.locataire.cin,
-        voitureId: rental.vehicule.immatriculation,
+        voitureId: rental.vehicule.carId,
         dateRange: { from: new Date(rental.location.dateDebut), to: new Date(rental.location.dateFin)},
         caution: rental.location.depot,
         kilometrageDepart: rental.livraison.kilometrage,
@@ -95,19 +95,20 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
         roueSecours: rental.livraison.roueSecours,
         posteRadio: rental.livraison.posteRadio,
         lavage: rental.livraison.lavage,
+        kilometrageRetour: rental.reception.kilometrage ?? "",
         // dommagesDepartNotes and dommagesDepart would need mapping
       } : {
       carburantNiveauDepart: 0.5,
       dommagesDepart: {},
       dommagesRetour: {},
-      kilometrageRetour: '' as any, // Initialize with empty string
+      kilometrageRetour: '',
     }
   });
   
   const selectedCarId = form.watch("voitureId");
   const dateRange = form.watch("dateRange");
 
-  const availableCars = cars.filter(car => car.disponible || (rental && car.id === rental.vehicule.immatriculation));
+  const availableCars = cars.filter(car => car.disponible || (rental && car.id === rental.vehicule.carId));
 
   const selectedCar = React.useMemo(() => {
     return cars.find(car => car.id === selectedCarId);
@@ -147,7 +148,8 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
         telephone: selectedClient.telephone,
       },
       vehicule: {
-        immatriculation: selectedCar.id,
+        carId: selectedCar.id,
+        immatriculation: selectedCar.immat,
         marque: `${selectedCar.marque} ${selectedCar.modele}`,
         modeleAnnee: selectedCar.modeleAnnee || new Date().getFullYear(),
         couleur: selectedCar.couleur || "Inconnue",
@@ -528,3 +530,5 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
     </Form>
   );
 }
+
+    

@@ -37,6 +37,7 @@ export type Rental = {
     telephone: string;
   };
   vehicule: {
+    carId: string;
     immatriculation: string;
     marque: string;
     modeleAnnee: number;
@@ -76,3 +77,5 @@ export type Rental = {
 };
 
 export type Contrat = Rental;
+
+    
