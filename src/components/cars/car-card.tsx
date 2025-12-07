@@ -50,7 +50,7 @@ function CarDetails({ car }: { car: Car }) {
                 <p><strong>Puissance:</strong> {car.puissance} cv</p>
                 <p><strong>Places:</strong> {car.nbrPlaces}</p>
                 <p><strong>État:</strong> {car.etat}</p>
-                <p><strong>Disponibilité:</strong> <Badge variant={car.disponible ? "default" : "destructive"} className={car.disponible ? 'bg-green-600' : ''}>{car.disponible ? "Disponible" : "Louée"}</Badge></p>
+                <div className="flex items-center gap-2"><strong>Disponibilité:</strong> <Badge variant={car.disponible ? "default" : "destructive"} className={car.disponible ? 'bg-green-600' : ''}>{car.disponible ? "Disponible" : "Louée"}</Badge></div>
             </div>
             <Separator />
             <div>
@@ -216,4 +216,3 @@ export default function CarCard({ car }: { car: Car }) {
     </Card>
   );
 }
-
