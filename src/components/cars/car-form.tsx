@@ -20,20 +20,22 @@ import { useToast } from "@/hooks/use-toast";
 import type { Car } from "@/lib/definitions";
 import { useRouter } from "next/navigation";
 import { useFirebase } from "@/firebase";
-import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
+import { generateCarImageAction } from "@/lib/actions";
+import React from "react";
 
 const carFormSchema = z.object({
   marque: z.string().min(2, "La marque doit comporter au moins 2 caractères."),
   modele: z.string().min(1, "Le modèle est requis."),
-  modeleAnnee: z.coerce.number().min(1990, "L'année doit être supérieure à 1990.").max(new Date().getFullYear() + 1),
+  modeleAnnee: z.coerce.number().int("L'année doit être un nombre entier.").min(1990, "L'année doit être supérieure à 1990.").max(new Date().getFullYear() + 1),
   immat: z.string().min(5, "La plaque d'immatriculation semble trop courte."),
   numChassis: z.string().min(17, "Le numéro de châssis doit comporter 17 caractères.").max(17, "Le numéro de châssis doit comporter 17 caractères."),
-  kilometrage: z.coerce.number().min(0, "Le kilométrage ne peut être négatif."),
+  kilometrage: z.coerce.number().int("Le kilométrage doit être un nombre entier.").min(0, "Le kilométrage ne peut être négatif."),
   couleur: z.string().min(3, "La couleur est requise."),
-  nbrPlaces: z.coerce.number().min(2, "Le nombre de places est requis.").max(9),
-  puissance: z.coerce.number().min(4, "La puissance est requise."),
+  nbrPlaces: z.coerce.number().int("Le nombre de places doit être un nombre entier.").min(2, "Le nombre de places est requis.").max(9),
+  puissance: z.coerce.number().int("La puissance doit être un nombre entier.").min(4, "La puissance est requise."),
   carburantType: z.enum(['Diesel', 'Essence', 'Electrique']),
   prixParJour: z.coerce.number().min(1, "Le prix doit être supérieur à 0."),
   etat: z.enum(["new", "good", "fair", "poor"]),
@@ -48,21 +50,23 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
   const { toast } = useToast();
   const { firestore } = useFirebase();
 
-  const defaultValues: Partial<CarFormValues> = {
-    marque: car?.marque ?? "",
-    modele: car?.modele ?? "",
-    modeleAnnee: car?.modeleAnnee,
-    immat: car?.immat ?? "",
-    numChassis: car?.numChassis ?? "",
-    kilometrage: car?.kilometrage,
-    couleur: car?.couleur ?? "",
-    nbrPlaces: car?.nbrPlaces ?? 5,
-    puissance: car?.puissance,
-    carburantType: car?.carburantType ?? "Essence",
-    prixParJour: car?.prixParJour,
-    etat: car?.etat ?? "new",
-    disponible: car?.disponible ?? true,
-    photoURL: car?.photoURL ?? "",
+  const defaultValues: Partial<CarFormValues> = car ? { 
+      ...car,
+  } : {
+    marque: "",
+    modele: "",
+    immat: "",
+    numChassis: "",
+    couleur: "",
+    carburantType: "Essence",
+    etat: "new",
+    disponible: true,
+    photoURL: "",
+    kilometrage: 0,
+    prixParJour: 0,
+    puissance: 0,
+    nbrPlaces: 0,
+    modeleAnnee: new Date().getFullYear(),
   };
 
   const form = useForm<CarFormValues>({
@@ -70,9 +74,12 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     defaultValues,
     mode: "onChange",
   });
+  
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const onSubmit = (data: CarFormValues) => {
     if (!firestore) return;
+    setIsSubmitting(true);
 
     const carId = car?.id || doc(collection(firestore, 'voitures')).id;
     const isNewCar = !car;
@@ -107,6 +114,8 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
           title: "Une erreur est survenue",
           description: "Impossible de sauvegarder la voiture. Vérifiez vos permissions et réessayez.",
         });
+      }).finally(() => {
+        setIsSubmitting(false);
       });
   }
 
@@ -278,7 +287,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Sélectionnez l'état de la voiture" />
-                  </SelectTrigger>
+                  </Trigger>
                 </FormControl>
                 <SelectContent>
                   <SelectItem value="new">Neuf</SelectItem>
@@ -307,8 +316,8 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                 </FormItem>
             )}
         />
-        <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={form.formState.isSubmitting}>
-          {form.formState.isSubmitting ? 'Enregistrement...' : (car ? 'Mettre à jour la voiture' : 'Ajouter une voiture')}
+        <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isSubmitting}>
+          {isSubmitting ? 'Enregistrement...' : (car ? 'Mettre à jour la voiture' : 'Ajouter une voiture')}
         </Button>
       </form>
     </Form>
