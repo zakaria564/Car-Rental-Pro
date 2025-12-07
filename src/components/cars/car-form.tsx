@@ -172,7 +172,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
             <FormItem>
               <FormLabel>Numéro de châssis</FormLabel>
               <FormControl>
-                <Input placeholder="17 caractères alphanumériques" {...field} />
+                <Input placeholder="17 caractères alphanumériques" {...field} value={field.value ?? ''} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -320,5 +320,3 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     </Form>
   );
 }
-
-    
