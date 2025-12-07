@@ -21,10 +21,9 @@ import type { Car } from "@/lib/definitions";
 import { useRouter } from "next/navigation";
 import { useFirebase } from "@/firebase";
 import { addDoc, collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytes, uploadString } from "firebase/storage";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
-import { generateCarImageAction } from "@/lib/actions";
 
 const carFormSchema = z.object({
   marque: z.string().min(2, "La marque doit comporter au moins 2 caractères."),
@@ -79,68 +78,69 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
   async function onSubmit(data: CarFormValues) {
     if (!firestore || !storage) return;
 
-    try {
-        const { photo, ...carData } = data;
-        const carId = car?.id || doc(collection(firestore, 'cars')).id;
-        
-        let photoURL = car?.photoURL;
-        const photoFile = data.photo?.[0];
+    const { photo, ...carData } = data;
+    const carId = car?.id || doc(collection(firestore, 'cars')).id;
+    
+    let photoURL = car?.photoURL;
+    const photoFile = data.photo?.[0];
 
-        if (photoFile) {
-            toast({ title: "Téléversement de l'image..." });
-            const storageRef = ref(storage, `cars/${carId}/${photoFile.name}`);
-            const uploadResult = await uploadBytes(storageRef, photoFile);
-            photoURL = await getDownloadURL(uploadResult.ref);
-            toast({ title: "Image téléversée avec succès!" });
-        } else if (!photoURL) {
-            // If no new photo and no existing photo, use a placeholder
-            photoURL = `https://picsum.photos/seed/${carId}/600/400`;
-        }
+    const carPayload = {
+      ...carData,
+      createdAt: car?.createdAt || serverTimestamp(),
+    };
 
-        const carPayload = {
-          ...carData,
-          photoURL: photoURL,
-          createdAt: car?.createdAt || serverTimestamp(),
-        };
-
+    const saveCar = (finalPhotoUrl: string) => {
+        const payloadWithImage = { ...carPayload, photoURL: finalPhotoUrl };
         const carRef = doc(firestore, 'cars', carId);
         
-        if (car) {
-            await setDoc(carRef, carPayload, { merge: true });
-            toast({
-                title: "Voiture mise à jour",
-                description: "Les informations de la voiture ont été mises à jour.",
-            });
-        } else {
-            await setDoc(carRef, carPayload);
-            toast({
-              title: "Voiture ajoutée",
-              description: "La nouvelle voiture a été ajoutée avec succès.",
-            });
-        }
+        const operation = car ? setDoc(carRef, payloadWithImage, { merge: true }) : setDoc(carRef, payloadWithImage);
 
-        onFinished();
-        router.refresh();
-
-    } catch (error: any) {
-        console.error("Erreur lors de la soumission du formulaire:", error);
-        
-        const isPermissionError = error.code === 'permission-denied';
-        
-        if(isPermissionError) {
+        operation.then(() => {
+            toast({
+                title: car ? "Voiture mise à jour" : "Voiture ajoutée",
+                description: car ? "Les informations ont été mises à jour." : "La nouvelle voiture a été ajoutée.",
+            });
+            onFinished();
+            router.refresh();
+        }).catch(error => {
+             console.error("Erreur lors de la sauvegarde de la voiture:", error);
              const permissionError = new FirestorePermissionError({
-                path: `cars/${car?.id || 'new'}`,
+                path: carRef.path,
                 operation: car ? 'update' : 'create',
-                requestResourceData: data
+                requestResourceData: payloadWithImage
             }, error);
             errorEmitter.emit('permission-error', permissionError);
-        }
 
-        toast({
-            variant: "destructive",
-            title: "Une erreur est survenue",
-            description: isPermissionError ? "Vous n'avez pas la permission." : (error.message || "Impossible de sauvegarder la voiture."),
+            toast({
+                variant: "destructive",
+                title: "Une erreur est survenue",
+                description: error.message || "Impossible de sauvegarder la voiture.",
+            });
         });
+    }
+
+    if (photoFile) {
+        toast({ title: "Téléversement de l'image..." });
+        const storageRef = ref(storage, `cars/${carId}/${photoFile.name}`);
+        uploadBytes(storageRef, photoFile)
+            .then(uploadResult => getDownloadURL(uploadResult.ref))
+            .then(url => {
+                toast({ title: "Image téléversée !" });
+                saveCar(url);
+            })
+            .catch(error => {
+                console.error("Erreur de téléversement:", error);
+                toast({
+                    variant: "destructive",
+                    title: "Erreur de téléversement",
+                    description: "Impossible de téléverser l'image.",
+                });
+                // Even if upload fails, we don't want to leave the form submitting forever
+                form.reset(data); // Resets form state
+            });
+    } else {
+        const finalPhotoUrl = photoURL || `https://picsum.photos/seed/${carId}/600/400`;
+        saveCar(finalPhotoUrl);
     }
   }
 
@@ -180,7 +180,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
             <FormItem>
               <FormLabel>Année</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="2023" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.valueAsNumber || undefined)} />
+                <Input type="number" placeholder="2023" {...field} value={field.value ?? ''} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -206,7 +206,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
             <FormItem>
               <FormLabel>Kilométrage</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="54000" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.valueAsNumber || undefined)} />
+                <Input type="number" placeholder="54000" {...field} value={field.value ?? ''}/>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -233,7 +233,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                 <FormItem>
                 <FormLabel>Places</FormLabel>
                 <FormControl>
-                    <Input type="number" placeholder="5" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.valueAsNumber || undefined)} />
+                    <Input type="number" placeholder="5" {...field} value={field.value ?? ''} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -246,7 +246,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                 <FormItem>
                 <FormLabel>Puissance (cv)</FormLabel>
                 <FormControl>
-                    <Input type="number" placeholder="8" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.valueAsNumber || undefined)} />
+                    <Input type="number" placeholder="8" {...field} value={field.value ?? ''}/>
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -288,7 +288,6 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                   placeholder="99.99"
                   {...field}
                   value={field.value ?? ''}
-                   onChange={e => field.onChange(e.target.valueAsNumber || undefined)}
                 />
               </FormControl>
               <FormMessage />
