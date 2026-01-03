@@ -132,13 +132,11 @@ export default function RentalTable({ rentals, isDashboard = false }: RentalTabl
   const { firestore } = useFirebase();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
-  const [rowSelection, setRowSelection] = React.useState({});
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [selectedRental, setSelectedRental] = React.useState<Rental | null>(null);
 
   const handleEndRental = async (rental: Rental) => {
-    if (!rental.id || !rental.vehicule.carId) return;
+    if (!firestore || !rental.id || !rental.vehicule.carId) return;
     const rentalDocRef = doc(firestore, 'rentals', rental.id);
     const carDocRef = doc(firestore, 'cars', rental.vehicule.carId);
     
@@ -304,13 +302,14 @@ export default function RentalTable({ rentals, isDashboard = false }: RentalTabl
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
+    initialState: {
+        pagination: {
+            pageSize: isDashboard ? 5 : 10,
+        }
+    },
     state: {
       sorting,
       columnFilters,
-      columnVisibility,
-      rowSelection,
     },
   });
 
@@ -390,6 +389,7 @@ export default function RentalTable({ rentals, isDashboard = false }: RentalTabl
                   <TableRow key={row.id}>
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+    
                     ))}
                   </TableRow>
                 ))
@@ -421,4 +421,6 @@ export default function RentalTable({ rentals, isDashboard = false }: RentalTabl
 }
 
     
+    
+
     
