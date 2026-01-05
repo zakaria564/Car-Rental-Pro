@@ -4,18 +4,20 @@ import { DashboardHeader } from "@/components/dashboard-header";
 import RentalTable from "@/components/rentals/rental-table";
 import React from "react";
 import { useFirebase } from "@/firebase";
-import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
+import { collection, onSnapshot, query, orderBy, doc, updateDoc } from "firebase/firestore";
 import type { Rental } from "@/lib/definitions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
+import { useToast } from "@/hooks/use-toast";
 
 export default function RentalsPage() {
   const [rentals, setRentals] = React.useState<Rental[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const { toast } = useToast();
   let firestore: any;
 
   try {
@@ -49,6 +51,21 @@ export default function RentalsPage() {
     return () => unsubscribe();
   }, [firestore]);
 
+  const handleEndRental = async (rental: Rental) => {
+    if (!firestore || !rental.id || !rental.vehicule.carId) return;
+    const rentalDocRef = doc(firestore, 'rentals', rental.id);
+    const carDocRef = doc(firestore, 'cars', rental.vehicule.carId);
+    
+    try {
+        await updateDoc(rentalDocRef, { statut: 'terminee' });
+        await updateDoc(carDocRef, { disponible: true });
+        toast({ title: "Location terminée", description: `La location a été marquée comme terminée.` });
+    } catch(e) {
+        console.error(e);
+        toast({ variant: 'destructive', title: "Erreur", description: "Impossible de terminer la location."});
+    }
+  };
+
 
   return (
     <>
@@ -66,7 +83,7 @@ export default function RentalsPage() {
             <AlertDescription>{error}</AlertDescription>
         </Alert>
       ) : (
-        <RentalTable rentals={rentals} />
+        <RentalTable rentals={rentals} onEndRental={handleEndRental} />
       )}
     </>
   );

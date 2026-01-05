@@ -6,7 +6,6 @@ import {
   ColumnDef,
   ColumnFiltersState,
   SortingState,
-  VisibilityState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
@@ -47,7 +46,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Separator } from "../ui/separator";
 import Image from "next/image";
 import { ScrollArea } from "../ui/scroll-area";
-import { doc, updateDoc, deleteDoc } from "firebase/firestore";
+import { doc, deleteDoc } from "firebase/firestore";
 import { useFirebase } from "@/firebase";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
@@ -55,6 +54,7 @@ import { FirestorePermissionError } from "@/firebase/errors";
 type RentalTableProps = {
   rentals: Rental[];
   isDashboard?: boolean;
+  onEndRental?: (rental: Rental) => void;
 };
 
 function RentalDetails({ rental }: { rental: Rental }) {
@@ -127,28 +127,13 @@ function RentalDetails({ rental }: { rental: Rental }) {
 }
 
 
-export default function RentalTable({ rentals, isDashboard = false }: RentalTableProps) {
+export default function RentalTable({ rentals, isDashboard = false, onEndRental }: RentalTableProps) {
   const { toast } = useToast();
   const { firestore } = useFirebase();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [selectedRental, setSelectedRental] = React.useState<Rental | null>(null);
-
-  const handleEndRental = async (rental: Rental) => {
-    if (!firestore || !rental.id || !rental.vehicule.carId) return;
-    const rentalDocRef = doc(firestore, 'rentals', rental.id);
-    const carDocRef = doc(firestore, 'cars', rental.vehicule.carId);
-    
-    try {
-        await updateDoc(rentalDocRef, { statut: 'terminee' });
-        await updateDoc(carDocRef, { disponible: true });
-        toast({ title: "Location terminée", description: `La location a été marquée comme terminée.` });
-    } catch(e) {
-        console.error(e);
-        toast({ variant: 'destructive', title: "Erreur", description: "Impossible de terminer la location."});
-    }
-  };
 
   const handleDeleteRental = async (rentalId: string) => {
     if (!firestore) return;
@@ -259,7 +244,7 @@ export default function RentalTable({ rentals, isDashboard = false }: RentalTabl
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                                 <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleEndRental(rental)}>Confirmer</AlertDialogAction>
+                                <AlertDialogAction onClick={() => onEndRental && onEndRental(rental)}>Confirmer</AlertDialogAction>
                             </AlertDialogFooter>
                         </>
                     ) : (
@@ -419,8 +404,3 @@ export default function RentalTable({ rentals, isDashboard = false }: RentalTabl
     </Sheet>
   );
 }
-
-    
-    
-
-    
