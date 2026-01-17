@@ -94,23 +94,10 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
   const form = useForm<RentalFormValues>({
     resolver: zodResolver(rentalFormSchema),
     mode: "onChange",
-    defaultValues: {
-      carburantNiveauDepart: 0.5,
-      dommagesDepart: {},
-      dommagesRetour: {},
-      kilometrageDepart: 0,
-      caution: 0,
-      clientId: "",
-      voitureId: "",
-      dommagesDepartNotes: "",
-      kilometrageRetour: undefined,
-      carburantNiveauRetour: 0.5,
-      dommagesRetourNotes: "",
-    }
   });
 
   React.useEffect(() => {
-    if (rental && clients.length > 0) {
+    if (rental && clients.length > 0 && cars.length > 0) {
       const rentalClient = clients.find(c => c.cin === rental.locataire.cin);
       form.reset({
           clientId: rentalClient?.id || "",
@@ -129,8 +116,22 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
           dommagesRetourNotes: rental.reception?.dommagesNotes || "",
           dommagesRetour: rental.reception?.dommages?.reduce((acc, curr) => ({...acc, [curr]: true}), {}) || {},
       });
+    } else if (!rental) {
+      form.reset({
+        carburantNiveauDepart: 0.5,
+        dommagesDepart: {},
+        dommagesRetour: {},
+        kilometrageDepart: 0,
+        caution: 0,
+        clientId: "",
+        voitureId: "",
+        dommagesDepartNotes: "",
+        kilometrageRetour: undefined,
+        carburantNiveauRetour: 0.5,
+        dommagesRetourNotes: "",
+      })
     }
-  }, [rental, clients, form]);
+  }, [rental, clients, cars, form]);
   
   const selectedCarId = form.watch("voitureId");
   const dateRange = form.watch("dateRange");
@@ -167,8 +168,17 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
 
     if (isUpdate) {
         // --- UPDATE LOGIC ---
+        if (!rental?.id || !data.voitureId) {
+            toast({
+                variant: 'destructive',
+                title: "Erreur de données",
+                description: "Impossible de trouver les informations du contrat ou du véhicule à mettre à jour."
+            });
+            return;
+        }
+
         const rentalRef = doc(firestore, 'rentals', rental.id);
-        const carDocRef = doc(firestore, 'cars', rental.vehicule.carId);
+        const carDocRef = doc(firestore, 'cars', data.voitureId);
 
         const updatePayload = {
             reception: {
