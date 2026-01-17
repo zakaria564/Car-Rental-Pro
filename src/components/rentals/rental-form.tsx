@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -35,6 +36,7 @@ import { addDoc, collection, doc, serverTimestamp, setDoc, updateDoc } from "fir
 import { useRouter } from "next/navigation";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
+import { Switch } from "../ui/switch";
 
 
 const rentalFormSchemaObject = {
@@ -464,65 +466,74 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                         </FormItem>
                       )}
                     />
-                     <FormField
-                        control={form.control}
-                        name="addConducteur2"
-                        render={({ field }) => (
-                            <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
-                            <FormControl>
-                                <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isUpdate} />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                                <FormLabel>Ajouter un deuxième conducteur</FormLabel>
-                            </div>
-                            </FormItem>
-                        )}
-                        />
+                    <FormField
+                      control={form.control}
+                      name="addConducteur2"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <FormLabel>
+                              Ajouter un deuxième conducteur
+                            </FormLabel>
+                            <FormDescription>
+                              Cochez si un autre conducteur est autorisé.
+                            </FormDescription>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              disabled={isUpdate}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
 
-                        {form.watch('addConducteur2') && (
-                            <div className="space-y-4 rounded-md border p-4">
-                                <h4 className="font-medium">Informations du deuxième conducteur</h4>
-                                <FormField
-                                control={form.control}
-                                name="conducteur2_nomPrenom"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>Nom complet</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="Jane Doe" {...field} value={field.value ?? ''} readOnly={isUpdate} />
-                                    </FormControl>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                                />
-                                <FormField
-                                control={form.control}
-                                name="conducteur2_cin"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>CIN / Passeport</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="CD67890" {...field} value={field.value ?? ''} readOnly={isUpdate} />
-                                    </FormControl>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                                />
-                                <FormField
-                                control={form.control}
-                                name="conducteur2_permisNo"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>Numéro de permis</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="P12345" {...field} value={field.value ?? ''} readOnly={isUpdate} />
-                                    </FormControl>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                                />
-                            </div>
-                        )}
+                    {form.watch('addConducteur2') && (
+                        <div className="space-y-4 rounded-md border p-4">
+                            <h4 className="font-medium">Informations du deuxième conducteur</h4>
+                            <FormField
+                            control={form.control}
+                            name="conducteur2_nomPrenom"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Nom complet</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="Jane Doe" {...field} value={field.value ?? ''} readOnly={isUpdate} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                            />
+                            <FormField
+                            control={form.control}
+                            name="conducteur2_cin"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>CIN / Passeport</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="CD67890" {...field} value={field.value ?? ''} readOnly={isUpdate} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                            />
+                            <FormField
+                            control={form.control}
+                            name="conducteur2_permisNo"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Numéro de permis</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="P12345" {...field} value={field.value ?? ''} readOnly={isUpdate} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                            />
+                        </div>
+                    )}
                 </AccordionContent>
             </AccordionItem>
             
@@ -779,3 +790,5 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
     </Form>
   );
 }
+
+    
