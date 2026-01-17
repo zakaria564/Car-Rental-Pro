@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -12,7 +13,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { PlusCircle, MoreHorizontal } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Printer } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -40,9 +41,8 @@ import { formatCurrency } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import RentalForm from "./rental-form";
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogDescription as DialogDesc, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription as DialogDesc, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Separator } from "../ui/separator";
 import Image from "next/image";
 import { ScrollArea } from "../ui/scroll-area";
 import { doc, deleteDoc } from "firebase/firestore";
@@ -60,81 +60,122 @@ type RentalTableProps = {
 function RentalDetails({ rental }: { rental: Rental }) {
     const safeLivraisonDate = rental.livraison.dateHeure?.toDate ? rental.livraison.dateHeure.toDate() : null;
     const safeReceptionDate = rental.reception?.dateHeure?.toDate ? rental.reception.dateHeure.toDate() : null;
-    const safeCreatedAtDate = rental.createdAt?.toDate ? rental.createdAt.toDate() : null;
+    const safeDebutDate = rental.location.dateDebut?.toDate ? rental.location.dateDebut.toDate() : null;
+    const safeFinDate = rental.location.dateFin?.toDate ? rental.location.dateFin.toDate() : null;
 
     return (
-      <ScrollArea className="h-[70vh] pr-4">
-        <div className="space-y-4 text-sm">
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                <h3 className="font-semibold text-base col-span-2">Locataire</h3>
-                <p><strong>Nom & Prénom:</strong> {rental.locataire.nomPrenom}</p>
-                <p><strong>CIN/Passeport:</strong> {rental.locataire.cin}</p>
-                <p><strong>N° de Permis:</strong> {rental.locataire.permisNo}</p>
-                <p><strong>Téléphone:</strong> {rental.locataire.telephone}</p>
+      <ScrollArea className="h-[70vh]">
+        <div className="space-y-6 text-sm p-2" id="printable-contract">
+            {/* Header */}
+            <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold tracking-wider">CONTRAT DE LOCATION DE VÉHICULE</h2>
+                <p className="text-muted-foreground">Contrat N°: {rental.id?.substring(0, 8).toUpperCase()}</p>
             </div>
-            {rental.conducteur2 && (
-              <>
-                <Separator />
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                  <h3 className="font-semibold text-base col-span-2">Deuxième Conducteur</h3>
-                  <p><strong>Nom & Prénom:</strong> {rental.conducteur2.nomPrenom}</p>
-                  <p><strong>CIN/Passeport:</strong> {rental.conducteur2.cin}</p>
-                  <p><strong>N° de Permis:</strong> {rental.conducteur2.permisNo}</p>
-                </div>
-              </>
-            )}
-            <Separator />
-             <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                <h3 className="font-semibold text-base col-span-2">Véhicule</h3>
-                <div className="col-span-2">
-                   <Image
-                        src={rental.vehicule.photoURL}
-                        alt={rental.vehicule.marque}
-                        width={128}
-                        height={96}
-                        className="rounded-md object-cover float-right ml-4 mb-2"
-                        data-ai-hint="car photo"
-                    />
-                    <p><strong>Immatriculation:</strong> {rental.vehicule.immatriculation}</p>
-                    <p><strong>Marque/Modèle:</strong> {rental.vehicule.marque}</p>
-                    <p><strong>Année Modèle:</strong> {rental.vehicule.modeleAnnee}</p>
-                    <p><strong>Couleur:</strong> {rental.vehicule.couleur}</p>
-                    <p><strong>Nbr de Places:</strong> {rental.vehicule.nbrPlaces}</p>
-                    <p><strong>Puissance:</strong> {rental.vehicule.puissance} ch</p>
-                    <p><strong>Carburant:</strong> {rental.vehicule.carburantType}</p>
-                </div>
-            </div>
-            <Separator />
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                <h3 className="font-semibold text-base col-span-2">Détails de Livraison (Départ)</h3>
-                <p><strong>Date & Heure:</strong> {safeLivraisonDate ? format(safeLivraisonDate, "dd/MM/yyyy HH:mm", { locale: fr }) : 'N/A'}</p>
-                <p><strong>Kilométrage:</strong> {rental.livraison.kilometrage.toLocaleString()} km</p>
-                <p><strong>Niveau Carburant:</strong> {rental.livraison.carburantNiveau * 100}%</p>
-                <p><strong>Roue de Secours:</strong> {rental.livraison.roueSecours ? 'Oui' : 'Non'}</p>
-                <p><strong>Poste Radio:</strong> {rental.livraison.posteRadio ? 'Oui' : 'Non'}</p>
-                <p><strong>Lavage:</strong> {rental.livraison.lavage ? 'Propre' : 'Sale'}</p>
-                {rental.livraison.dommages && rental.livraison.dommages.length > 0 && <p className="col-span-2"><strong>Dommages:</strong> {rental.livraison.dommages.join(', ')}</p>}
-                 {rental.livraison.dommagesNotes && <p className="col-span-2"><strong>Notes (Départ):</strong> {rental.livraison.dommagesNotes}</p>}
-            </div>
-            <Separator />
-             {safeReceptionDate && (
-                <>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                        <h3 className="font-semibold text-base col-span-2">Détails de Réception (Retour)</h3>
-                        <p><strong>Date & Heure:</strong> {format(safeReceptionDate, "dd/MM/yyyy HH:mm", { locale: fr })}</p>
-                        <p><strong>Kilométrage:</strong> {rental.reception.kilometrage?.toLocaleString()} km</p>
-                        <p><strong>Niveau Carburant:</strong> {rental.reception.carburantNiveau ? rental.reception.carburantNiveau * 100 + '%' : 'N/A'}</p>
-                        {rental.reception.dommagesNotes && <p className="col-span-2"><strong>Notes (Retour):</strong> {rental.reception.dommagesNotes}</p>}
+
+            {/* Parties */}
+            <div className="border p-4 rounded-md">
+                <h3 className="font-bold text-base mb-2 underline">ENTRE LES SOUSSIGNÉS :</h3>
+                <div className="grid grid-cols-2 gap-x-8">
+                    <div>
+                        <h4 className="font-semibold">Le Loueur :</h4>
+                        <p>Location Auto Pro</p>
+                        <p>Agdal, Rabat, Maroc</p>
+                        <p>Tél: +212 537 00 00 00</p>
                     </div>
-                    <Separator />
-                </>
-             )}
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                <h3 className="font-semibold text-base col-span-2">Détails Financiers</h3>
-                <p><strong>Prix/Jour:</strong> {formatCurrency(rental.location.prixParJour, 'MAD')}</p>
-                <p><strong>Nombre de Jours:</strong> {rental.location.nbrJours}</p>
-                <p><strong>Dépôt de Garantie:</strong> {rental.location.depot ? formatCurrency(rental.location.depot, 'MAD') : 'N/A'}</p>
-                <p className="font-bold text-lg"><strong>Montant à Payer:</strong> {formatCurrency(rental.location.montantAPayer, 'MAD')}</p>
+                    <div>
+                        <h4 className="font-semibold">Le Locataire (Conducteur Principal) :</h4>
+                        <p><strong>Nom:</strong> {rental.locataire.nomPrenom}</p>
+                        <p><strong>CIN/Passeport:</strong> {rental.locataire.cin}</p>
+                        <p><strong>Permis N°:</strong> {rental.locataire.permisNo}</p>
+                        <p><strong>Téléphone:</strong> {rental.locataire.telephone}</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* 2nd driver */}
+            {rental.conducteur2 && (
+              <div className="border p-4 rounded-md">
+                  <h3 className="font-bold text-base mb-2 underline">DEUXIÈME CONDUCTEUR AUTORISÉ</h3>
+                  <div className="grid grid-cols-2 gap-x-8">
+                    <p><strong>Nom:</strong> {rental.conducteur2.nomPrenom}</p>
+                    <p><strong>CIN/Passeport:</strong> {rental.conducteur2.cin}</p>
+                    <p><strong>Permis N°:</strong> {rental.conducteur2.permisNo}</p>
+                  </div>
+              </div>
+            )}
+
+            {/* Vehicle */}
+            <div className="border p-4 rounded-md">
+                <h3 className="font-bold text-base mb-2 underline">VÉHICULE LOUÉ</h3>
+                 <div className="grid grid-cols-2 gap-x-8">
+                    <div>
+                        <p><strong>Marque/Modèle:</strong> {rental.vehicule.marque}</p>
+                        <p><strong>Immatriculation:</strong> {rental.vehicule.immatriculation}</p>
+                        <p><strong>Année:</strong> {rental.vehicule.modeleAnnee}</p>
+                    </div>
+                    <div>
+                        <p><strong>Couleur:</strong> {rental.vehicule.couleur}</p>
+                        <p><strong>Carburant:</strong> {rental.vehicule.carburantType}</p>
+                        <p><strong>Puissance:</strong> {rental.vehicule.puissance} ch</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Rental Period & Financials */}
+            <div className="border p-4 rounded-md">
+                 <h3 className="font-bold text-base mb-2 underline">CONDITIONS DE LOCATION</h3>
+                <div className="grid grid-cols-2 gap-x-8">
+                    <div>
+                        <p><strong>Début:</strong> {safeDebutDate ? format(safeDebutDate, "dd/MM/yyyy 'à' HH:mm", { locale: fr }) : 'N/A'}</p>
+                        <p><strong>Fin Prévue:</strong> {safeFinDate ? format(safeFinDate, "dd/MM/yyyy 'à' HH:mm", { locale: fr }) : 'N/A'}</p>
+                        <p><strong>Durée:</strong> {rental.location.nbrJours} jour(s)</p>
+                    </div>
+                     <div>
+                        <p><strong>Prix/Jour:</strong> {formatCurrency(rental.location.prixParJour, 'MAD')}</p>
+                        <p><strong>Montant Total:</strong> {formatCurrency(rental.location.montantAPayer, 'MAD')}</p>
+                        <p><strong>Dépôt de Garantie:</strong> {rental.location.depot ? formatCurrency(rental.location.depot, 'MAD') : 'N/A'}</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Delivery / Return state */}
+            <div className="border p-4 rounded-md">
+                <h3 className="font-bold text-base mb-2 underline">ÉTAT DU VÉHICULE</h3>
+                <div className="grid grid-cols-2 gap-x-8">
+                    <div>
+                        <h4 className="font-semibold">Livraison (Départ)</h4>
+                        <p><strong>Date:</strong> {safeLivraisonDate ? format(safeLivraisonDate, "dd/MM/yyyy HH:mm", { locale: fr }) : 'N/A'}</p>
+                        <p><strong>Kilométrage:</strong> {rental.livraison.kilometrage.toLocaleString()} km</p>
+                        <p><strong>Niveau Carburant:</strong> {rental.livraison.carburantNiveau * 100}%</p>
+                        {rental.livraison.dommages && rental.livraison.dommages.length > 0 && <p><strong>Dommages:</strong> {rental.livraison.dommages.join(', ')}</p>}
+                        {rental.livraison.dommagesNotes && <p><strong>Notes:</strong> {rental.livraison.dommagesNotes}</p>}
+                    </div>
+                    <div>
+                        <h4 className="font-semibold">Réception (Retour)</h4>
+                        {rental.statut === 'terminee' && safeReceptionDate ? (
+                          <>
+                            <p><strong>Date:</strong> {format(safeReceptionDate, "dd/MM/yyyy HH:mm", { locale: fr })}</p>
+                            <p><strong>Kilométrage:</strong> {rental.reception.kilometrage?.toLocaleString()} km</p>
+                            <p><strong>Niveau Carburant:</strong> {rental.reception.carburantNiveau ? rental.reception.carburantNiveau * 100 + '%' : 'N/A'}</p>
+                            {rental.reception.dommagesNotes && <p><strong>Notes:</strong> {rental.reception.dommagesNotes}</p>}
+                          </>
+                        ) : <p>Véhicule non retourné.</p>}
+                    </div>
+                </div>
+            </div>
+
+            {/* Signatures */}
+            <div className="pt-16">
+                <div className="grid grid-cols-2 gap-16">
+                    <div className="text-center">
+                        <p className="border-t pt-2">Signature du Loueur</p>
+                        <p className="text-xs text-muted-foreground">(Précédée de la mention "Lu et approuvé")</p>
+                    </div>
+                     <div className="text-center">
+                        <p className="border-t pt-2">Signature du Locataire</p>
+                        <p className="text-xs text-muted-foreground">(Précédée de la mention "Lu et approuvé")</p>
+                    </div>
+                </div>
             </div>
         </div>
       </ScrollArea>
@@ -421,13 +462,19 @@ export default function RentalTable({ rentals, clients, cars, isDashboard = fals
         }}>
         {rentalForModal && (
             <DialogContent className="sm:max-w-3xl">
-                <DialogHeader>
+                <DialogHeader className="no-print">
                     <DialogTitle>Détails du contrat de location #{rentalForModal.id?.substring(0,6)}</DialogTitle>
                     <DialogDesc>
                       Créé le {rentalForModal.createdAt?.toDate ? format(rentalForModal.createdAt.toDate(), "dd LLL, y 'à' HH:mm", { locale: fr }) : 'N/A'}
                     </DialogDesc>
                 </DialogHeader>
                 <RentalDetails rental={rentalForModal} />
+                <DialogFooter className="no-print">
+                  <Button variant="outline" onClick={() => window.print()}>
+                    <Printer className="mr-2 h-4 w-4"/>
+                    Imprimer
+                  </Button>
+                </DialogFooter>
             </DialogContent>
         )}
       </Dialog>
