@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -38,10 +37,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { Rental, Client, Car } from "@/lib/definitions";
 import { formatCurrency } from "@/lib/utils";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from "@/components/ui/sheet";
 import RentalForm from "./rental-form";
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription as DialogDesc, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Separator } from "../ui/separator";
 import Image from "next/image";
@@ -388,6 +387,11 @@ export default function RentalTable({ rentals, clients, cars, isDashboard = fals
         <SheetContent className="sm:max-w-[600px] flex flex-col">
             <SheetHeader>
               <SheetTitle>{rentalForModal ? "Réceptionner le Véhicule" : "Créer un nouveau contrat"}</SheetTitle>
+              {rentalForModal && (
+                <SheetDescription>
+                    {rentalForModal.vehicule.marque} ({rentalForModal.vehicule.immatriculation})
+                </SheetDescription>
+              )}
             </SheetHeader>
             <ScrollArea className="flex-grow pr-6">
                 <RentalForm 
@@ -408,9 +412,9 @@ export default function RentalTable({ rentals, clients, cars, isDashboard = fals
             <DialogContent className="sm:max-w-3xl">
                 <DialogHeader>
                     <DialogTitle>Détails du contrat de location #{rentalForModal.id?.substring(0,6)}</DialogTitle>
-                    <DialogDescription>
+                    <DialogDesc>
                       Créé le {rentalForModal.createdAt?.toDate ? format(rentalForModal.createdAt.toDate(), "dd LLL, y 'à' HH:mm", { locale: fr }) : 'N/A'}
-                    </DialogDescription>
+                    </DialogDesc>
                 </DialogHeader>
                 <RentalDetails rental={rentalForModal} />
             </DialogContent>
