@@ -406,7 +406,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
                         <FormItem>
                           <FormLabel>Kilométrage de départ</FormLabel>
                           <FormControl>
-                            <Input type="number" placeholder="64000" {...field} disabled={!!rental} />
+                            <Input type="number" placeholder="64000" {...field} value={field.value ?? ''} disabled={!!rental} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
