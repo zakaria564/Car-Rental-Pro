@@ -37,6 +37,11 @@ export type Rental = {
     permisNo: string;
     telephone: string;
   };
+  conducteur2?: {
+    cin: string;
+    nomPrenom: string;
+    permisNo: string;
+  };
   vehicule: {
     carId: string;
     immatriculation: string;

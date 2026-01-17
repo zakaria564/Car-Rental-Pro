@@ -37,7 +37,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { Rental, Client, Car } from "@/lib/definitions";
 import { formatCurrency } from "@/lib/utils";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import RentalForm from "./rental-form";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription as DialogDesc, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -72,6 +72,17 @@ function RentalDetails({ rental }: { rental: Rental }) {
                 <p><strong>N° de Permis:</strong> {rental.locataire.permisNo}</p>
                 <p><strong>Téléphone:</strong> {rental.locataire.telephone}</p>
             </div>
+            {rental.conducteur2 && (
+              <>
+                <Separator />
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                  <h3 className="font-semibold text-base col-span-2">Deuxième Conducteur</h3>
+                  <p><strong>Nom & Prénom:</strong> {rental.conducteur2.nomPrenom}</p>
+                  <p><strong>CIN/Passeport:</strong> {rental.conducteur2.cin}</p>
+                  <p><strong>N° de Permis:</strong> {rental.conducteur2.permisNo}</p>
+                </div>
+              </>
+            )}
             <Separator />
              <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                 <h3 className="font-semibold text-base col-span-2">Véhicule</h3>

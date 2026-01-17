@@ -40,6 +40,10 @@ import { FirestorePermissionError } from "@/firebase/errors";
 const rentalFormSchemaObject = {
   clientId: z.string({ required_error: "Veuillez sélectionner un client." }).min(1, "Veuillez sélectionner un client."),
   voitureId: z.string({ required_error: "Veuillez sélectionner une voiture." }).min(1, "Veuillez sélectionner une voiture."),
+  addConducteur2: z.boolean().default(false),
+  conducteur2_nomPrenom: z.string().optional(),
+  conducteur2_cin: z.string().optional(),
+  conducteur2_permisNo: z.string().optional(),
   dateRange: z.object({
     from: z.date({ required_error: "Une date de début est requise." }),
     to: z.date({ required_error: "Une date de fin est requise." }),
@@ -84,15 +88,28 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
   const isUpdate = !!rental;
 
   const rentalFormSchema = React.useMemo(() => {
-    const baseSchema = z.object(rentalFormSchemaObject);
+    let schema = z.object(rentalFormSchemaObject).superRefine((data, ctx) => {
+        if (data.addConducteur2) {
+            if (!data.conducteur2_nomPrenom || data.conducteur2_nomPrenom.length < 2) {
+                ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Le nom est requis.", path: ['conducteur2_nomPrenom'] });
+            }
+            if (!data.conducteur2_cin || data.conducteur2_cin.length < 5) {
+                ctx.addIssue({ code: z.ZodIssueCode.custom, message: "La CIN est requise.", path: ['conducteur2_cin'] });
+            }
+            if (!data.conducteur2_permisNo || data.conducteur2_permisNo.length < 5) {
+                ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Le N° de permis est requis.", path: ['conducteur2_permisNo'] });
+            }
+        }
+    });
+
     if (isUpdate) {
-      return baseSchema.refine(
+      return schema.refine(
         (data) => data.kilometrageRetour !== undefined && data.kilometrageRetour !== null, {
             message: "Le kilométrage de retour doit être renseigné.",
             path: ["kilometrageRetour"],
         }
       ).refine(
-          (data) => data.kilometrageRetour! >= data.kilometrageDepart,
+          (data) => data.kilometrageRetour! >= (data.kilometrageDepart || 0),
           {
             message: "Le kilométrage de retour ne peut être inférieur à celui de départ.",
             path: ["kilometrageRetour"],
@@ -109,7 +126,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
           }
       );
     }
-    return baseSchema;
+    return schema;
   }, [isUpdate]);
 
   const getInitialValues = React.useCallback(() => {
@@ -118,6 +135,10 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
         return {
             clientId: rentalClient?.id ?? "",
             voitureId: rental.vehicule.carId,
+            addConducteur2: !!rental.conducteur2,
+            conducteur2_nomPrenom: rental.conducteur2?.nomPrenom ?? '',
+            conducteur2_cin: rental.conducteur2?.cin ?? '',
+            conducteur2_permisNo: rental.conducteur2?.permisNo ?? '',
             dateRange: { from: getSafeDate(rental.location.dateDebut)!, to: getSafeDate(rental.location.dateFin)! },
             caution: rental.location.depot ?? undefined,
             kilometrageDepart: rental.livraison.kilometrage,
@@ -127,7 +148,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
             lavage: rental.livraison.lavage,
             dommagesDepartNotes: rental.livraison.dommagesNotes || "",
             dommagesDepart: rental.livraison.dommages?.reduce((acc, curr) => ({...acc, [curr]: true}), {}),
-            kilometrageRetour: rental.reception?.kilometrage,
+            kilometrageRetour: rental.reception?.kilometrage ?? undefined,
             carburantNiveauRetour: rental.reception?.carburantNiveau,
             dommagesRetourNotes: rental.reception?.dommagesNotes || "",
             dommagesRetour: rental.reception?.dommages?.reduce((acc, curr) => ({...acc, [curr]: true}), {}),
@@ -138,6 +159,10 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
     return {
         clientId: "",
         voitureId: "",
+        addConducteur2: false,
+        conducteur2_nomPrenom: "",
+        conducteur2_cin: "",
+        conducteur2_permisNo: "",
         dateRange: undefined,
         kilometrageDepart: '' as any,
         caution: undefined,
@@ -168,11 +193,8 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
   const availableCars = cars.filter(car => car.disponible || (rental && car.id === rental.vehicule.carId));
 
   const selectedCarForUI = React.useMemo(() => {
-    if (rental) {
-        return cars.find(car => car.id === rental.vehicule.carId);
-    }
     return cars.find(car => car.id === selectedCarId);
-  }, [selectedCarId, cars, rental]);
+  }, [selectedCarId, cars]);
 
   const rentalDaysForUI = React.useMemo(() => {
     const fromDate = dateRange?.from;
@@ -183,15 +205,17 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
         return days >= 0 ? days + 1 : 0;
     }
     return 0;
-  }, [dateRange?.from, dateRange?.to, dateRetour, isUpdate]);
+  }, [dateRange, dateRetour, isUpdate]);
 
   const prixTotalForUI = React.useMemo(() => {
-    const pricePerDay = rental ? rental.location.prixParJour : selectedCarForUI?.prixParJour;
-    if (pricePerDay && rentalDaysForUI > 0) {
-        return pricePerDay * rentalDaysForUI;
+    if (isUpdate && rental) {
+        return rentalDaysForUI * rental.location.prixParJour;
+    }
+    if (selectedCarForUI) {
+        return rentalDaysForUI * selectedCarForUI.prixParJour;
     }
     return 0;
-  }, [selectedCarForUI, rentalDaysForUI, rental]);
+  }, [selectedCarForUI, rentalDaysForUI, rental, isUpdate]);
 
 
   async function onSubmit(data: z.infer<typeof rentalFormSchema>) {
@@ -264,6 +288,13 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                 permisNo: selectedClient.permisNo || 'N/A',
                 telephone: selectedClient.telephone,
             },
+            ...(data.addConducteur2 && {
+                conducteur2: {
+                    nomPrenom: data.conducteur2_nomPrenom!,
+                    cin: data.conducteur2_cin!,
+                    permisNo: data.conducteur2_permisNo!,
+                }
+            }),
             vehicule: {
                 carId: selectedCar.id,
                 immatriculation: selectedCar.immat,
@@ -283,7 +314,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                 posteRadio: data.posteRadio,
                 lavage: data.lavage,
                 dommages: Object.keys(data.dommagesDepart || {}).filter(k => data.dommagesDepart?.[k]),
-                dommagesDepartNotes: data.dommagesDepartNotes || "",
+                dommagesNotes: data.dommagesDepartNotes || "",
             },
             reception: {},
             location: {
@@ -327,7 +358,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
     }
   }
 
-  const displayPricePerDay = rental ? rental.location.prixParJour : (selectedCarForUI?.prixParJour || 0);
+  const displayPricePerDay = isUpdate ? rental.location.prixParJour : (selectedCarForUI?.prixParJour || 0);
   const displayRentalDays = rentalDaysForUI;
   const displayTotalPrice = prixTotalForUI;
   
@@ -344,7 +375,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Client</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value} disabled={!!rental}>
+                          <Select onValueChange={field.onChange} value={field.value} disabled={isUpdate}>
                             <FormControl>
                               <SelectTrigger><SelectValue placeholder="Sélectionner un client" /></SelectTrigger>
                             </FormControl>
@@ -362,7 +393,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Voiture</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value} disabled={!!rental}>
+                          <Select onValueChange={field.onChange} value={field.value} disabled={isUpdate}>
                             <FormControl>
                               <SelectTrigger><SelectValue placeholder="Sélectionner une voiture disponible" /></SelectTrigger>
                             </FormControl>
@@ -385,7 +416,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                               <FormControl>
                                 <Button
                                   variant={"outline"}
-                                  disabled={!!rental}
+                                  disabled={isUpdate}
                                   className={cn("w-full pl-3 text-left font-normal", !field.value?.from && "text-muted-foreground")}
                                 >
                                   {field.value?.from ? (
@@ -427,12 +458,71 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                         <FormItem>
                           <FormLabel>Caution (MAD)</FormLabel>
                           <FormControl>
-                            <Input type="number" placeholder="5000" {...field} value={field.value ?? ''} readOnly={!!rental} />
+                            <Input type="number" placeholder="5000" {...field} value={field.value ?? ''} readOnly={isUpdate} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
+                     <FormField
+                        control={form.control}
+                        name="addConducteur2"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
+                            <FormControl>
+                                <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isUpdate} />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                                <FormLabel>Ajouter un deuxième conducteur</FormLabel>
+                            </div>
+                            </FormItem>
+                        )}
+                        />
+
+                        {form.watch('addConducteur2') && (
+                            <div className="space-y-4 rounded-md border p-4">
+                                <h4 className="font-medium">Informations du deuxième conducteur</h4>
+                                <FormField
+                                control={form.control}
+                                name="conducteur2_nomPrenom"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Nom complet</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="Jane Doe" {...field} value={field.value ?? ''} readOnly={isUpdate} />
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                                <FormField
+                                control={form.control}
+                                name="conducteur2_cin"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>CIN / Passeport</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="CD67890" {...field} value={field.value ?? ''} readOnly={isUpdate} />
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                                <FormField
+                                control={form.control}
+                                name="conducteur2_permisNo"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Numéro de permis</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="P12345" {...field} value={field.value ?? ''} readOnly={isUpdate} />
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                            </div>
+                        )}
                 </AccordionContent>
             </AccordionItem>
             
@@ -446,7 +536,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                         <FormItem>
                           <FormLabel>Kilométrage de départ</FormLabel>
                           <FormControl>
-                            <Input type="number" placeholder="64000" {...field} value={field.value ?? ''} readOnly={!!rental} />
+                            <Input type="number" placeholder="64000" {...field} value={field.value ?? ''} readOnly={isUpdate} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -464,7 +554,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                                 onValueChange={(values) => field.onChange(values[0])}
                                 max={1}
                                 step={0.125}
-                                disabled={!!rental}
+                                disabled={isUpdate}
                               />
                           </FormControl>
                           <FormMessage />
@@ -481,7 +571,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                               render={({ field }) => (
                                 <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                                   <FormControl>
-                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={!!rental} />
+                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isUpdate} />
                                   </FormControl>
                                   <div className="space-y-1 leading-none">
                                     <FormLabel>Roue de secours</FormLabel>
@@ -495,7 +585,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                               render={({ field }) => (
                                 <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                                   <FormControl>
-                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={!!rental} />
+                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isUpdate} />
                                   </FormControl>
                                   <div className="space-y-1 leading-none">
                                     <FormLabel>Poste Radio</FormLabel>
@@ -509,7 +599,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                               render={({ field }) => (
                                 <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                                   <FormControl>
-                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={!!rental} />
+                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isUpdate} />
                                   </FormControl>
                                   <div className="space-y-1 leading-none">
                                     <FormLabel>Voiture propre</FormLabel>
@@ -532,7 +622,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                                         <CarDamageDiagram 
                                             damages={field.value || {}} 
                                             onDamagesChange={field.onChange} 
-                                            readOnly={!!rental}
+                                            readOnly={isUpdate}
                                         />
                                     </FormControl>
                                     <FormMessage />
@@ -548,7 +638,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                         <FormItem>
                           <FormLabel>Autres dommages / Notes (Départ)</FormLabel>
                           <FormControl>
-                            <Textarea placeholder="Décrivez tout autre dommage ou note pertinente ici..." {...field} value={field.value ?? ''} readOnly={!!rental} />
+                            <Textarea placeholder="Décrivez tout autre dommage ou note pertinente ici..." {...field} value={field.value ?? ''} readOnly={isUpdate} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

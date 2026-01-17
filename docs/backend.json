@@ -56,6 +56,15 @@
             "telephone": { "type": "string" }
           }
         },
+        "conducteur2": {
+            "type": "object",
+            "description": "Informations sur le deuxième conducteur (optionnel).",
+            "properties": {
+                "cin": { "type": "string", "description": "Numéro de CIN ou passeport." },
+                "nomPrenom": { "type": "string", "description": "Nom et prénom." },
+                "permisNo": { "type": "string", "description": "Numéro de permis de conduire." }
+            }
+        },
         "vehicule": {
           "type": "object",
           "properties": {
