@@ -94,23 +94,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
   const form = useForm<RentalFormValues>({
     resolver: zodResolver(rentalFormSchema),
     mode: "onChange",
-    defaultValues: rental ? {
-        clientId: clients.find(c => c.cin === rental.locataire.cin)?.id || "",
-        voitureId: rental.vehicule.carId,
-        dateRange: { from: getSafeDate(rental.location.dateDebut)!, to: getSafeDate(rental.location.dateFin)! },
-        caution: rental.location.depot,
-        kilometrageDepart: rental.livraison.kilometrage,
-        carburantNiveauDepart: rental.livraison.carburantNiveau,
-        roueSecours: rental.livraison.roueSecours,
-        posteRadio: rental.livraison.posteRadio,
-        lavage: rental.livraison.lavage,
-        dommagesDepartNotes: rental.livraison.dommagesNotes || "",
-        dommagesDepart: rental.livraison.dommages?.reduce((acc, curr) => ({...acc, [curr]: true}), {}) || {},
-        kilometrageRetour: rental.reception?.kilometrage || 0,
-        carburantNiveauRetour: rental.reception?.carburantNiveau || 0.5,
-        dommagesRetourNotes: rental.reception?.dommagesNotes || "",
-        dommagesRetour: rental.reception?.dommages?.reduce((acc, curr) => ({...acc, [curr]: true}), {}) || {},
-      } : {
+    defaultValues: {
       carburantNiveauDepart: 0.5,
       dommagesDepart: {},
       dommagesRetour: {},
@@ -119,11 +103,34 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
       clientId: "",
       voitureId: "",
       dommagesDepartNotes: "",
-      kilometrageRetour: 0,
+      kilometrageRetour: undefined,
       carburantNiveauRetour: 0.5,
       dommagesRetourNotes: "",
     }
   });
+
+  React.useEffect(() => {
+    if (rental && clients.length > 0) {
+      const rentalClient = clients.find(c => c.cin === rental.locataire.cin);
+      form.reset({
+          clientId: rentalClient?.id || "",
+          voitureId: rental.vehicule.carId,
+          dateRange: { from: getSafeDate(rental.location.dateDebut)!, to: getSafeDate(rental.location.dateFin)! },
+          caution: rental.location.depot,
+          kilometrageDepart: rental.livraison.kilometrage,
+          carburantNiveauDepart: rental.livraison.carburantNiveau,
+          roueSecours: rental.livraison.roueSecours,
+          posteRadio: rental.livraison.posteRadio,
+          lavage: rental.livraison.lavage,
+          dommagesDepartNotes: rental.livraison.dommagesNotes || "",
+          dommagesDepart: rental.livraison.dommages?.reduce((acc, curr) => ({...acc, [curr]: true}), {}) || {},
+          kilometrageRetour: rental.reception?.kilometrage || undefined,
+          carburantNiveauRetour: rental.reception?.carburantNiveau || 0.5,
+          dommagesRetourNotes: rental.reception?.dommagesNotes || "",
+          dommagesRetour: rental.reception?.dommages?.reduce((acc, curr) => ({...acc, [curr]: true}), {}) || {},
+      });
+    }
+  }, [rental, clients, form]);
   
   const selectedCarId = form.watch("voitureId");
   const dateRange = form.watch("dateRange");
@@ -287,7 +294,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Client</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!rental}>
+                          <Select onValueChange={field.onChange} value={field.value} disabled={!!rental}>
                             <FormControl>
                               <SelectTrigger><SelectValue placeholder="Sélectionner un client" /></SelectTrigger>
                             </FormControl>
@@ -305,7 +312,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Voiture</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!rental}>
+                          <Select onValueChange={field.onChange} value={field.value} disabled={!!rental}>
                             <FormControl>
                               <SelectTrigger><SelectValue placeholder="Sélectionner une voiture disponible" /></SelectTrigger>
                             </FormControl>
