@@ -211,62 +211,65 @@ export default function RentalTable({ rentals, isDashboard = false, onEndRental 
       cell: ({ row }) => {
         const rental = row.original;
         return (
-          <Dialog>
-            <AlertDialog>
-                <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
-                    <span className="sr-only">Ouvrir le menu</span>
-                    <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DialogTrigger asChild>
-                    <DropdownMenuItem>
-                        Voir les détails
-                    </DropdownMenuItem>
-                    </DialogTrigger>
-                    
-                    {rental.statut === 'en_cours' && (
-                       <SheetTrigger asChild>
-                        <DropdownMenuItem onSelect={() => setSelectedRental(rental)}>
-                          Réceptionner
-                        </DropdownMenuItem>
-                      </SheetTrigger>
-                    )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Ouvrir le menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
 
-                    <DropdownMenuSeparator />
-                    <AlertDialogTrigger asChild>
-                        <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                        Supprimer
-                        </DropdownMenuItem>
-                    </AlertDialogTrigger>
-                </DropdownMenuContent>
-                </DropdownMenu>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                    Voir les détails
+                  </DropdownMenuItem>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-3xl">
+                  <DialogHeader>
+                    <DialogTitle>Détails du contrat de location #{rental.id?.substring(0,6)}</DialogTitle>
+                    <DialogDescription>
+                      Créé le {rental.createdAt?.toDate ? format(rental.createdAt.toDate(), "dd LLL, y 'à' HH:mm", { locale: fr }) : 'N/A'}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <RentalDetails rental={rental} />
+                </DialogContent>
+              </Dialog>
+              
+              {rental.statut === 'en_cours' && (
+                  <DropdownMenuItem onSelect={() => {
+                      setSelectedRental(rental);
+                      setIsSheetOpen(true);
+                  }}>
+                    Réceptionner
+                  </DropdownMenuItem>
+              )}
+
+              <DropdownMenuSeparator />
+
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onSelect={(e) => e.preventDefault()}>
+                    Supprimer
+                  </DropdownMenuItem>
+                </AlertDialogTrigger>
                 <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Cette action est irréversible. Le contrat de location sera définitivement supprimé.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Annuler</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDeleteRental(rental.id)} className="bg-destructive hover:bg-destructive/90">Supprimer</AlertDialogAction>
-                    </AlertDialogFooter>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Cette action est irréversible. Le contrat de location sera définitivement supprimé.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => handleDeleteRental(rental.id)} className="bg-destructive hover:bg-destructive/90">Supprimer</AlertDialogAction>
+                  </AlertDialogFooter>
                 </AlertDialogContent>
-            </AlertDialog>
-            <DialogContent className="sm:max-w-3xl">
-              <DialogHeader>
-                <DialogTitle>Détails du contrat de location #{rental.id?.substring(0,6)}</DialogTitle>
-                <DialogDescription>
-                  Créé le {rental.createdAt?.toDate ? format(rental.createdAt.toDate(), "dd LLL, y 'à' HH:mm", { locale: fr }) : 'N/A'}
-                </DialogDescription>
-              </DialogHeader>
-              <RentalDetails rental={rental} />
-            </DialogContent>
-          </Dialog>
+              </AlertDialog>
+            </DropdownMenuContent>
+          </DropdownMenu>
         );
       },
     },
