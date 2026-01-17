@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -41,8 +40,8 @@ import { formatCurrency } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import RentalForm from "./rental-form";
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Separator } from "../ui/separator";
 import Image from "next/image";
 import { ScrollArea } from "../ui/scroll-area";
@@ -136,11 +135,19 @@ export default function RentalTable({ rentals, isDashboard = false, onEndRental 
   const { firestore } = useFirebase();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+
+  // State for the sheet (new/edit form)
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [selectedRental, setSelectedRental] = React.useState<Rental | null>(null);
+  
+  // State for other dialogs
+  const [isDetailsOpen, setIsDetailsOpen] = React.useState(false);
+  const [isAlertOpen, setIsAlertOpen] = React.useState(false);
+  const [rentalForAction, setRentalForAction] = React.useState<Rental | null>(null);
+
 
   const handleDeleteRental = async (rentalId: string) => {
-    if (!firestore) return;
+    if (!firestore || !rentalId) return;
     const rentalDocRef = doc(firestore, 'rentals', rentalId);
     
     deleteDoc(rentalDocRef).then(() => {
@@ -160,6 +167,8 @@ export default function RentalTable({ rentals, isDashboard = false, onEndRental 
             description: "Vous n'avez pas la permission de supprimer ce contrat.",
         });
     });
+    setIsAlertOpen(false);
+    setRentalForAction(null);
   };
 
   const columns: ColumnDef<Rental>[] = [
@@ -220,24 +229,19 @@ export default function RentalTable({ rentals, isDashboard = false, onEndRental 
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-
-              <Dialog>
-                <DialogTrigger asChild>
-                  <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                    Voir les détails
-                  </DropdownMenuItem>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-3xl">
-                  <DialogHeader>
-                    <DialogTitle>Détails du contrat de location #{rental.id?.substring(0,6)}</DialogTitle>
-                    <DialogDescription>
-                      Créé le {rental.createdAt?.toDate ? format(rental.createdAt.toDate(), "dd LLL, y 'à' HH:mm", { locale: fr }) : 'N/A'}
-                    </DialogDescription>
-                  </DialogHeader>
-                  <RentalDetails rental={rental} />
-                </DialogContent>
-              </Dialog>
+              <DropdownMenuItem onSelect={() => {
+                setRentalForAction(rental);
+                setIsDetailsOpen(true);
+              }}>
+                Voir les détails
+              </DropdownMenuItem>
               
+              {rental.statut === 'en_cours' && onEndRental && (
+                  <DropdownMenuItem onSelect={() => onEndRental(rental)}>
+                    Terminer la location
+                  </DropdownMenuItem>
+              )}
+
               {rental.statut === 'en_cours' && (
                   <DropdownMenuItem onSelect={() => {
                       setSelectedRental(rental);
@@ -249,25 +253,15 @@ export default function RentalTable({ rentals, isDashboard = false, onEndRental 
 
               <DropdownMenuSeparator />
 
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onSelect={(e) => e.preventDefault()}>
-                    Supprimer
-                  </DropdownMenuItem>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Cette action est irréversible. Le contrat de location sera définitivement supprimé.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Annuler</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => handleDeleteRental(rental.id)} className="bg-destructive hover:bg-destructive/90">Supprimer</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <DropdownMenuItem 
+                className="text-destructive focus:text-destructive focus:bg-destructive/10" 
+                onSelect={() => {
+                    setRentalForAction(rental);
+                    setIsAlertOpen(true);
+                }}
+              >
+                Supprimer
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         );
@@ -296,19 +290,18 @@ export default function RentalTable({ rentals, isDashboard = false, onEndRental 
   });
 
   if (isDashboard) {
+    // Simplified rendering for dashboard view
     return (
        <div className="rounded-md border bg-card">
          <Table>
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => {
-                    return (
-                      <TableHead key={header.id}>
-                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                      </TableHead>
-                    );
-                  })}
+                  {headerGroup.headers.map((header) => (
+                    <TableHead key={header.id}>
+                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                    </TableHead>
+                  ))}
                 </TableRow>
               ))}
             </TableHeader>
@@ -332,8 +325,60 @@ export default function RentalTable({ rentals, isDashboard = false, onEndRental 
     );
   }
 
+  // Full table with dialogs for the main rentals page
   return (
-    <Sheet open={isSheetOpen} onOpenChange={(open) => { if (!open) setSelectedRental(null); setIsSheetOpen(open); }}>
+    <>
+      <Sheet open={isSheetOpen} onOpenChange={(open) => {
+        setIsSheetOpen(open);
+        if (!open) setSelectedRental(null);
+      }}>
+        <SheetContent className="sm:max-w-[600px] flex flex-col">
+          <SheetHeader>
+            <SheetTitle>{selectedRental ? "Réceptionner le Véhicule" : "Créer un nouveau contrat"}</SheetTitle>
+          </SheetHeader>
+          <ScrollArea className="flex-grow pr-6">
+              <RentalForm rental={selectedRental} onFinished={() => setIsSheetOpen(false)} />
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
+
+      {rentalForAction && (
+          <>
+            <Dialog open={isDetailsOpen} onOpenChange={(open) => {
+              setIsDetailsOpen(open);
+              if (!open) setRentalForAction(null);
+            }}>
+                <DialogContent className="sm:max-w-3xl">
+                    <DialogHeader>
+                        <DialogTitle>Détails du contrat de location #{rentalForAction.id?.substring(0,6)}</DialogTitle>
+                        <DialogDescription>
+                          Créé le {rentalForAction.createdAt?.toDate ? format(rentalForAction.createdAt.toDate(), "dd LLL, y 'à' HH:mm", { locale: fr }) : 'N/A'}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <RentalDetails rental={rentalForAction} />
+                </DialogContent>
+            </Dialog>
+
+            <AlertDialog open={isAlertOpen} onOpenChange={(open) => {
+              setIsAlertOpen(open);
+              if(!open) setRentalForAction(null);
+            }}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Cette action est irréversible. Le contrat de location sera définitivement supprimé.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDeleteRental(rentalForAction.id)} className="bg-destructive hover:bg-destructive/90">Supprimer</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+          </>
+      )}
+
       <div className="w-full">
         <div className="flex items-center py-4 gap-2">
           <Input
@@ -345,7 +390,10 @@ export default function RentalTable({ rentals, isDashboard = false, onEndRental 
             className="max-w-sm"
           />
           <SheetTrigger asChild>
-            <Button className="ml-auto bg-primary hover:bg-primary/90" onClick={() => setSelectedRental(null)}>
+            <Button className="ml-auto bg-primary hover:bg-primary/90" onClick={() => {
+              setSelectedRental(null); // Ensure we're creating a new one
+              setIsSheetOpen(true);
+            }}>
               <PlusCircle className="mr-2 h-4 w-4" /> Ajouter contrat
             </Button>
           </SheetTrigger>
@@ -371,7 +419,6 @@ export default function RentalTable({ rentals, isDashboard = false, onEndRental 
                   <TableRow key={row.id}>
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
-    
                     ))}
                   </TableRow>
                 ))
@@ -390,14 +437,8 @@ export default function RentalTable({ rentals, isDashboard = false, onEndRental 
           <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Suivant</Button>
         </div>
       </div>
-      <SheetContent className="sm:max-w-[600px] flex flex-col">
-        <SheetHeader>
-          <SheetTitle>{selectedRental ? "Réceptionner le Véhicule" : "Créer un nouveau contrat"}</SheetTitle>
-        </SheetHeader>
-        <ScrollArea className="flex-grow pr-6">
-            <RentalForm rental={selectedRental} onFinished={() => setIsSheetOpen(false)} />
-        </ScrollArea>
-      </SheetContent>
-    </Sheet>
+    </>
   );
 }
+
+    

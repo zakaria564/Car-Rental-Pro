@@ -60,8 +60,14 @@ export default function RentalsPage() {
         await updateDoc(rentalDocRef, { statut: 'terminee' });
         await updateDoc(carDocRef, { disponible: true });
         toast({ title: "Location terminée", description: `La location a été marquée comme terminée.` });
-    } catch(e) {
+    } catch(e: any) {
         console.error(e);
+        const permissionError = new FirestorePermissionError({
+          path: rentalDocRef.path,
+          operation: 'update',
+          requestResourceData: { statut: 'terminee' }
+        }, e);
+        errorEmitter.emit('permission-error', permissionError);
         toast({ variant: 'destructive', title: "Erreur", description: "Impossible de terminer la location."});
     }
   };
@@ -88,3 +94,5 @@ export default function RentalsPage() {
     </>
   );
 }
+
+    
