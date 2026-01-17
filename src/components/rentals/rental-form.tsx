@@ -508,7 +508,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
                         <FormItem>
                           <FormLabel>Autres dommages / Notes (Départ)</FormLabel>
                           <FormControl>
-                            <Textarea placeholder="Décrivez tout autre dommage ou note pertinente ici..." {...field} disabled={!!rental} />
+                            <Textarea placeholder="Décrivez tout autre dommage ou note pertinente ici..." {...field} value={field.value ?? ''} disabled={!!rental} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -583,7 +583,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
                         <FormItem>
                           <FormLabel>Notes sur les dommages (Retour)</FormLabel>
                           <FormControl>
-                            <Textarea placeholder="Décrivez les nouveaux dommages ou frais supplémentaires..." {...field} />
+                            <Textarea placeholder="Décrivez les nouveaux dommages ou frais supplémentaires..." {...field} value={field.value ?? ''} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
