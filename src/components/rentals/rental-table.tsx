@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -327,11 +328,11 @@ export default function RentalTable({ rentals, isDashboard = false, onEndRental 
 
   // Full table with dialogs for the main rentals page
   return (
-    <>
-      <Sheet open={isSheetOpen} onOpenChange={(open) => {
+    <Sheet open={isSheetOpen} onOpenChange={(open) => {
         setIsSheetOpen(open);
         if (!open) setSelectedRental(null);
       }}>
+
         <SheetContent className="sm:max-w-[600px] flex flex-col">
           <SheetHeader>
             <SheetTitle>{selectedRental ? "Réceptionner le Véhicule" : "Créer un nouveau contrat"}</SheetTitle>
@@ -340,7 +341,6 @@ export default function RentalTable({ rentals, isDashboard = false, onEndRental 
               <RentalForm rental={selectedRental} onFinished={() => setIsSheetOpen(false)} />
           </ScrollArea>
         </SheetContent>
-      </Sheet>
 
       {rentalForAction && (
           <>
@@ -392,7 +392,6 @@ export default function RentalTable({ rentals, isDashboard = false, onEndRental 
           <SheetTrigger asChild>
             <Button className="ml-auto bg-primary hover:bg-primary/90" onClick={() => {
               setSelectedRental(null); // Ensure we're creating a new one
-              setIsSheetOpen(true);
             }}>
               <PlusCircle className="mr-2 h-4 w-4" /> Ajouter contrat
             </Button>
@@ -437,8 +436,6 @@ export default function RentalTable({ rentals, isDashboard = false, onEndRental 
           <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Suivant</Button>
         </div>
       </div>
-    </>
+    </Sheet>
   );
 }
-
-    
