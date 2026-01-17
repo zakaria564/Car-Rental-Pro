@@ -107,7 +107,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
         clientId: "",
         voitureId: "",
         dateRange: undefined,
-        kilometrageDepart: '' as any, // Controlled input
+        kilometrageDepart: '' as any,
         caution: '',
         carburantNiveauDepart: 0.5,
         dommagesDepart: {},
@@ -163,7 +163,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
 
     if (isUpdate && rental) {
         // --- UPDATE LOGIC ---
-         if (data.kilometrageRetour === undefined || data.kilometrageRetour === null) {
+        if (data.kilometrageRetour === undefined || data.kilometrageRetour === null) {
             form.setError("kilometrageRetour", { type: "custom", message: "Le kilométrage de retour est requis." });
             return; // Stop submission
         }
@@ -173,7 +173,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
         }
 
         const rentalRef = doc(firestore, 'rentals', rental.id);
-        const carDocRef = doc(firestore, 'cars', data.voitureId);
+        const carDocRef = doc(firestore, 'cars', rental.vehicule.carId);
 
         const updatePayload = {
             reception: {
@@ -406,7 +406,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                         <FormItem>
                           <FormLabel>Kilométrage de départ</FormLabel>
                           <FormControl>
-                            <Input type="number" placeholder="64000" {...field} value={field.value ?? ''} disabled={!!rental} />
+                            <Input type="number" placeholder="64000" {...field} value={field.value ?? ''} readOnly={!!rental} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -508,7 +508,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                         <FormItem>
                           <FormLabel>Autres dommages / Notes (Départ)</FormLabel>
                           <FormControl>
-                            <Textarea placeholder="Décrivez tout autre dommage ou note pertinente ici..." {...field} value={field.value ?? ''} disabled={!!rental} />
+                            <Textarea placeholder="Décrivez tout autre dommage ou note pertinente ici..." {...field} value={field.value ?? ''} readOnly={!!rental} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -606,7 +606,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
             </CardContent>
         </Card>
 
-        <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={form.formState.isSubmitting || (rental ? false : !form.formState.isValid)}>
+        <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={form.formState.isSubmitting}>
           {form.formState.isSubmitting ? "Enregistrement..." : (rental ? 'Terminer et Réceptionner le Véhicule' : 'Créer le contrat')}
         </Button>
       </form>
