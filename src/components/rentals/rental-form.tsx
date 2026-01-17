@@ -46,7 +46,7 @@ const rentalFormSchemaObject = {
     to: z.date({ required_error: "Une date de fin est requise." }),
   }),
   caution: z.preprocess(
-    (val) => (val === "" || val === null ? undefined : val),
+    (val) => (val === "" || val === null || val === undefined ? 0 : val),
     z.coerce.number({invalid_type_error: "Veuillez entrer un nombre."}).min(0, "La caution ne peut pas être négative.").optional()
   ),
   kilometrageDepart: z.coerce.number().min(0, "Le kilométrage doit être positif."),
@@ -66,8 +66,6 @@ const rentalFormSchemaObject = {
   dommagesRetour: z.record(z.string(), z.boolean()).optional(),
 };
 
-type RentalFormValues = z.infer<z.ZodObject<typeof rentalFormSchemaObject>>;
-
 
 function getSafeDate(date: any): Date | undefined {
     if (!date) return undefined;
@@ -83,25 +81,23 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
   const router = useRouter();
   const { firestore } = useFirebase();
 
+  const isUpdate = !!rental;
+
   const rentalFormSchema = React.useMemo(() => {
-    const isUpdate = !!rental;
-    return z.object(rentalFormSchemaObject)
-      .refine((data) => {
-        if (!isUpdate) return true;
-        return data.kilometrageRetour !== undefined;
-      }, {
-        message: "Le kilométrage de retour est requis.",
-        path: ["kilometrageRetour"],
-      })
-      .refine((data) => {
-        if (!isUpdate || data.kilometrageRetour === undefined) return true;
+    return z.object(rentalFormSchemaObject).refine(
+      (data) => {
+        if (!isUpdate) return true; // Pas de validation supplémentaire à la création
+        if (data.kilometrageRetour === undefined) return false; // Requis à la mise à jour
         return data.kilometrageRetour >= data.kilometrageDepart;
-      }, {
-        message: "Le kilométrage de retour ne peut être inférieur à celui de départ.",
+      },
+      {
+        message:
+          isUpdate && "Le kilométrage de retour doit être renseigné et ne peut être inférieur à celui de départ.",
         path: ["kilometrageRetour"],
-      });
-  }, [rental]);
-  
+      }
+    );
+  }, [isUpdate]);
+
   const getInitialValues = React.useCallback(() => {
     if (rental) {
         const rentalClient = clients.find(c => c.cin === rental.locataire.cin);
@@ -115,11 +111,11 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
             roueSecours: rental.livraison.roueSecours,
             posteRadio: rental.livraison.posteRadio,
             lavage: rental.livraison.lavage,
-            dommagesDepartNotes: rental.livraison.dommagesNotes,
+            dommagesDepartNotes: rental.livraison.dommagesNotes || "",
             dommagesDepart: rental.livraison.dommages?.reduce((acc, curr) => ({...acc, [curr]: true}), {}),
             kilometrageRetour: rental.reception?.kilometrage,
             carburantNiveauRetour: rental.reception?.carburantNiveau,
-            dommagesRetourNotes: rental.reception?.dommagesNotes,
+            dommagesRetourNotes: rental.reception?.dommagesNotes || "",
             dommagesRetour: rental.reception?.dommages?.reduce((acc, curr) => ({...acc, [curr]: true}), {}),
         };
     }
@@ -137,40 +133,29 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
         kilometrageRetour: '' as any,
         carburantNiveauRetour: 0.5,
         dommagesRetourNotes: "",
-        roueSecours: false,
-        posteRadio: false,
-        lavage: false,
+        roueSecours: true,
+        posteRadio: true,
+        lavage: true,
     }
   }, [rental, clients]);
 
-  const form = useForm<RentalFormValues>({
+  const form = useForm<z.infer<typeof rentalFormSchema>>({
     resolver: zodResolver(rentalFormSchema),
     mode: "onChange",
     defaultValues: getInitialValues(),
   });
   
-  React.useEffect(() => {
-    if (rental) {
-      form.reset(getInitialValues());
-    }
-  }, [rental, form, getInitialValues]);
-
-
+  // These useMemo hooks are fine for the UI rendering.
   const selectedCarId = form.watch("voitureId");
   const dateRange = form.watch("dateRange");
 
   const availableCars = cars.filter(car => car.disponible || (rental && car.id === rental.vehicule.carId));
 
-  const selectedCar = React.useMemo(() => {
+  const selectedCarForUI = React.useMemo(() => {
     return cars.find(car => car.id === selectedCarId);
   }, [selectedCarId, cars]);
-  
-  const selectedClient = React.useMemo(() => {
-    return clients.find(client => client.id === form.watch("clientId"));
-    }, [clients, form]);
 
-
-  const rentalDays = React.useMemo(() => {
+  const rentalDaysForUI = React.useMemo(() => {
     if (dateRange?.from && dateRange?.to) {
         const days = differenceInCalendarDays(dateRange.to, dateRange.from);
         return days >= 0 ? days + 1 : 0;
@@ -178,16 +163,16 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
     return 0;
   }, [dateRange]);
 
-  const prixTotal = React.useMemo(() => {
-    if (selectedCar && rentalDays > 0) {
-        return selectedCar.prixParJour * rentalDays;
+  const prixTotalForUI = React.useMemo(() => {
+    if (selectedCarForUI && rentalDaysForUI > 0) {
+        return selectedCarForUI.prixParJour * rentalDaysForUI;
     }
     return 0;
-  }, [selectedCar, rentalDays]);
+  }, [selectedCarForUI, rentalDaysForUI]);
 
-  async function onSubmit(data: RentalFormValues) {
+
+  async function onSubmit(data: z.infer<typeof rentalFormSchema>) {
     if (!firestore) return;
-    const isUpdate = !!rental;
 
     if (isUpdate && rental) {
         // --- UPDATE LOGIC ---
@@ -230,10 +215,18 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
         }
     } else {
         // --- CREATE LOGIC ---
+        const selectedCar = cars.find(c => c.id === data.voitureId);
+        const selectedClient = clients.find(c => c.id === data.clientId);
+
         if (!selectedCar || !selectedClient) {
             toast({ variant: "destructive", title: "Erreur", description: "Veuillez sélectionner un client et une voiture." });
             return;
         }
+        
+        // Recalculate days and price for the payload to avoid stale state
+        const finalRentalDays = data.dateRange.from && data.dateRange.to ? (differenceInCalendarDays(data.dateRange.to, data.dateRange.from) >= 0 ? differenceInCalendarDays(data.dateRange.to, data.dateRange.from) + 1 : 0) : 0;
+        const finalPrixTotal = selectedCar.prixParJour * finalRentalDays;
+
 
         const rentalPayload = {
             locataire: {
@@ -261,16 +254,16 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                 posteRadio: data.posteRadio,
                 lavage: data.lavage,
                 dommages: Object.keys(data.dommagesDepart || {}).filter(k => data.dommagesDepart?.[k]),
-                dommagesNotes: data.dommagesDepartNotes || "",
+                dommagesDepartNotes: data.dommagesDepartNotes || "",
             },
             reception: {},
             location: {
                 dateDebut: data.dateRange.from,
                 dateFin: data.dateRange.to,
                 prixParJour: selectedCar.prixParJour,
-                nbrJours: rentalDays,
+                nbrJours: finalRentalDays,
                 depot: data.caution || 0,
-                montantAPayer: prixTotal,
+                montantAPayer: finalPrixTotal,
             },
             statut: 'en_cours' as 'en_cours',
             createdAt: serverTimestamp(),
@@ -306,9 +299,9 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
   }
 
   // Determine display values based on whether we are editing or creating
-  const displayPricePerDay = rental ? rental.location.prixParJour : (selectedCar?.prixParJour || 0);
-  const displayRentalDays = rental ? rental.location.nbrJours : rentalDays;
-  const displayTotalPrice = rental ? rental.location.montantAPayer : prixTotal;
+  const displayPricePerDay = rental ? rental.location.prixParJour : (selectedCarForUI?.prixParJour || 0);
+  const displayRentalDays = rental ? rental.location.nbrJours : rentalDaysForUI;
+  const displayTotalPrice = rental ? rental.location.montantAPayer : prixTotalForUI;
   
   return (
     <Form {...form}>
@@ -632,5 +625,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
     </Form>
   );
 }
+
+    
 
     
