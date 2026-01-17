@@ -41,11 +41,8 @@ import { Switch } from "../ui/switch";
 
 const rentalFormSchemaObject = {
   clientId: z.string({ required_error: "Veuillez sélectionner un client." }).min(1, "Veuillez sélectionner un client."),
+  conducteur2_clientId: z.string().optional(),
   voitureId: z.string({ required_error: "Veuillez sélectionner une voiture." }).min(1, "Veuillez sélectionner une voiture."),
-  addConducteur2: z.boolean().default(false),
-  conducteur2_nomPrenom: z.string().optional(),
-  conducteur2_cin: z.string().optional(),
-  conducteur2_permisNo: z.string().optional(),
   dateRange: z.object({
     from: z.date({ required_error: "Une date de début est requise." }),
     to: z.date({ required_error: "Une date de fin est requise." }),
@@ -90,19 +87,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
   const isUpdate = !!rental;
 
   const rentalFormSchema = React.useMemo(() => {
-    let schema = z.object(rentalFormSchemaObject).superRefine((data, ctx) => {
-        if (data.addConducteur2) {
-            if (!data.conducteur2_nomPrenom || data.conducteur2_nomPrenom.length < 2) {
-                ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Le nom est requis.", path: ['conducteur2_nomPrenom'] });
-            }
-            if (!data.conducteur2_cin || data.conducteur2_cin.length < 5) {
-                ctx.addIssue({ code: z.ZodIssueCode.custom, message: "La CIN est requise.", path: ['conducteur2_cin'] });
-            }
-            if (!data.conducteur2_permisNo || data.conducteur2_permisNo.length < 5) {
-                ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Le N° de permis est requis.", path: ['conducteur2_permisNo'] });
-            }
-        }
-    });
+    let schema = z.object(rentalFormSchemaObject);
 
     if (isUpdate) {
       return schema.refine(
@@ -134,13 +119,11 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
   const getInitialValues = React.useCallback(() => {
     if (rental) {
         const rentalClient = clients.find(c => c.cin === rental.locataire.cin);
+        const rentalConducteur2 = rental.conducteur2 ? clients.find(c => c.cin === rental.conducteur2.cin) : null;
         return {
             clientId: rentalClient?.id ?? "",
+            conducteur2_clientId: rentalConducteur2?.id ?? "",
             voitureId: rental.vehicule.carId,
-            addConducteur2: !!rental.conducteur2,
-            conducteur2_nomPrenom: rental.conducteur2?.nomPrenom ?? '',
-            conducteur2_cin: rental.conducteur2?.cin ?? '',
-            conducteur2_permisNo: rental.conducteur2?.permisNo ?? '',
             dateRange: { from: getSafeDate(rental.location.dateDebut)!, to: getSafeDate(rental.location.dateFin)! },
             caution: rental.location.depot ?? undefined,
             kilometrageDepart: rental.livraison.kilometrage,
@@ -160,11 +143,8 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
     // Default values for a new rental
     return {
         clientId: "",
+        conducteur2_clientId: "",
         voitureId: "",
-        addConducteur2: false,
-        conducteur2_nomPrenom: "",
-        conducteur2_cin: "",
-        conducteur2_permisNo: "",
         dateRange: undefined,
         kilometrageDepart: '' as any,
         caution: undefined,
@@ -188,6 +168,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
     defaultValues: getInitialValues(),
   });
   
+  const selectedClientId = form.watch("clientId");
   const selectedCarId = form.watch("voitureId");
   const dateRange = form.watch("dateRange");
   const dateRetour = form.watch("dateRetour");
@@ -273,6 +254,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
         // --- CREATE LOGIC ---
         const selectedCar = cars.find(c => c.id === data.voitureId);
         const selectedClient = clients.find(c => c.id === data.clientId);
+        const selectedConducteur2 = data.conducteur2_clientId ? clients.find(c => c.id === data.conducteur2_clientId) : null;
 
         if (!selectedCar || !selectedClient) {
             toast({ variant: "destructive", title: "Erreur", description: "Veuillez sélectionner un client et une voiture." });
@@ -290,11 +272,11 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                 permisNo: selectedClient.permisNo || 'N/A',
                 telephone: selectedClient.telephone,
             },
-            ...(data.addConducteur2 && {
+            ...(selectedConducteur2 && {
                 conducteur2: {
-                    nomPrenom: data.conducteur2_nomPrenom!,
-                    cin: data.conducteur2_cin!,
-                    permisNo: data.conducteur2_permisNo!,
+                    nomPrenom: selectedConducteur2.nom,
+                    cin: selectedConducteur2.cin,
+                    permisNo: selectedConducteur2.permisNo || 'N/A',
                 }
             }),
             vehicule: {
@@ -391,6 +373,29 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                     />
                     <FormField
                       control={form.control}
+                      name="conducteur2_clientId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Deuxième conducteur (Optionnel)</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value} disabled={isUpdate}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Sélectionner un deuxième conducteur" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                               <SelectItem value="">Aucun</SelectItem>
+                               {clients.filter(client => client.id !== selectedClientId).map(client => (
+                                <SelectItem key={client.id} value={client.id}>{client.nom} ({client.cin})</SelectItem>
+                               ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
                       name="voitureId"
                       render={({ field }) => (
                         <FormItem>
@@ -466,74 +471,6 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                         </FormItem>
                       )}
                     />
-                    <FormField
-                      control={form.control}
-                      name="addConducteur2"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                          <div className="space-y-0.5">
-                            <FormLabel>
-                              Ajouter un deuxième conducteur
-                            </FormLabel>
-                            <FormDescription>
-                              Cochez si un autre conducteur est autorisé.
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                              disabled={isUpdate}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-
-                    {form.watch('addConducteur2') && (
-                        <div className="space-y-4 rounded-md border p-4">
-                            <h4 className="font-medium">Informations du deuxième conducteur</h4>
-                            <FormField
-                            control={form.control}
-                            name="conducteur2_nomPrenom"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Nom complet</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="Jane Doe" {...field} value={field.value ?? ''} readOnly={isUpdate} />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                            />
-                            <FormField
-                            control={form.control}
-                            name="conducteur2_cin"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>CIN / Passeport</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="CD67890" {...field} value={field.value ?? ''} readOnly={isUpdate} />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                            />
-                            <FormField
-                            control={form.control}
-                            name="conducteur2_permisNo"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Numéro de permis</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="P12345" {...field} value={field.value ?? ''} readOnly={isUpdate} />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                            />
-                        </div>
-                    )}
                 </AccordionContent>
             </AccordionItem>
             
