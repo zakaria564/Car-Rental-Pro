@@ -114,7 +114,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
       );
     }
     return schema;
-  }, [isUpdate]);
+  }, [isUpdate, rental]);
 
   const getInitialValues = React.useCallback(() => {
     if (rental) {
@@ -125,7 +125,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
             conducteur2_clientId: rentalConducteur2?.id ?? "",
             voitureId: rental.vehicule.carId,
             dateRange: { from: getSafeDate(rental.location.dateDebut)!, to: getSafeDate(rental.location.dateFin)! },
-            caution: rental.location.depot ?? undefined,
+            caution: rental.location.depot,
             kilometrageDepart: rental.livraison.kilometrage,
             carburantNiveauDepart: rental.livraison.carburantNiveau,
             roueSecours: rental.livraison.roueSecours,
@@ -133,7 +133,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
             lavage: rental.livraison.lavage,
             dommagesDepartNotes: rental.livraison.dommagesNotes || "",
             dommagesDepart: rental.livraison.dommages?.reduce((acc, curr) => ({...acc, [curr]: true}), {}),
-            kilometrageRetour: rental.reception?.kilometrage ?? undefined,
+            kilometrageRetour: rental.reception?.kilometrage,
             carburantNiveauRetour: rental.reception?.carburantNiveau,
             dommagesRetourNotes: rental.reception?.dommagesNotes || "",
             dommagesRetour: rental.reception?.dommages?.reduce((acc, curr) => ({...acc, [curr]: true}), {}),
@@ -158,7 +158,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
         roueSecours: true,
         posteRadio: true,
         lavage: true,
-        dateRetour: undefined,
+        dateRetour: new Date(),
     }
   }, [rental, clients]);
 
@@ -181,7 +181,11 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
 
   const rentalDaysForUI = React.useMemo(() => {
     const fromDate = dateRange?.from;
-    const toDate = isUpdate ? dateRetour : dateRange?.to;
+    let toDate = dateRange?.to;
+
+    if (isUpdate && dateRetour) {
+        toDate = dateRetour;
+    }
 
     if (fromDate && toDate) {
         const days = differenceInCalendarDays(toDate, fromDate);
@@ -191,14 +195,11 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
   }, [dateRange, dateRetour, isUpdate]);
 
   const prixTotalForUI = React.useMemo(() => {
-    if (isUpdate && rental) {
-        return rentalDaysForUI * rental.location.prixParJour;
-    }
     if (selectedCarForUI) {
         return rentalDaysForUI * selectedCarForUI.prixParJour;
     }
     return 0;
-  }, [selectedCarForUI, rentalDaysForUI, rental, isUpdate]);
+  }, [selectedCarForUI, rentalDaysForUI]);
 
 
   async function onSubmit(data: z.infer<typeof rentalFormSchema>) {
@@ -209,8 +210,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
         const rentalRef = doc(firestore, 'rentals', rental.id);
         const carDocRef = doc(firestore, 'cars', rental.vehicule.carId);
         
-        // Recalculate based on actual return date
-        const finalRentalDays = differenceInCalendarDays(data.dateRetour!, getSafeDate(rental.location.dateDebut)!) + 1;
+        const finalRentalDays = rentalDaysForUI;
         const finalAmountToPay = finalRentalDays * rental.location.prixParJour;
 
         const updatePayload = {
@@ -254,17 +254,15 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
         // --- CREATE LOGIC ---
         const selectedCar = cars.find(c => c.id === data.voitureId);
         const selectedClient = clients.find(c => c.id === data.clientId);
-        const selectedConducteur2 = data.conducteur2_clientId ? clients.find(c => c.id === data.conducteur2_clientId) : null;
+        const selectedConducteur2 = (data.conducteur2_clientId && data.conducteur2_clientId !== '_none_') 
+            ? clients.find(c => c.id === data.conducteur2_clientId) 
+            : null;
 
         if (!selectedCar || !selectedClient) {
             toast({ variant: "destructive", title: "Erreur", description: "Veuillez sélectionner un client et une voiture." });
             return;
         }
         
-        const finalRentalDays = data.dateRange.from && data.dateRange.to ? (differenceInCalendarDays(data.dateRange.to, data.dateRange.from) >= 0 ? differenceInCalendarDays(data.dateRange.to, data.dateRange.from) + 1 : 0) : 0;
-        const finalPrixTotal = selectedCar.prixParJour * finalRentalDays;
-
-
         const rentalPayload = {
             locataire: {
                 cin: selectedClient.cin,
@@ -305,9 +303,9 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                 dateDebut: data.dateRange.from,
                 dateFin: data.dateRange.to,
                 prixParJour: selectedCar.prixParJour,
-                nbrJours: finalRentalDays,
+                nbrJours: rentalDaysForUI,
                 depot: data.caution || 0,
-                montantAPayer: finalPrixTotal,
+                montantAPayer: prixTotalForUI,
             },
             statut: 'en_cours' as 'en_cours',
             createdAt: serverTimestamp(),
@@ -344,7 +342,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
 
   const displayPricePerDay = isUpdate ? rental.location.prixParJour : (selectedCarForUI?.prixParJour || 0);
   const displayRentalDays = rentalDaysForUI;
-  const displayTotalPrice = prixTotalForUI;
+  const displayTotalPrice = isUpdate ? (rentalDaysForUI * rental.location.prixParJour) : prixTotalForUI;
   
   return (
     <Form {...form}>
@@ -377,14 +375,14 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Deuxième conducteur (Optionnel)</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value} disabled={isUpdate}>
+                          <Select onValueChange={field.onChange} value={field.value || ''} disabled={isUpdate}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Sélectionner un deuxième conducteur" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                               <SelectItem value="">Aucun</SelectItem>
+                               <SelectItem value="_none_">Aucun</SelectItem>
                                {clients.filter(client => client.id !== selectedClientId).map(client => (
                                 <SelectItem key={client.id} value={client.id}>{client.nom} ({client.cin})</SelectItem>
                                ))}
@@ -423,7 +421,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                               <FormControl>
                                 <Button
                                   variant={"outline"}
-                                  disabled={isUpdate}
+                                  readOnly={isUpdate}
                                   className={cn("w-full pl-3 text-left font-normal", !field.value?.from && "text-muted-foreground")}
                                 >
                                   {field.value?.from ? (
@@ -451,6 +449,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                                 onSelect={field.onChange}
                                 numberOfMonths={2}
                                 locale={fr}
+                                disabled={isUpdate}
                               />
                             </PopoverContent>
                           </Popover>
