@@ -38,8 +38,8 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 
 const rentalFormSchema = z.object({
-  clientId: z.string({ required_error: "Veuillez sélectionner un client." }),
-  voitureId: z.string({ required_error: "Veuillez sélectionner une voiture." }),
+  clientId: z.string({ required_error: "Veuillez sélectionner un client." }).min(1, "Veuillez sélectionner un client."),
+  voitureId: z.string({ required_error: "Veuillez sélectionner une voiture." }).min(1, "Veuillez sélectionner une voiture."),
   dateRange: z.object({
     from: z.date({ required_error: "Une date de début est requise." }),
     to: z.date({ required_error: "Une date de fin est requise." }),
@@ -69,27 +69,10 @@ function getSafeDate(date: any): Date | undefined {
 }
 
 
-export default function RentalForm({ rental, onFinished }: { rental: Rental | null, onFinished: () => void }) {
+export default function RentalForm({ rental, clients, cars, onFinished }: { rental: Rental | null, clients: Client[], cars: CarType[], onFinished: () => void }) {
   const { toast } = useToast();
   const router = useRouter();
   const { firestore } = useFirebase();
-
-  const [cars, setCars] = React.useState<CarType[]>([]);
-  const [clients, setClients] = React.useState<Client[]>([]);
-
-  React.useEffect(() => {
-    if (!firestore) return;
-    const carsUnsubscribe = onSnapshot(collection(firestore, "cars"), (snapshot) => {
-      setCars(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CarType)));
-    });
-    const clientsUnsubscribe = onSnapshot(collection(firestore, "clients"), (snapshot) => {
-      setClients(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Client)));
-    });
-    return () => {
-      carsUnsubscribe();
-      clientsUnsubscribe();
-    };
-  }, [firestore]);
   
   const form = useForm<RentalFormValues>({
     resolver: zodResolver(rentalFormSchema),
@@ -104,7 +87,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
           voitureId: rental.vehicule.carId,
           dateRange: { from: getSafeDate(rental.location.dateDebut)!, to: getSafeDate(rental.location.dateFin)! },
           caution: rental.location.depot ?? '',
-          kilometrageDepart: rental.livraison.kilometrage,
+          kilometrageDepart: rental.livraison.kilometrage ?? 0,
           carburantNiveauDepart: rental.livraison.carburantNiveau,
           roueSecours: rental.livraison.roueSecours,
           posteRadio: rental.livraison.posteRadio,
@@ -144,7 +127,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
   
   const selectedClient = React.useMemo(() => {
     return clients.find(client => client.id === form.watch("clientId"));
-    }, [form.watch("clientId"), clients]);
+    }, [clients, form]);
 
 
   const rentalDays = React.useMemo(() => {
@@ -168,17 +151,8 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
 
     if (isUpdate) {
         // --- UPDATE LOGIC ---
-        if (!rental?.id) {
-            toast({
-                variant: 'destructive',
-                title: "Erreur de données",
-                description: "Impossible de trouver les informations du contrat à mettre à jour."
-            });
-            return;
-        }
-
-        const rentalRef = doc(firestore, 'rentals', rental.id);
         const carDocRef = doc(firestore, 'cars', data.voitureId);
+        const rentalRef = doc(firestore, 'rentals', rental.id);
 
         const updatePayload = {
             reception: {

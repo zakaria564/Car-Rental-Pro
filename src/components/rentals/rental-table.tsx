@@ -36,7 +36,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import type { Rental } from "@/lib/definitions";
+import type { Rental, Client, Car } from "@/lib/definitions";
 import { formatCurrency } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import RentalForm from "./rental-form";
@@ -53,6 +53,8 @@ import { FirestorePermissionError } from "@/firebase/errors";
 
 type RentalTableProps = {
   rentals: Rental[];
+  clients: Client[];
+  cars: Car[];
   isDashboard?: boolean;
   onEndRental?: (rental: Rental) => void;
 };
@@ -131,7 +133,7 @@ function RentalDetails({ rental }: { rental: Rental }) {
 }
 
 
-export default function RentalTable({ rentals, isDashboard = false, onEndRental }: RentalTableProps) {
+export default function RentalTable({ rentals, clients, cars, isDashboard = false, onEndRental }: RentalTableProps) {
   const { toast } = useToast();
   const { firestore } = useFirebase();
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -332,22 +334,83 @@ export default function RentalTable({ rentals, isDashboard = false, onEndRental 
         setIsSheetOpen(open);
         if (!open) setSelectedRental(null);
       }}>
+      <Dialog open={isDetailsOpen} onOpenChange={(open) => {
+          setIsDetailsOpen(open);
+          if (!open) setRentalForAction(null);
+        }}>
+        <AlertDialog open={isAlertOpen} onOpenChange={(open) => {
+          setIsAlertOpen(open);
+          if(!open) setRentalForAction(null);
+        }}>
+          <div className="w-full">
+            <div className="flex items-center py-4 gap-2">
+              <Input
+                placeholder="Filtrer par client..."
+                value={(table.getColumn("locataire")?.getFilterValue() as string) ?? ""}
+                onChange={(event) =>
+                  table.getColumn("locataire")?.setFilterValue(event.target.value)
+                }
+                className="max-w-sm"
+              />
+              <SheetTrigger asChild>
+                <Button className="ml-auto bg-primary hover:bg-primary/90" onClick={() => {
+                  setSelectedRental(null);
+                }}>
+                  <PlusCircle className="mr-2 h-4 w-4" /> Ajouter contrat
+                </Button>
+              </SheetTrigger>
+            </div>
+            <div className="rounded-md border bg-card">
+              <Table>
+                <TableHeader>
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => (
+                        <TableHead key={header.id}>
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(header.column.columnDef.header, header.getContext())}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableHeader>
+                <TableBody>
+                  {table.getRowModel().rows?.length ? (
+                    table.getRowModel().rows.map((row) => (
+                      <TableRow key={row.id}>
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={columns.length} className="h-24 text-center">
+                        Aucun résultat.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+            <div className="flex items-center justify-end space-x-2 py-4">
+              <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Précédent</Button>
+              <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Suivant</Button>
+            </div>
+          </div>
 
-        <SheetContent className="sm:max-w-[600px] flex flex-col">
-          <SheetHeader>
-            <SheetTitle>{selectedRental ? "Réceptionner le Véhicule" : "Créer un nouveau contrat"}</SheetTitle>
-          </SheetHeader>
-          <ScrollArea className="flex-grow pr-6">
-              <RentalForm rental={selectedRental} onFinished={() => setIsSheetOpen(false)} />
-          </ScrollArea>
-        </SheetContent>
+          <SheetContent className="sm:max-w-[600px] flex flex-col">
+            <SheetHeader>
+              <SheetTitle>{selectedRental ? "Réceptionner le Véhicule" : "Créer un nouveau contrat"}</SheetTitle>
+            </SheetHeader>
+            <ScrollArea className="flex-grow pr-6">
+                <RentalForm rental={selectedRental} clients={clients} cars={cars} onFinished={() => setIsSheetOpen(false)} />
+            </ScrollArea>
+          </SheetContent>
 
-      {rentalForAction && (
-          <>
-            <Dialog open={isDetailsOpen} onOpenChange={(open) => {
-              setIsDetailsOpen(open);
-              if (!open) setRentalForAction(null);
-            }}>
+          {rentalForAction && (
+              <>
                 <DialogContent className="sm:max-w-3xl">
                     <DialogHeader>
                         <DialogTitle>Détails du contrat de location #{rentalForAction.id?.substring(0,6)}</DialogTitle>
@@ -357,12 +420,7 @@ export default function RentalTable({ rentals, isDashboard = false, onEndRental 
                     </DialogHeader>
                     <RentalDetails rental={rentalForAction} />
                 </DialogContent>
-            </Dialog>
 
-            <AlertDialog open={isAlertOpen} onOpenChange={(open) => {
-              setIsAlertOpen(open);
-              if(!open) setRentalForAction(null);
-            }}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
@@ -372,70 +430,13 @@ export default function RentalTable({ rentals, isDashboard = false, onEndRental 
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Annuler</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDeleteRental(rentalForAction.id)} className="bg-destructive hover:bg-destructive/90">Supprimer</AlertDialogAction>
+                        <AlertDialogAction onClick={() => handleDeleteRental(rentalForAction.id!)} className="bg-destructive hover:bg-destructive/90">Supprimer</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
-            </AlertDialog>
-          </>
-      )}
-
-      <div className="w-full">
-        <div className="flex items-center py-4 gap-2">
-          <Input
-            placeholder="Filtrer par client..."
-            value={(table.getColumn("locataire")?.getFilterValue() as string) ?? ""}
-            onChange={(event) =>
-              table.getColumn("locataire")?.setFilterValue(event.target.value)
-            }
-            className="max-w-sm"
-          />
-          <SheetTrigger asChild>
-            <Button className="ml-auto bg-primary hover:bg-primary/90" onClick={() => {
-              setSelectedRental(null); // Ensure we're creating a new one
-            }}>
-              <PlusCircle className="mr-2 h-4 w-4" /> Ajouter contrat
-            </Button>
-          </SheetTrigger>
-        </div>
-        <div className="rounded-md border bg-card">
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id}>
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={columns.length} className="h-24 text-center">
-                    Aucun résultat.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-        <div className="flex items-center justify-end space-x-2 py-4">
-          <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Précédent</Button>
-          <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Suivant</Button>
-        </div>
-      </div>
+              </>
+          )}
+        </AlertDialog>
+      </Dialog>
     </Sheet>
   );
 }
