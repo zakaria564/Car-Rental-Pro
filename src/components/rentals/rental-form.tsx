@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -46,7 +45,7 @@ const rentalFormSchemaObject = {
     to: z.date({ required_error: "Une date de fin est requise." }),
   }),
   caution: z.preprocess(
-    (val) => (val === "" || val === null || val === undefined ? 0 : val),
+    (val) => (val === "" || val === null || val === undefined ? undefined : val),
     z.coerce.number({invalid_type_error: "Veuillez entrer un nombre."}).min(0, "La caution ne peut pas être négative.").optional()
   ),
   kilometrageDepart: z.coerce.number().min(0, "Le kilométrage doit être positif."),
@@ -64,6 +63,7 @@ const rentalFormSchemaObject = {
   carburantNiveauRetour: z.number().min(0).max(1).optional(),
   dommagesRetourNotes: z.string().optional(),
   dommagesRetour: z.record(z.string(), z.boolean()).optional(),
+  dateRetour: z.date().optional(),
 };
 
 
@@ -84,18 +84,32 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
   const isUpdate = !!rental;
 
   const rentalFormSchema = React.useMemo(() => {
-    return z.object(rentalFormSchemaObject).refine(
-      (data) => {
-        if (!isUpdate) return true; // Pas de validation supplémentaire à la création
-        if (data.kilometrageRetour === undefined) return false; // Requis à la mise à jour
-        return data.kilometrageRetour >= data.kilometrageDepart;
-      },
-      {
-        message:
-          isUpdate && "Le kilométrage de retour doit être renseigné et ne peut être inférieur à celui de départ.",
-        path: ["kilometrageRetour"],
-      }
-    );
+    const baseSchema = z.object(rentalFormSchemaObject);
+    if (isUpdate) {
+      return baseSchema.refine(
+        (data) => data.kilometrageRetour !== undefined && data.kilometrageRetour !== null, {
+            message: "Le kilométrage de retour doit être renseigné.",
+            path: ["kilometrageRetour"],
+        }
+      ).refine(
+          (data) => data.kilometrageRetour! >= data.kilometrageDepart,
+          {
+            message: "Le kilométrage de retour ne peut être inférieur à celui de départ.",
+            path: ["kilometrageRetour"],
+          }
+      ).refine(
+          (data) => data.dateRetour !== undefined, {
+              message: "La date de retour effective est requise.",
+              path: ["dateRetour"],
+          }
+      ).refine(
+          (data) => data.dateRetour! >= data.dateRange.from, {
+              message: "La date de retour ne peut être antérieure à la date de début.",
+              path: ["dateRetour"],
+          }
+      );
+    }
+    return baseSchema;
   }, [isUpdate]);
 
   const getInitialValues = React.useCallback(() => {
@@ -105,7 +119,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
             clientId: rentalClient?.id ?? "",
             voitureId: rental.vehicule.carId,
             dateRange: { from: getSafeDate(rental.location.dateDebut)!, to: getSafeDate(rental.location.dateFin)! },
-            caution: rental.location.depot,
+            caution: rental.location.depot ?? undefined,
             kilometrageDepart: rental.livraison.kilometrage,
             carburantNiveauDepart: rental.livraison.carburantNiveau,
             roueSecours: rental.livraison.roueSecours,
@@ -117,6 +131,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
             carburantNiveauRetour: rental.reception?.carburantNiveau,
             dommagesRetourNotes: rental.reception?.dommagesNotes || "",
             dommagesRetour: rental.reception?.dommages?.reduce((acc, curr) => ({...acc, [curr]: true}), {}),
+            dateRetour: rental.reception?.dateHeure ? getSafeDate(rental.reception.dateHeure) : new Date(),
         };
     }
     // Default values for a new rental
@@ -125,17 +140,18 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
         voitureId: "",
         dateRange: undefined,
         kilometrageDepart: '' as any,
-        caution: '' as any,
+        caution: undefined,
         carburantNiveauDepart: 0.5,
         dommagesDepart: {},
         dommagesRetour: {},
         dommagesDepartNotes: "",
-        kilometrageRetour: '' as any,
+        kilometrageRetour: undefined,
         carburantNiveauRetour: 0.5,
         dommagesRetourNotes: "",
         roueSecours: true,
         posteRadio: true,
         lavage: true,
+        dateRetour: undefined,
     }
   }, [rental, clients]);
 
@@ -145,30 +161,37 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
     defaultValues: getInitialValues(),
   });
   
-  // These useMemo hooks are fine for the UI rendering.
   const selectedCarId = form.watch("voitureId");
   const dateRange = form.watch("dateRange");
+  const dateRetour = form.watch("dateRetour");
 
   const availableCars = cars.filter(car => car.disponible || (rental && car.id === rental.vehicule.carId));
 
   const selectedCarForUI = React.useMemo(() => {
+    if (rental) {
+        return cars.find(car => car.id === rental.vehicule.carId);
+    }
     return cars.find(car => car.id === selectedCarId);
-  }, [selectedCarId, cars]);
+  }, [selectedCarId, cars, rental]);
 
   const rentalDaysForUI = React.useMemo(() => {
-    if (dateRange?.from && dateRange?.to) {
-        const days = differenceInCalendarDays(dateRange.to, dateRange.from);
+    const fromDate = dateRange?.from;
+    const toDate = isUpdate ? dateRetour : dateRange?.to;
+
+    if (fromDate && toDate) {
+        const days = differenceInCalendarDays(toDate, fromDate);
         return days >= 0 ? days + 1 : 0;
     }
     return 0;
-  }, [dateRange]);
+  }, [dateRange?.from, dateRange?.to, dateRetour, isUpdate]);
 
   const prixTotalForUI = React.useMemo(() => {
-    if (selectedCarForUI && rentalDaysForUI > 0) {
-        return selectedCarForUI.prixParJour * rentalDaysForUI;
+    const pricePerDay = rental ? rental.location.prixParJour : selectedCarForUI?.prixParJour;
+    if (pricePerDay && rentalDaysForUI > 0) {
+        return pricePerDay * rentalDaysForUI;
     }
     return 0;
-  }, [selectedCarForUI, rentalDaysForUI]);
+  }, [selectedCarForUI, rentalDaysForUI, rental]);
 
 
   async function onSubmit(data: z.infer<typeof rentalFormSchema>) {
@@ -178,15 +201,22 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
         // --- UPDATE LOGIC ---
         const rentalRef = doc(firestore, 'rentals', rental.id);
         const carDocRef = doc(firestore, 'cars', rental.vehicule.carId);
+        
+        // Recalculate based on actual return date
+        const finalRentalDays = differenceInCalendarDays(data.dateRetour!, getSafeDate(rental.location.dateDebut)!) + 1;
+        const finalAmountToPay = finalRentalDays * rental.location.prixParJour;
 
         const updatePayload = {
             reception: {
-                dateHeure: serverTimestamp(),
+                dateHeure: data.dateRetour,
                 kilometrage: data.kilometrageRetour,
                 carburantNiveau: data.carburantNiveauRetour,
                 dommages: Object.keys(data.dommagesRetour || {}).filter(k => data.dommagesRetour?.[k]),
                 dommagesNotes: data.dommagesRetourNotes || "",
             },
+            'location.dateFin': data.dateRetour,
+            'location.nbrJours': finalRentalDays,
+            'location.montantAPayer': finalAmountToPay,
             statut: 'terminee' as 'terminee',
         };
 
@@ -196,7 +226,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
 
             toast({
                 title: "Location terminée",
-                description: `La réception pour ${rental.locataire.nomPrenom} a été enregistrée.`,
+                description: `La réception pour ${rental.locataire.nomPrenom} a été enregistrée avec le montant final de ${formatCurrency(finalAmountToPay, 'MAD')}.`,
             });
             onFinished();
             router.refresh();
@@ -223,7 +253,6 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
             return;
         }
         
-        // Recalculate days and price for the payload to avoid stale state
         const finalRentalDays = data.dateRange.from && data.dateRange.to ? (differenceInCalendarDays(data.dateRange.to, data.dateRange.from) >= 0 ? differenceInCalendarDays(data.dateRange.to, data.dateRange.from) + 1 : 0) : 0;
         const finalPrixTotal = selectedCar.prixParJour * finalRentalDays;
 
@@ -298,10 +327,9 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
     }
   }
 
-  // Determine display values based on whether we are editing or creating
   const displayPricePerDay = rental ? rental.location.prixParJour : (selectedCarForUI?.prixParJour || 0);
-  const displayRentalDays = rental ? rental.location.nbrJours : rentalDaysForUI;
-  const displayTotalPrice = rental ? rental.location.montantAPayer : prixTotalForUI;
+  const displayRentalDays = rentalDaysForUI;
+  const displayTotalPrice = prixTotalForUI;
   
   return (
     <Form {...form}>
@@ -351,7 +379,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                       name="dateRange"
                       render={({ field }) => (
                         <FormItem className="flex flex-col">
-                          <FormLabel>Période de location</FormLabel>
+                          <FormLabel>Période de location (prévue)</FormLabel>
                           <Popover>
                             <PopoverTrigger asChild>
                               <FormControl>
@@ -436,7 +464,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                                 onValueChange={(values) => field.onChange(values[0])}
                                 max={1}
                                 step={0.125}
-                                readOnly={!!rental}
+                                disabled={!!rental}
                               />
                           </FormControl>
                           <FormMessage />
@@ -534,6 +562,42 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                   <AccordionTrigger>Contrat de Réception (Retour)</AccordionTrigger>
                   <AccordionContent className="space-y-4 px-1">
                       <p className="text-sm text-muted-foreground">Remplissez cette section lors du retour du véhicule.</p>
+                       <FormField
+                        control={form.control}
+                        name="dateRetour"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                            <FormLabel>Date de retour effective</FormLabel>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                <FormControl>
+                                    <Button
+                                    variant={"outline"}
+                                    className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
+                                    >
+                                    {field.value ? (
+                                        format(field.value, "PPP", { locale: fr })
+                                    ) : (
+                                        <span>Choisir une date</span>
+                                    )}
+                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                    </Button>
+                                </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    mode="single"
+                                    selected={field.value}
+                                    onSelect={field.onChange}
+                                    initialFocus
+                                    locale={fr}
+                                />
+                                </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
                       <FormField
                         control={form.control}
                         name="kilometrageRetour"
@@ -625,7 +689,3 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
     </Form>
   );
 }
-
-    
-
-    
