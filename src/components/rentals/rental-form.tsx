@@ -111,7 +111,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
           lavage: rental.livraison.lavage,
           dommagesDepartNotes: rental.livraison.dommagesNotes || "",
           dommagesDepart: rental.livraison.dommages?.reduce((acc, curr) => ({...acc, [curr]: true}), {}) || {},
-          kilometrageRetour: rental.reception?.kilometrage || undefined,
+          kilometrageRetour: rental.reception?.kilometrage,
           carburantNiveauRetour: rental.reception?.carburantNiveau || 0.5,
           dommagesRetourNotes: rental.reception?.dommagesNotes || "",
           dommagesRetour: rental.reception?.dommages?.reduce((acc, curr) => ({...acc, [curr]: true}), {}) || {},
@@ -168,11 +168,11 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
 
     if (isUpdate) {
         // --- UPDATE LOGIC ---
-        if (!rental?.id || !data.voitureId) {
+        if (!rental?.id) {
             toast({
                 variant: 'destructive',
                 title: "Erreur de données",
-                description: "Impossible de trouver les informations du contrat ou du véhicule à mettre à jour."
+                description: "Impossible de trouver les informations du contrat à mettre à jour."
             });
             return;
         }
@@ -387,7 +387,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
                         <FormItem>
                           <FormLabel>Caution (MAD)</FormLabel>
                           <FormControl>
-                            <Input type="number" placeholder="5000" {...field} disabled={!!rental} />
+                            <Input type="number" placeholder="5000" {...field} value={field.value ?? ''} disabled={!!rental} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -532,7 +532,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
                                 type="number"
                                 placeholder="65500"
                                 {...field}
-                                value={field.value || ''}
+                                value={field.value ?? ''}
                             />
                           </FormControl>
                           <FormMessage />
