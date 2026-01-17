@@ -37,7 +37,8 @@ import { useRouter } from "next/navigation";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 
-const rentalFormSchema = z.object({
+
+const rentalFormSchemaObject = {
   clientId: z.string({ required_error: "Veuillez sélectionner un client." }).min(1, "Veuillez sélectionner un client."),
   voitureId: z.string({ required_error: "Veuillez sélectionner une voiture." }).min(1, "Veuillez sélectionner une voiture."),
   dateRange: z.object({
@@ -55,17 +56,18 @@ const rentalFormSchema = z.object({
   lavage: z.boolean().default(false),
   dommagesDepartNotes: z.string().optional(),
   dommagesDepart: z.record(z.string(), z.boolean()).optional(),
+  
   kilometrageRetour: z.preprocess(
     (val) => (val === "" || val === null ? undefined : val),
-    z.coerce.number({invalid_type_error: "Veuillez entrer un nombre."}).min(0, "Le kilométrage doit être positif.").optional()
+    z.coerce.number({invalid_type_error: "Veuillez entrer un nombre."}).optional()
   ),
   carburantNiveauRetour: z.number().min(0).max(1).optional(),
   dommagesRetourNotes: z.string().optional(),
   dommagesRetour: z.record(z.string(), z.boolean()).optional(),
-});
+};
 
+type RentalFormValues = z.infer<z.ZodObject<typeof rentalFormSchemaObject>>;
 
-type RentalFormValues = z.infer<typeof rentalFormSchema>;
 
 function getSafeDate(date: any): Date | undefined {
     if (!date) return undefined;
@@ -80,26 +82,45 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
   const { toast } = useToast();
   const router = useRouter();
   const { firestore } = useFirebase();
+
+  const rentalFormSchema = React.useMemo(() => {
+    const isUpdate = !!rental;
+    return z.object(rentalFormSchemaObject)
+      .refine((data) => {
+        if (!isUpdate) return true;
+        return data.kilometrageRetour !== undefined;
+      }, {
+        message: "Le kilométrage de retour est requis.",
+        path: ["kilometrageRetour"],
+      })
+      .refine((data) => {
+        if (!isUpdate || data.kilometrageRetour === undefined) return true;
+        return data.kilometrageRetour >= data.kilometrageDepart;
+      }, {
+        message: "Le kilométrage de retour ne peut être inférieur à celui de départ.",
+        path: ["kilometrageRetour"],
+      });
+  }, [rental]);
   
- const getInitialValues = React.useCallback(() => {
+  const getInitialValues = React.useCallback(() => {
     if (rental) {
         const rentalClient = clients.find(c => c.cin === rental.locataire.cin);
         return {
             clientId: rentalClient?.id ?? "",
             voitureId: rental.vehicule.carId,
             dateRange: { from: getSafeDate(rental.location.dateDebut)!, to: getSafeDate(rental.location.dateFin)! },
-            caution: rental.location.depot ?? '',
+            caution: rental.location.depot,
             kilometrageDepart: rental.livraison.kilometrage,
             carburantNiveauDepart: rental.livraison.carburantNiveau,
             roueSecours: rental.livraison.roueSecours,
             posteRadio: rental.livraison.posteRadio,
             lavage: rental.livraison.lavage,
-            dommagesDepartNotes: rental.livraison.dommagesNotes ?? '',
-            dommagesDepart: rental.livraison.dommages?.reduce((acc, curr) => ({...acc, [curr]: true}), {}) || {},
-            kilometrageRetour: rental.reception?.kilometrage ?? '',
-            carburantNiveauRetour: rental.reception?.carburantNiveau ?? 0.5,
-            dommagesRetourNotes: rental.reception?.dommagesNotes ?? '',
-            dommagesRetour: rental.reception?.dommages?.reduce((acc, curr) => ({...acc, [curr]: true}), {}) || {},
+            dommagesDepartNotes: rental.livraison.dommagesNotes,
+            dommagesDepart: rental.livraison.dommages?.reduce((acc, curr) => ({...acc, [curr]: true}), {}),
+            kilometrageRetour: rental.reception?.kilometrage,
+            carburantNiveauRetour: rental.reception?.carburantNiveau,
+            dommagesRetourNotes: rental.reception?.dommagesNotes,
+            dommagesRetour: rental.reception?.dommages?.reduce((acc, curr) => ({...acc, [curr]: true}), {}),
         };
     }
     // Default values for a new rental
@@ -108,12 +129,12 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
         voitureId: "",
         dateRange: undefined,
         kilometrageDepart: '' as any,
-        caution: '',
+        caution: '' as any,
         carburantNiveauDepart: 0.5,
         dommagesDepart: {},
         dommagesRetour: {},
         dommagesDepartNotes: "",
-        kilometrageRetour: '',
+        kilometrageRetour: '' as any,
         carburantNiveauRetour: 0.5,
         dommagesRetourNotes: "",
         roueSecours: false,
@@ -128,6 +149,13 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
     defaultValues: getInitialValues(),
   });
   
+  React.useEffect(() => {
+    if (rental) {
+      form.reset(getInitialValues());
+    }
+  }, [rental, form, getInitialValues]);
+
+
   const selectedCarId = form.watch("voitureId");
   const dateRange = form.watch("dateRange");
 
@@ -163,15 +191,6 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
 
     if (isUpdate && rental) {
         // --- UPDATE LOGIC ---
-        if (data.kilometrageRetour === undefined || data.kilometrageRetour === null) {
-            form.setError("kilometrageRetour", { type: "custom", message: "Le kilométrage de retour est requis." });
-            return; // Stop submission
-        }
-        if (data.kilometrageRetour < data.kilometrageDepart) {
-             form.setError("kilometrageRetour", { type: "custom", message: "Le kilométrage de retour ne peut être inférieur à celui de départ." });
-            return; // Stop submission
-        }
-
         const rentalRef = doc(firestore, 'rentals', rental.id);
         const carDocRef = doc(firestore, 'cars', rental.vehicule.carId);
 
@@ -387,7 +406,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                         <FormItem>
                           <FormLabel>Caution (MAD)</FormLabel>
                           <FormControl>
-                            <Input type="number" placeholder="5000" {...field} value={field.value ?? ''} disabled={!!rental} />
+                            <Input type="number" placeholder="5000" {...field} value={field.value ?? ''} readOnly={!!rental} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -424,7 +443,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                                 onValueChange={(values) => field.onChange(values[0])}
                                 max={1}
                                 step={0.125}
-                                disabled={!!rental}
+                                readOnly={!!rental}
                               />
                           </FormControl>
                           <FormMessage />
@@ -613,3 +632,5 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
     </Form>
   );
 }
+
+    
