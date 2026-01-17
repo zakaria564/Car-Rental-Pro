@@ -3,7 +3,7 @@ import { DashboardHeader } from "@/components/dashboard-header";
 import RentalTable from "@/components/rentals/rental-table";
 import React from "react";
 import { useFirebase } from "@/firebase";
-import { collection, onSnapshot, query, orderBy, doc, updateDoc } from "firebase/firestore";
+import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import type { Rental, Car, Client } from "@/lib/definitions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -91,28 +91,6 @@ export default function RentalsPage() {
     };
   }, [firestore]);
 
-  const handleEndRental = async (rental: Rental) => {
-    if (!firestore || !rental.id || !rental.vehicule.carId) return;
-    const rentalDocRef = doc(firestore, 'rentals', rental.id);
-    const carDocRef = doc(firestore, 'cars', rental.vehicule.carId);
-    
-    try {
-        await updateDoc(rentalDocRef, { statut: 'terminee' });
-        await updateDoc(carDocRef, { disponible: true });
-        toast({ title: "Location terminée", description: `La location a été marquée comme terminée.` });
-    } catch(e: any) {
-        console.error(e);
-        const permissionError = new FirestorePermissionError({
-          path: rentalDocRef.path,
-          operation: 'update',
-          requestResourceData: { statut: 'terminee' }
-        }, e);
-        errorEmitter.emit('permission-error', permissionError);
-        toast({ variant: 'destructive', title: "Erreur", description: "Impossible de terminer la location."});
-    }
-  };
-
-
   return (
     <>
       <DashboardHeader title="Contrats" description="Gérez tous les enregistrements de location de voitures." />
@@ -129,7 +107,7 @@ export default function RentalsPage() {
             <AlertDescription>{error}</AlertDescription>
         </Alert>
       ) : (
-        <RentalTable rentals={rentals} clients={clients} cars={cars} onEndRental={handleEndRental} />
+        <RentalTable rentals={rentals} clients={clients} cars={cars} />
       )}
     </>
   );

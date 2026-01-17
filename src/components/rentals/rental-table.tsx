@@ -38,7 +38,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { Rental, Client, Car } from "@/lib/definitions";
 import { formatCurrency } from "@/lib/utils";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import RentalForm from "./rental-form";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -56,7 +56,6 @@ type RentalTableProps = {
   clients: Client[];
   cars: Car[];
   isDashboard?: boolean;
-  onEndRental?: (rental: Rental) => void;
 };
 
 function RentalDetails({ rental }: { rental: Rental }) {
@@ -133,20 +132,19 @@ function RentalDetails({ rental }: { rental: Rental }) {
 }
 
 
-export default function RentalTable({ rentals, clients, cars, isDashboard = false, onEndRental }: RentalTableProps) {
+export default function RentalTable({ rentals, clients, cars, isDashboard = false }: RentalTableProps) {
   const { toast } = useToast();
   const { firestore } = useFirebase();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
 
-  // State for the sheet (new/edit form)
+  // State for the modals
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
-  const [selectedRental, setSelectedRental] = React.useState<Rental | null>(null);
-  
-  // State for other dialogs
   const [isDetailsOpen, setIsDetailsOpen] = React.useState(false);
   const [isAlertOpen, setIsAlertOpen] = React.useState(false);
-  const [rentalForAction, setRentalForAction] = React.useState<Rental | null>(null);
+  
+  // Unified state for the rental being acted upon
+  const [rentalForModal, setRentalForModal] = React.useState<Rental | null>(null);
 
 
   const handleDeleteRental = async (rentalId: string) => {
@@ -171,7 +169,6 @@ export default function RentalTable({ rentals, clients, cars, isDashboard = fals
         });
     });
     setIsAlertOpen(false);
-    setRentalForAction(null);
   };
 
   const columns: ColumnDef<Rental>[] = [
@@ -233,21 +230,15 @@ export default function RentalTable({ rentals, clients, cars, isDashboard = fals
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuItem onSelect={() => {
-                setRentalForAction(rental);
+                setRentalForModal(rental);
                 setIsDetailsOpen(true);
               }}>
                 Voir les détails
               </DropdownMenuItem>
               
-              {rental.statut === 'en_cours' && onEndRental && (
-                  <DropdownMenuItem onSelect={() => onEndRental(rental)}>
-                    Terminer la location
-                  </DropdownMenuItem>
-              )}
-
               {rental.statut === 'en_cours' && (
                   <DropdownMenuItem onSelect={() => {
-                      setSelectedRental(rental);
+                      setRentalForModal(rental);
                       setIsSheetOpen(true);
                   }}>
                     Réceptionner
@@ -259,7 +250,7 @@ export default function RentalTable({ rentals, clients, cars, isDashboard = fals
               <DropdownMenuItem 
                 className="text-destructive focus:text-destructive focus:bg-destructive/10" 
                 onSelect={() => {
-                    setRentalForAction(rental);
+                    setRentalForModal(rental);
                     setIsAlertOpen(true);
                 }}
               >
@@ -330,113 +321,116 @@ export default function RentalTable({ rentals, clients, cars, isDashboard = fals
 
   // Full table with dialogs for the main rentals page
   return (
-    <Sheet open={isSheetOpen} onOpenChange={(open) => {
-        setIsSheetOpen(open);
-        if (!open) setSelectedRental(null);
-      }}>
-      <Dialog open={isDetailsOpen} onOpenChange={(open) => {
-          setIsDetailsOpen(open);
-          if (!open) setRentalForAction(null);
-        }}>
-        <AlertDialog open={isAlertOpen} onOpenChange={(open) => {
-          setIsAlertOpen(open);
-          if(!open) setRentalForAction(null);
-        }}>
-          <div className="w-full">
-            <div className="flex items-center py-4 gap-2">
-              <Input
-                placeholder="Filtrer par client..."
-                value={(table.getColumn("locataire")?.getFilterValue() as string) ?? ""}
-                onChange={(event) =>
-                  table.getColumn("locataire")?.setFilterValue(event.target.value)
-                }
-                className="max-w-sm"
-              />
-              <SheetTrigger asChild>
-                <Button className="ml-auto bg-primary hover:bg-primary/90" onClick={() => {
-                  setSelectedRental(null);
-                }}>
-                  <PlusCircle className="mr-2 h-4 w-4" /> Ajouter contrat
-                </Button>
-              </SheetTrigger>
-            </div>
-            <div className="rounded-md border bg-card">
-              <Table>
-                <TableHeader>
-                  {table.getHeaderGroups().map((headerGroup) => (
-                    <TableRow key={headerGroup.id}>
-                      {headerGroup.headers.map((header) => (
-                        <TableHead key={header.id}>
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(header.column.columnDef.header, header.getContext())}
-                        </TableHead>
-                      ))}
-                    </TableRow>
+    <>
+      <div className="w-full">
+        <div className="flex items-center py-4 gap-2">
+          <Input
+            placeholder="Filtrer par client..."
+            value={(table.getColumn("locataire")?.getFilterValue() as string) ?? ""}
+            onChange={(event) =>
+              table.getColumn("locataire")?.setFilterValue(event.target.value)
+            }
+            className="max-w-sm"
+          />
+          <Button className="ml-auto bg-primary hover:bg-primary/90" onClick={() => {
+            setRentalForModal(null); // Ensure we're creating a new one
+            setIsSheetOpen(true);
+          }}>
+            <PlusCircle className="mr-2 h-4 w-4" /> Ajouter contrat
+          </Button>
+        </div>
+        <div className="rounded-md border bg-card">
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <TableHead key={header.id}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(header.column.columnDef.header, header.getContext())}
+                    </TableHead>
                   ))}
-                </TableHeader>
-                <TableBody>
-                  {table.getRowModel().rows?.length ? (
-                    table.getRowModel().rows.map((row) => (
-                      <TableRow key={row.id}>
-                        {row.getVisibleCells().map((cell) => (
-                          <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
-                        ))}
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={columns.length} className="h-24 text-center">
-                        Aucun résultat.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-            <div className="flex items-center justify-end space-x-2 py-4">
-              <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Précédent</Button>
-              <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Suivant</Button>
-            </div>
-          </div>
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow key={row.id}>
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-24 text-center">
+                    Aucun résultat.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+        <div className="flex items-center justify-end space-x-2 py-4">
+          <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Précédent</Button>
+          <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Suivant</Button>
+        </div>
+      </div>
 
-          <SheetContent className="sm:max-w-[600px] flex flex-col">
+      {/* --- Modals Section --- */}
+
+      <Sheet open={isSheetOpen} onOpenChange={(open) => {
+          setIsSheetOpen(open);
+          if (!open) setRentalForModal(null);
+      }}>
+        <SheetContent className="sm:max-w-[600px] flex flex-col">
             <SheetHeader>
-              <SheetTitle>{selectedRental ? "Réceptionner le Véhicule" : "Créer un nouveau contrat"}</SheetTitle>
+              <SheetTitle>{rentalForModal ? "Réceptionner le Véhicule" : "Créer un nouveau contrat"}</SheetTitle>
             </SheetHeader>
             <ScrollArea className="flex-grow pr-6">
-                <RentalForm rental={selectedRental} clients={clients} cars={cars} onFinished={() => setIsSheetOpen(false)} />
+                <RentalForm rental={rentalForModal} clients={clients} cars={cars} onFinished={() => setIsSheetOpen(false)} />
             </ScrollArea>
-          </SheetContent>
+        </SheetContent>
+      </Sheet>
 
-          {rentalForAction && (
-              <>
-                <DialogContent className="sm:max-w-3xl">
-                    <DialogHeader>
-                        <DialogTitle>Détails du contrat de location #{rentalForAction.id?.substring(0,6)}</DialogTitle>
-                        <DialogDescription>
-                          Créé le {rentalForAction.createdAt?.toDate ? format(rentalForAction.createdAt.toDate(), "dd LLL, y 'à' HH:mm", { locale: fr }) : 'N/A'}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <RentalDetails rental={rentalForAction} />
-                </DialogContent>
-
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Cette action est irréversible. Le contrat de location sera définitivement supprimé.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Annuler</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDeleteRental(rentalForAction.id!)} className="bg-destructive hover:bg-destructive/90">Supprimer</AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-              </>
-          )}
-        </AlertDialog>
+      <Dialog open={isDetailsOpen} onOpenChange={(open) => {
+          setIsDetailsOpen(open);
+          if (!open) setRentalForModal(null);
+        }}>
+        {rentalForModal && (
+            <DialogContent className="sm:max-w-3xl">
+                <DialogHeader>
+                    <DialogTitle>Détails du contrat de location #{rentalForModal.id?.substring(0,6)}</DialogTitle>
+                    <DialogDescription>
+                      Créé le {rentalForModal.createdAt?.toDate ? format(rentalForModal.createdAt.toDate(), "dd LLL, y 'à' HH:mm", { locale: fr }) : 'N/A'}
+                    </DialogDescription>
+                </DialogHeader>
+                <RentalDetails rental={rentalForModal} />
+            </DialogContent>
+        )}
       </Dialog>
-    </Sheet>
+      
+      <AlertDialog open={isAlertOpen} onOpenChange={(open) => {
+          setIsAlertOpen(open);
+          if (!open) setRentalForModal(null);
+        }}>
+        {rentalForModal && (
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Cette action est irréversible. Le contrat de location sera définitivement supprimé.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => handleDeleteRental(rentalForModal!.id!)} className="bg-destructive hover:bg-destructive/90">Supprimer</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        )}
+      </AlertDialog>
+    </>
   );
 }
