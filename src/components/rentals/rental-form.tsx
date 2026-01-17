@@ -60,6 +60,15 @@ const rentalFormSchema = z.object({
 
 type RentalFormValues = z.infer<typeof rentalFormSchema>;
 
+function getSafeDate(date: any): Date | undefined {
+    if (!date) return undefined;
+    if (date instanceof Date) return date;
+    if (date.toDate && typeof date.toDate === 'function') return date.toDate();
+    const parsed = new Date(date);
+    return isNaN(parsed.getTime()) ? undefined : parsed;
+}
+
+
 export default function RentalForm({ rental, onFinished }: { rental: Rental | null, onFinished: () => void }) {
   const { toast } = useToast();
   const router = useRouter();
@@ -86,9 +95,9 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
     resolver: zodResolver(rentalFormSchema),
     mode: "onChange",
     defaultValues: rental ? {
-        clientId: rental.locataire.cin,
+        clientId: clients.find(c => c.cin === rental.locataire.cin)?.id || "",
         voitureId: rental.vehicule.carId,
-        dateRange: { from: new Date(rental.location.dateDebut), to: new Date(rental.location.dateFin)},
+        dateRange: { from: getSafeDate(rental.location.dateDebut)!, to: getSafeDate(rental.location.dateFin)! },
         caution: rental.location.depot,
         kilometrageDepart: rental.livraison.kilometrage,
         carburantNiveauDepart: rental.livraison.carburantNiveau,
@@ -97,10 +106,10 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
         lavage: rental.livraison.lavage,
         dommagesDepartNotes: rental.livraison.dommagesNotes || "",
         dommagesDepart: rental.livraison.dommages?.reduce((acc, curr) => ({...acc, [curr]: true}), {}) || {},
-        kilometrageRetour: rental.reception.kilometrage,
-        carburantNiveauRetour: rental.reception.carburantNiveau,
-        dommagesRetourNotes: rental.reception.dommagesNotes || "",
-        dommagesRetour: rental.reception.dommages?.reduce((acc, curr) => ({...acc, [curr]: true}), {}) || {},
+        kilometrageRetour: rental.reception?.kilometrage || 0,
+        carburantNiveauRetour: rental.reception?.carburantNiveau || 0.5,
+        dommagesRetourNotes: rental.reception?.dommagesNotes || "",
+        dommagesRetour: rental.reception?.dommages?.reduce((acc, curr) => ({...acc, [curr]: true}), {}) || {},
       } : {
       carburantNiveauDepart: 0.5,
       dommagesDepart: {},
@@ -146,84 +155,129 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
   }, [selectedCar, rentalDays]);
 
   async function onSubmit(data: RentalFormValues) {
-    if (!selectedCar || !selectedClient) {
-        toast({ variant: "destructive", title: "Erreur", description: "Veuillez sélectionner un client et une voiture." });
-        return;
-    }
+    if (!firestore) return;
+    const isUpdate = !!rental;
 
-    const rentalPayload = {
-      locataire: {
-        cin: selectedClient.cin,
-        nomPrenom: selectedClient.nom,
-        permisNo: selectedClient.permisNo || 'N/A',
-        telephone: selectedClient.telephone,
-      },
-      vehicule: {
-        carId: selectedCar.id,
-        immatriculation: selectedCar.immat,
-        marque: `${selectedCar.marque} ${selectedCar.modele}`,
-        modeleAnnee: selectedCar.modeleAnnee || new Date().getFullYear(),
-        couleur: selectedCar.couleur || "Inconnue",
-        nbrPlaces: selectedCar.nbrPlaces || 5,
-        puissance: selectedCar.puissance || 7,
-        carburantType: selectedCar.carburantType || 'Essence',
-        photoURL: selectedCar.photoURL
-      },
-      livraison: {
-        dateHeure: serverTimestamp(),
-        kilometrage: data.kilometrageDepart,
-        carburantNiveau: data.carburantNiveauDepart,
-        roueSecours: data.roueSecours,
-        posteRadio: data.posteRadio,
-        lavage: data.lavage,
-        dommages: Object.keys(data.dommagesDepart || {}).filter(k => data.dommagesDepart?.[k]),
-        dommagesNotes: data.dommagesDepartNotes || "",
-      },
-      reception: {},
-      location: {
-        dateDebut: data.dateRange.from,
-        dateFin: data.dateRange.to,
-        prixParJour: selectedCar.prixParJour,
-        nbrJours: rentalDays,
-        depot: data.caution || 0,
-        montantAPayer: prixTotal,
-      },
-      statut: 'en_cours',
-      createdAt: serverTimestamp(),
-    };
+    if (isUpdate) {
+        // --- UPDATE LOGIC ---
+        const rentalRef = doc(firestore, 'rentals', rental.id);
+        const carDocRef = doc(firestore, 'cars', rental.vehicule.carId);
 
-    const rentalsCollection = collection(firestore, 'rentals');
-    const carDocRef = doc(firestore, 'cars', selectedCar.id);
+        const updatePayload = {
+            reception: {
+                dateHeure: serverTimestamp(),
+                kilometrage: data.kilometrageRetour,
+                carburantNiveau: data.carburantNiveauRetour,
+                dommages: Object.keys(data.dommagesRetour || {}).filter(k => data.dommagesRetour?.[k]),
+                dommagesNotes: data.dommagesRetourNotes || "",
+            },
+            statut: 'terminee' as 'terminee',
+        };
 
-    try {
-        await addDoc(rentalsCollection, rentalPayload);
-        await updateDoc(carDocRef, { disponible: false });
+        try {
+            await updateDoc(rentalRef, updatePayload);
+            await updateDoc(carDocRef, { disponible: true });
 
-        toast({
-            title: "Contrat créé",
-            description: `Le contrat pour ${selectedClient.nom} a été créé avec succès.`,
-        });
-        onFinished();
-        router.refresh();
-    } catch (serverError: any) {
-        const permissionError = new FirestorePermissionError({
-            path: rentalsCollection.path,
-            operation: 'create',
-            requestResourceData: rentalPayload
-        }, serverError);
-        errorEmitter.emit('permission-error', permissionError);
-         toast({
-            variant: "destructive",
-            title: "Erreur lors de la création",
-            description: "Une erreur est survenue. Vérifiez vos permissions et réessayez.",
-        });
+            toast({
+                title: "Location terminée",
+                description: `La réception pour ${rental.locataire.nomPrenom} a été enregistrée.`,
+            });
+            onFinished();
+            router.refresh();
+        } catch (serverError) {
+            const permissionError = new FirestorePermissionError({
+                path: rentalRef.path,
+                operation: 'update',
+                requestResourceData: updatePayload
+            }, serverError as Error);
+            errorEmitter.emit('permission-error', permissionError);
+            toast({
+                variant: 'destructive',
+                title: "Erreur",
+                description: "Impossible de terminer la location."
+            });
+        }
+    } else {
+        // --- CREATE LOGIC ---
+        if (!selectedCar || !selectedClient) {
+            toast({ variant: "destructive", title: "Erreur", description: "Veuillez sélectionner un client et une voiture." });
+            return;
+        }
+
+        const rentalPayload = {
+            locataire: {
+                cin: selectedClient.cin,
+                nomPrenom: selectedClient.nom,
+                permisNo: selectedClient.permisNo || 'N/A',
+                telephone: selectedClient.telephone,
+            },
+            vehicule: {
+                carId: selectedCar.id,
+                immatriculation: selectedCar.immat,
+                marque: `${selectedCar.marque} ${selectedCar.modele}`,
+                modeleAnnee: selectedCar.modeleAnnee || new Date().getFullYear(),
+                couleur: selectedCar.couleur || "Inconnue",
+                nbrPlaces: selectedCar.nbrPlaces || 5,
+                puissance: selectedCar.puissance || 7,
+                carburantType: selectedCar.carburantType || 'Essence',
+                photoURL: selectedCar.photoURL
+            },
+            livraison: {
+                dateHeure: serverTimestamp(),
+                kilometrage: data.kilometrageDepart,
+                carburantNiveau: data.carburantNiveauDepart,
+                roueSecours: data.roueSecours,
+                posteRadio: data.posteRadio,
+                lavage: data.lavage,
+                dommages: Object.keys(data.dommagesDepart || {}).filter(k => data.dommagesDepart?.[k]),
+                dommagesNotes: data.dommagesDepartNotes || "",
+            },
+            reception: {},
+            location: {
+                dateDebut: data.dateRange.from,
+                dateFin: data.dateRange.to,
+                prixParJour: selectedCar.prixParJour,
+                nbrJours: rentalDays,
+                depot: data.caution || 0,
+                montantAPayer: prixTotal,
+            },
+            statut: 'en_cours' as 'en_cours',
+            createdAt: serverTimestamp(),
+        };
+
+        const rentalsCollection = collection(firestore, 'rentals');
+        const carDocRef = doc(firestore, 'cars', selectedCar.id);
+
+        try {
+            await addDoc(rentalsCollection, rentalPayload);
+            await updateDoc(carDocRef, { disponible: false });
+
+            toast({
+                title: "Contrat créé",
+                description: `Le contrat pour ${selectedClient.nom} a été créé avec succès.`,
+            });
+            onFinished();
+            router.refresh();
+        } catch (serverError: any) {
+            const permissionError = new FirestorePermissionError({
+                path: rentalsCollection.path,
+                operation: 'create',
+                requestResourceData: rentalPayload
+            }, serverError);
+            errorEmitter.emit('permission-error', permissionError);
+            toast({
+                variant: "destructive",
+                title: "Erreur lors de la création",
+                description: "Une erreur est survenue. Vérifiez vos permissions et réessayez.",
+            });
+        }
     }
   }
   
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mt-4">
-        <Accordion type="multiple" defaultValue={['item-1', 'item-2']} className="w-full">
+        <Accordion type="multiple" defaultValue={['item-1', 'item-2', ...(rental ? ['item-3'] : [])]} className="w-full">
             <AccordionItem value="item-1">
                 <AccordionTrigger>Détails du contrat</AccordionTrigger>
                 <AccordionContent className="space-y-4 px-1">
@@ -233,7 +287,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Client</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!rental}>
                             <FormControl>
                               <SelectTrigger><SelectValue placeholder="Sélectionner un client" /></SelectTrigger>
                             </FormControl>
@@ -251,7 +305,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Voiture</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!rental}>
                             <FormControl>
                               <SelectTrigger><SelectValue placeholder="Sélectionner une voiture disponible" /></SelectTrigger>
                             </FormControl>
@@ -274,6 +328,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
                               <FormControl>
                                 <Button
                                   variant={"outline"}
+                                  disabled={!!rental}
                                   className={cn("w-full pl-3 text-left font-normal", !field.value?.from && "text-muted-foreground")}
                                 >
                                   {field.value?.from ? (
@@ -315,7 +370,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
                         <FormItem>
                           <FormLabel>Caution (MAD)</FormLabel>
                           <FormControl>
-                            <Input type="number" placeholder="5000" {...field} />
+                            <Input type="number" placeholder="5000" {...field} disabled={!!rental} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -334,7 +389,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
                         <FormItem>
                           <FormLabel>Kilométrage de départ</FormLabel>
                           <FormControl>
-                            <Input type="number" placeholder="64000" {...field} />
+                            <Input type="number" placeholder="64000" {...field} disabled={!!rental} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -352,6 +407,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
                                 onValueChange={(values) => field.onChange(values[0])}
                                 max={1}
                                 step={0.125}
+                                disabled={!!rental}
                               />
                           </FormControl>
                           <FormMessage />
@@ -368,7 +424,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
                               render={({ field }) => (
                                 <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                                   <FormControl>
-                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={!!rental} />
                                   </FormControl>
                                   <div className="space-y-1 leading-none">
                                     <FormLabel>Roue de secours</FormLabel>
@@ -382,7 +438,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
                               render={({ field }) => (
                                 <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                                   <FormControl>
-                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={!!rental} />
                                   </FormControl>
                                   <div className="space-y-1 leading-none">
                                     <FormLabel>Poste Radio</FormLabel>
@@ -396,7 +452,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
                               render={({ field }) => (
                                 <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                                   <FormControl>
-                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={!!rental} />
                                   </FormControl>
                                   <div className="space-y-1 leading-none">
                                     <FormLabel>Voiture propre</FormLabel>
@@ -419,6 +475,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
                                         <CarDamageDiagram 
                                             damages={field.value || {}} 
                                             onDamagesChange={field.onChange} 
+                                            readOnly={!!rental}
                                         />
                                     </FormControl>
                                     <FormMessage />
@@ -434,7 +491,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
                         <FormItem>
                           <FormLabel>Autres dommages / Notes (Départ)</FormLabel>
                           <FormControl>
-                            <Textarea placeholder="Décrivez tout autre dommage ou note pertinente ici..." {...field} />
+                            <Textarea placeholder="Décrivez tout autre dommage ou note pertinente ici..." {...field} disabled={!!rental} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -458,6 +515,7 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
                                 type="number"
                                 placeholder="65500"
                                 {...field}
+                                value={field.value || ''}
                             />
                           </FormControl>
                           <FormMessage />
@@ -529,8 +587,8 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
             </CardContent>
         </Card>
 
-        <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={form.formState.isSubmitting || !form.formState.isValid}>
-          {form.formState.isSubmitting ? "Enregistrement..." : (rental ? 'Mettre à jour le contrat' : 'Créer le contrat')}
+        <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={form.formState.isSubmitting || (rental ? false : !form.formState.isValid)}>
+          {form.formState.isSubmitting ? "Enregistrement..." : (rental ? 'Terminer et Réceptionner le Véhicule' : 'Créer le contrat')}
         </Button>
       </form>
     </Form>

@@ -58,6 +58,10 @@ type RentalTableProps = {
 };
 
 function RentalDetails({ rental }: { rental: Rental }) {
+    const safeLivraisonDate = rental.livraison.dateHeure?.toDate ? rental.livraison.dateHeure.toDate() : null;
+    const safeReceptionDate = rental.reception?.dateHeure?.toDate ? rental.reception.dateHeure.toDate() : null;
+    const safeCreatedAtDate = rental.createdAt?.toDate ? rental.createdAt.toDate() : null;
+
     return (
       <ScrollArea className="h-[70vh] pr-4">
         <div className="space-y-4 text-sm">
@@ -92,7 +96,7 @@ function RentalDetails({ rental }: { rental: Rental }) {
             <Separator />
             <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                 <h3 className="font-semibold text-base col-span-2">Détails de Livraison (Départ)</h3>
-                <p><strong>Date & Heure:</strong> {format(rental.livraison.dateHeure.toDate(), "dd/MM/yyyy HH:mm", { locale: fr })}</p>
+                <p><strong>Date & Heure:</strong> {safeLivraisonDate ? format(safeLivraisonDate, "dd/MM/yyyy HH:mm", { locale: fr }) : 'N/A'}</p>
                 <p><strong>Kilométrage:</strong> {rental.livraison.kilometrage.toLocaleString()} km</p>
                 <p><strong>Niveau Carburant:</strong> {rental.livraison.carburantNiveau * 100}%</p>
                 <p><strong>Roue de Secours:</strong> {rental.livraison.roueSecours ? 'Oui' : 'Non'}</p>
@@ -102,11 +106,11 @@ function RentalDetails({ rental }: { rental: Rental }) {
                  {rental.livraison.dommagesNotes && <p className="col-span-2"><strong>Notes (Départ):</strong> {rental.livraison.dommagesNotes}</p>}
             </div>
             <Separator />
-             {rental.reception.dateHeure && (
+             {safeReceptionDate && (
                 <>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                         <h3 className="font-semibold text-base col-span-2">Détails de Réception (Retour)</h3>
-                        <p><strong>Date & Heure:</strong> {format(rental.reception.dateHeure.toDate(), "dd/MM/yyyy HH:mm", { locale: fr })}</p>
+                        <p><strong>Date & Heure:</strong> {format(safeReceptionDate, "dd/MM/yyyy HH:mm", { locale: fr })}</p>
                         <p><strong>Kilométrage:</strong> {rental.reception.kilometrage?.toLocaleString()} km</p>
                         <p><strong>Niveau Carburant:</strong> {rental.reception.carburantNiveau ? rental.reception.carburantNiveau * 100 + '%' : 'N/A'}</p>
                         {rental.reception.dommagesNotes && <p className="col-span-2"><strong>Notes (Retour):</strong> {rental.reception.dommagesNotes}</p>}
@@ -175,7 +179,13 @@ export default function RentalTable({ rentals, isDashboard = false, onEndRental 
     {
       accessorKey: "location.dateFin",
       header: "Date de retour",
-      cell: ({ row }) => format(row.original.location.dateFin.toDate(), "dd/MM/yyyy", { locale: fr }),
+      cell: ({ row }) => {
+          const date = row.original.location.dateFin;
+          if (date && date.toDate) {
+            return format(date.toDate(), "dd/MM/yyyy", { locale: fr });
+          }
+          return "Date invalide";
+      }
     },
     {
       accessorKey: "location.montantAPayer",
@@ -217,57 +227,41 @@ export default function RentalTable({ rentals, isDashboard = false, onEndRental 
                         Voir les détails
                     </DropdownMenuItem>
                     </DialogTrigger>
-                    <DropdownMenuSeparator />
-                    {rental.statut === 'en_cours' ? (
-                        <AlertDialogTrigger asChild>
-                            <DropdownMenuItem>
-                            Terminer la location
-                            </DropdownMenuItem>
-                        </AlertDialogTrigger>
-                    ) : (
-                        <AlertDialogTrigger asChild>
-                            <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                            Supprimer
-                            </DropdownMenuItem>
-                        </AlertDialogTrigger>
+                    
+                    {rental.statut === 'en_cours' && (
+                       <SheetTrigger asChild>
+                        <DropdownMenuItem onSelect={() => setSelectedRental(rental)}>
+                          Réceptionner
+                        </DropdownMenuItem>
+                      </SheetTrigger>
                     )}
+
+                    <DropdownMenuSeparator />
+                    <AlertDialogTrigger asChild>
+                        <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                        Supprimer
+                        </DropdownMenuItem>
+                    </AlertDialogTrigger>
                 </DropdownMenuContent>
                 </DropdownMenu>
                 <AlertDialogContent>
-                    {rental.statut === 'en_cours' ? (
-                        <>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                Cette action marquera la location comme "Terminée" et rendra la voiture à nouveau disponible.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => onEndRental && onEndRental(rental)}>Confirmer</AlertDialogAction>
-                            </AlertDialogFooter>
-                        </>
-                    ) : (
-                        <>
-                             <AlertDialogHeader>
-                                <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    Cette action est irréversible. Le contrat de location sera définitivement supprimé.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDeleteRental(rental.id)} className="bg-destructive hover:bg-destructive/90">Supprimer</AlertDialogAction>
-                            </AlertDialogFooter>
-                        </>
-                    )}
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Cette action est irréversible. Le contrat de location sera définitivement supprimé.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDeleteRental(rental.id)} className="bg-destructive hover:bg-destructive/90">Supprimer</AlertDialogAction>
+                    </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
             <DialogContent className="sm:max-w-3xl">
               <DialogHeader>
                 <DialogTitle>Détails du contrat de location #{rental.id?.substring(0,6)}</DialogTitle>
                 <DialogDescription>
-                  Créé le {rental.createdAt ? format(rental.createdAt.toDate(), "dd LLL, y 'à' HH:mm", { locale: fr }) : 'N/A'}
+                  Créé le {rental.createdAt?.toDate ? format(rental.createdAt.toDate(), "dd LLL, y 'à' HH:mm", { locale: fr }) : 'N/A'}
                 </DialogDescription>
               </DialogHeader>
               <RentalDetails rental={rental} />
@@ -336,7 +330,7 @@ export default function RentalTable({ rentals, isDashboard = false, onEndRental 
   }
 
   return (
-    <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+    <Sheet open={isSheetOpen} onOpenChange={(open) => { if (!open) setSelectedRental(null); setIsSheetOpen(open); }}>
       <div className="w-full">
         <div className="flex items-center py-4 gap-2">
           <Input
@@ -395,7 +389,7 @@ export default function RentalTable({ rentals, isDashboard = false, onEndRental 
       </div>
       <SheetContent className="sm:max-w-[600px] flex flex-col">
         <SheetHeader>
-          <SheetTitle>{selectedRental ? "Modifier le contrat" : "Créer un nouveau contrat"}</SheetTitle>
+          <SheetTitle>{selectedRental ? "Réceptionner le Véhicule" : "Créer un nouveau contrat"}</SheetTitle>
         </SheetHeader>
         <ScrollArea className="flex-grow pr-6">
             <RentalForm rental={selectedRental} onFinished={() => setIsSheetOpen(false)} />
