@@ -109,11 +109,11 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
           roueSecours: rental.livraison.roueSecours,
           posteRadio: rental.livraison.posteRadio,
           lavage: rental.livraison.lavage,
-          dommagesDepartNotes: rental.livraison.dommagesNotes || "",
+          dommagesDepartNotes: rental.livraison.dommagesNotes,
           dommagesDepart: rental.livraison.dommages?.reduce((acc, curr) => ({...acc, [curr]: true}), {}) || {},
           kilometrageRetour: rental.reception?.kilometrage,
           carburantNiveauRetour: rental.reception?.carburantNiveau || 0.5,
-          dommagesRetourNotes: rental.reception?.dommagesNotes || "",
+          dommagesRetourNotes: rental.reception?.dommagesNotes,
           dommagesRetour: rental.reception?.dommages?.reduce((acc, curr) => ({...acc, [curr]: true}), {}) || {},
       });
     } else if (!rental) {
@@ -122,11 +122,11 @@ export default function RentalForm({ rental, onFinished }: { rental: Rental | nu
         dommagesDepart: {},
         dommagesRetour: {},
         kilometrageDepart: 0,
-        caution: 0,
+        caution: '',
         clientId: "",
         voitureId: "",
         dommagesDepartNotes: "",
-        kilometrageRetour: undefined,
+        kilometrageRetour: '',
         carburantNiveauRetour: 0.5,
         dommagesRetourNotes: "",
       })
