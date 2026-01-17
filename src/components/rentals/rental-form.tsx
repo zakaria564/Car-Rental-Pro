@@ -30,9 +30,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "..
 import { Checkbox } from "../ui/checkbox";
 import { Textarea } from "../ui/textarea";
 import { Slider } from "../ui/slider";
-import CarDamageDiagram, { type DamagePart } from "./car-damage-diagram";
+import CarDamageDiagram from "./car-damage-diagram";
 import { useFirebase } from "@/firebase";
-import { collection, onSnapshot, addDoc, serverTimestamp, doc, setDoc, updateDoc } from "firebase/firestore";
+import { addDoc, collection, doc, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
@@ -74,33 +74,30 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
   const router = useRouter();
   const { firestore } = useFirebase();
   
-  const form = useForm<RentalFormValues>({
-    resolver: zodResolver(rentalFormSchema),
-    mode: "onChange",
-  });
-
-  React.useEffect(() => {
-    if (rental && clients.length > 0 && cars.length > 0) {
-      const rentalClient = clients.find(c => c.cin === rental.locataire.cin);
-      form.reset({
-          clientId: rentalClient?.id || "",
-          voitureId: rental.vehicule.carId,
-          dateRange: { from: getSafeDate(rental.location.dateDebut)!, to: getSafeDate(rental.location.dateFin)! },
-          caution: rental.location.depot ?? '',
-          kilometrageDepart: rental.livraison.kilometrage ?? 0,
-          carburantNiveauDepart: rental.livraison.carburantNiveau,
-          roueSecours: rental.livraison.roueSecours,
-          posteRadio: rental.livraison.posteRadio,
-          lavage: rental.livraison.lavage,
-          dommagesDepartNotes: rental.livraison.dommagesNotes ?? '',
-          dommagesDepart: rental.livraison.dommages?.reduce((acc, curr) => ({...acc, [curr]: true}), {}) || {},
-          kilometrageRetour: rental.reception?.kilometrage ?? '',
-          carburantNiveauRetour: rental.reception?.carburantNiveau ?? 0.5,
-          dommagesRetourNotes: rental.reception?.dommagesNotes ?? '',
-          dommagesRetour: rental.reception?.dommages?.reduce((acc, curr) => ({...acc, [curr]: true}), {}) || {},
-      });
-    } else if (!rental) {
-      form.reset({
+  const getInitialValues = React.useCallback(() => {
+    if (rental) {
+        const rentalClient = clients.find(c => c.cin === rental.locataire.cin);
+        return {
+            clientId: rentalClient?.id || "",
+            voitureId: rental.vehicule.carId,
+            dateRange: { from: getSafeDate(rental.location.dateDebut)!, to: getSafeDate(rental.location.dateFin)! },
+            caution: rental.location.depot ?? '',
+            kilometrageDepart: rental.livraison.kilometrage ?? 0,
+            carburantNiveauDepart: rental.livraison.carburantNiveau,
+            roueSecours: rental.livraison.roueSecours,
+            posteRadio: rental.livraison.posteRadio,
+            lavage: rental.livraison.lavage,
+            dommagesDepartNotes: rental.livraison.dommagesNotes ?? '',
+            dommagesDepart: rental.livraison.dommages?.reduce((acc, curr) => ({...acc, [curr]: true}), {}) || {},
+            kilometrageRetour: rental.reception?.kilometrage ?? '',
+            carburantNiveauRetour: rental.reception?.carburantNiveau ?? 0.5,
+            dommagesRetourNotes: rental.reception?.dommagesNotes ?? '',
+            dommagesRetour: rental.reception?.dommages?.reduce((acc, curr) => ({...acc, [curr]: true}), {}) || {},
+        };
+    }
+    // Default values for a new rental
+    return {
+        dateRange: undefined,
         carburantNiveauDepart: 0.5,
         dommagesDepart: {},
         dommagesRetour: {},
@@ -112,9 +109,17 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
         kilometrageRetour: '',
         carburantNiveauRetour: 0.5,
         dommagesRetourNotes: "",
-      })
+        roueSecours: false,
+        posteRadio: false,
+        lavage: false,
     }
-  }, [rental, clients, cars, form]);
+  }, [rental, clients, cars]);
+
+  const form = useForm<RentalFormValues>({
+    resolver: zodResolver(rentalFormSchema),
+    mode: "onChange",
+    defaultValues: getInitialValues(),
+  });
   
   const selectedCarId = form.watch("voitureId");
   const dateRange = form.watch("dateRange");
@@ -391,10 +396,10 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                       name="carburantNiveauDepart"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Niveau de carburant: {Math.round(field.value * 100)}%</FormLabel>
+                          <FormLabel>Niveau de carburant: {Math.round((field.value || 0) * 100)}%</FormLabel>
                            <FormControl>
                              <Slider
-                                value={[field.value]}
+                                value={[field.value || 0]}
                                 onValueChange={(values) => field.onChange(values[0])}
                                 max={1}
                                 step={0.125}
@@ -491,80 +496,82 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                 </AccordionContent>
             </AccordionItem>
             
-            <AccordionItem value="item-3" disabled={!rental}>
-                <AccordionTrigger>Contrat de Réception (Retour)</AccordionTrigger>
-                <AccordionContent className="space-y-4 px-1">
-                    <p className="text-sm text-muted-foreground">Remplissez cette section lors du retour du véhicule.</p>
-                     <FormField
-                      control={form.control}
-                      name="kilometrageRetour"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Kilométrage de retour</FormLabel>
-                          <FormControl>
-                            <Input
-                                type="number"
-                                placeholder="65500"
-                                {...field}
-                                value={field.value ?? ''}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                     <FormField
-                      control={form.control}
-                      name="carburantNiveauRetour"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Niveau de carburant au retour: {field.value ? Math.round(field.value * 100) : 0}%</FormLabel>
-                           <FormControl>
-                             <Slider
-                                value={[field.value || 0]}
-                                onValueChange={(values) => field.onChange(values[0])}
-                                max={1}
-                                step={0.125}
+            {rental && (
+              <AccordionItem value="item-3">
+                  <AccordionTrigger>Contrat de Réception (Retour)</AccordionTrigger>
+                  <AccordionContent className="space-y-4 px-1">
+                      <p className="text-sm text-muted-foreground">Remplissez cette section lors du retour du véhicule.</p>
+                      <FormField
+                        control={form.control}
+                        name="kilometrageRetour"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Kilométrage de retour</FormLabel>
+                            <FormControl>
+                              <Input
+                                  type="number"
+                                  placeholder="65500"
+                                  {...field}
+                                  value={field.value ?? ''}
                               />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                     <div>
-                        <FormField
-                            control={form.control}
-                            name="dommagesRetour"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Schéma des dommages (Retour)</FormLabel>
-                                    <FormDescription>Marquez les nouveaux dommages constatés au retour.</FormDescription>
-                                    <FormControl>
-                                        <CarDamageDiagram 
-                                            damages={field.value || {}} 
-                                            onDamagesChange={field.onChange} 
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    </div>
-                     <FormField
-                      control={form.control}
-                      name="dommagesRetourNotes"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Notes sur les dommages (Retour)</FormLabel>
-                          <FormControl>
-                            <Textarea placeholder="Décrivez les nouveaux dommages ou frais supplémentaires..." {...field} value={field.value ?? ''} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                </AccordionContent>
-            </AccordionItem>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="carburantNiveauRetour"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Niveau de carburant au retour: {field.value ? Math.round(field.value * 100) : 0}%</FormLabel>
+                            <FormControl>
+                              <Slider
+                                  value={[field.value || 0]}
+                                  onValueChange={(values) => field.onChange(values[0])}
+                                  max={1}
+                                  step={0.125}
+                                />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div>
+                          <FormField
+                              control={form.control}
+                              name="dommagesRetour"
+                              render={({ field }) => (
+                                  <FormItem>
+                                      <FormLabel>Schéma des dommages (Retour)</FormLabel>
+                                      <FormDescription>Marquez les nouveaux dommages constatés au retour.</FormDescription>
+                                      <FormControl>
+                                          <CarDamageDiagram 
+                                              damages={field.value || {}} 
+                                              onDamagesChange={field.onChange} 
+                                          />
+                                      </FormControl>
+                                      <FormMessage />
+                                  </FormItem>
+                              )}
+                          />
+                      </div>
+                      <FormField
+                        control={form.control}
+                        name="dommagesRetourNotes"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Notes sur les dommages (Retour)</FormLabel>
+                            <FormControl>
+                              <Textarea placeholder="Décrivez les nouveaux dommages ou frais supplémentaires..." {...field} value={field.value ?? ''} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                  </AccordionContent>
+              </AccordionItem>
+            )}
         </Accordion>
         
         <Card className="bg-muted/50">

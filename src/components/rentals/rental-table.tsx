@@ -38,7 +38,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { Rental, Client, Car } from "@/lib/definitions";
 import { formatCurrency } from "@/lib/utils";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import RentalForm from "./rental-form";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -332,12 +332,12 @@ export default function RentalTable({ rentals, clients, cars, isDashboard = fals
             }
             className="max-w-sm"
           />
-          <Button className="ml-auto bg-primary hover:bg-primary/90" onClick={() => {
-            setRentalForModal(null); // Ensure we're creating a new one
-            setIsSheetOpen(true);
-          }}>
-            <PlusCircle className="mr-2 h-4 w-4" /> Ajouter contrat
-          </Button>
+           <Button className="ml-auto bg-primary hover:bg-primary/90" onClick={() => {
+              setRentalForModal(null);
+              setIsSheetOpen(true);
+            }}>
+              <PlusCircle className="mr-2 h-4 w-4" /> Ajouter contrat
+            </Button>
         </div>
         <div className="rounded-md border bg-card">
           <Table>
@@ -390,7 +390,12 @@ export default function RentalTable({ rentals, clients, cars, isDashboard = fals
               <SheetTitle>{rentalForModal ? "Réceptionner le Véhicule" : "Créer un nouveau contrat"}</SheetTitle>
             </SheetHeader>
             <ScrollArea className="flex-grow pr-6">
-                <RentalForm rental={rentalForModal} clients={clients} cars={cars} onFinished={() => setIsSheetOpen(false)} />
+                <RentalForm 
+                  key={rentalForModal?.id || 'new-rental'}
+                  rental={rentalForModal} 
+                  clients={clients} 
+                  cars={cars} 
+                  onFinished={() => setIsSheetOpen(false)} />
             </ScrollArea>
         </SheetContent>
       </Sheet>
