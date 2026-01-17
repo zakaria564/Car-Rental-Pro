@@ -74,22 +74,22 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
   const router = useRouter();
   const { firestore } = useFirebase();
   
-  const getInitialValues = React.useCallback(() => {
+ const getInitialValues = React.useCallback(() => {
     if (rental) {
         const rentalClient = clients.find(c => c.cin === rental.locataire.cin);
         return {
-            clientId: rentalClient?.id || "",
+            clientId: rentalClient?.id ?? "",
             voitureId: rental.vehicule.carId,
             dateRange: { from: getSafeDate(rental.location.dateDebut)!, to: getSafeDate(rental.location.dateFin)! },
-            caution: rental.location.depot ?? '',
-            kilometrageDepart: rental.livraison.kilometrage ?? 0,
+            caution: rental.location.depot,
+            kilometrageDepart: rental.livraison.kilometrage,
             carburantNiveauDepart: rental.livraison.carburantNiveau,
             roueSecours: rental.livraison.roueSecours,
             posteRadio: rental.livraison.posteRadio,
             lavage: rental.livraison.lavage,
             dommagesDepartNotes: rental.livraison.dommagesNotes ?? '',
             dommagesDepart: rental.livraison.dommages?.reduce((acc, curr) => ({...acc, [curr]: true}), {}) || {},
-            kilometrageRetour: rental.reception?.kilometrage ?? '',
+            kilometrageRetour: rental.reception?.kilometrage ?? undefined,
             carburantNiveauRetour: rental.reception?.carburantNiveau ?? 0.5,
             dommagesRetourNotes: rental.reception?.dommagesNotes ?? '',
             dommagesRetour: rental.reception?.dommages?.reduce((acc, curr) => ({...acc, [curr]: true}), {}) || {},
@@ -101,25 +101,29 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
         carburantNiveauDepart: 0.5,
         dommagesDepart: {},
         dommagesRetour: {},
-        kilometrageDepart: 0,
-        caution: '',
+        kilometrageDepart: undefined,
+        caution: undefined,
         clientId: "",
         voitureId: "",
         dommagesDepartNotes: "",
-        kilometrageRetour: '',
+        kilometrageRetour: undefined,
         carburantNiveauRetour: 0.5,
         dommagesRetourNotes: "",
         roueSecours: false,
         posteRadio: false,
         lavage: false,
     }
-  }, [rental, clients, cars]);
+  }, [rental, clients]);
 
   const form = useForm<RentalFormValues>({
     resolver: zodResolver(rentalFormSchema),
     mode: "onChange",
     defaultValues: getInitialValues(),
   });
+
+   React.useEffect(() => {
+    form.reset(getInitialValues());
+  }, [rental, clients, cars, form, getInitialValues]);
   
   const selectedCarId = form.watch("voitureId");
   const dateRange = form.watch("dateRange");
@@ -154,10 +158,10 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
     if (!firestore) return;
     const isUpdate = !!rental;
 
-    if (isUpdate) {
+    if (isUpdate && rental) {
         // --- UPDATE LOGIC ---
-        const carDocRef = doc(firestore, 'cars', data.voitureId);
         const rentalRef = doc(firestore, 'rentals', rental.id);
+        const carDocRef = doc(firestore, 'cars', rental.vehicule.carId);
 
         const updatePayload = {
             reception: {
@@ -269,6 +273,11 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
         }
     }
   }
+
+  // Determine display values based on whether we are editing or creating
+  const displayPricePerDay = rental ? rental.location.prixParJour : (selectedCar?.prixParJour || 0);
+  const displayRentalDays = rental ? rental.location.nbrJours : rentalDays;
+  const displayTotalPrice = rental ? rental.location.montantAPayer : prixTotal;
   
   return (
     <Form {...form}>
@@ -579,9 +588,9 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                 <CardTitle className="text-lg">Résumé du contrat</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
-                <div className="flex justify-between"><span>Prix par jour :</span> <span className="font-medium">{selectedCar ? formatCurrency(selectedCar.prixParJour, 'MAD') : '0,00 MAD'}</span></div>
-                <div className="flex justify-between"><span>Durée de la location :</span> <span className="font-medium">{rentalDays} jour(s)</span></div>
-                <div className="flex justify-between font-semibold text-lg"><span>Montant à Payer :</span> <span>{formatCurrency(prixTotal, 'MAD')}</span></div>
+                <div className="flex justify-between"><span>Prix par jour :</span> <span className="font-medium">{formatCurrency(displayPricePerDay, 'MAD')}</span></div>
+                <div className="flex justify-between"><span>Durée de la location :</span> <span className="font-medium">{displayRentalDays} jour(s)</span></div>
+                <div className="flex justify-between font-semibold text-lg"><span>Montant à Payer :</span> <span>{formatCurrency(displayTotalPrice, 'MAD')}</span></div>
             </CardContent>
         </Card>
 
@@ -592,3 +601,5 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
     </Form>
   );
 }
+
+    
