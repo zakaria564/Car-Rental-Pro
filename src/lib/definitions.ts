@@ -46,7 +46,7 @@ export type Rental = {
     carId: string;
     immatriculation: string;
     marque: string;
-    modeleAnnee: number;
+    dateMiseEnCirculation: any; // Can be Timestamp
     couleur: string;
     nbrPlaces: number;
     puissance: number;

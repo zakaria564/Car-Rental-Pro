@@ -63,6 +63,7 @@ function RentalDetails({ rental }: { rental: Rental }) {
     const safeReceptionDate = rental.reception?.dateHeure?.toDate ? rental.reception.dateHeure.toDate() : null;
     const safeDebutDate = rental.location.dateDebut?.toDate ? rental.location.dateDebut.toDate() : null;
     const safeFinDate = rental.location.dateFin?.toDate ? rental.location.dateFin.toDate() : null;
+    const safeMiseEnCirculation = rental.vehicule.dateMiseEnCirculation?.toDate ? rental.vehicule.dateMiseEnCirculation.toDate() : null;
 
     return (
       <ScrollArea className="h-[70vh]">
@@ -112,7 +113,7 @@ function RentalDetails({ rental }: { rental: Rental }) {
                     <div>
                         <p><strong>Marque/Modèle:</strong> {rental.vehicule.marque}</p>
                         <p><strong>Immatriculation:</strong> {rental.vehicule.immatriculation}</p>
-                        <p><strong>Année:</strong> {rental.vehicule.modeleAnnee}</p>
+                        <p><strong>Mise en circulation:</strong> {safeMiseEnCirculation ? format(safeMiseEnCirculation, "dd/MM/yyyy", { locale: fr }) : 'N/A'}</p>
                     </div>
                     <div>
                         <p><strong>Couleur:</strong> {rental.vehicule.couleur}</p>
@@ -202,7 +203,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     const printContent = document.getElementById('printable-contract');
     if (!printContent) return;
 
-    const printWindow = window.open('', '_blank');
+    const printWindow = window.open('', '', 'height=800,width=800');
     if (!printWindow) {
       toast({
         variant: "destructive",
@@ -263,17 +264,12 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     printWindow.document.write('</body></html>');
     
     printWindow.document.close();
-    printWindow.focus();
-
-    setTimeout(() => {
-      try {
-        printWindow.print();
-        printWindow.close();
-      } catch (e) {
-        console.error("Print failed", e);
-        printWindow.close();
-      }
-    }, 250);
+    
+    printWindow.onload = function() {
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+    };
   };
 
 
@@ -598,4 +594,5 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
 }
 
     
+
 

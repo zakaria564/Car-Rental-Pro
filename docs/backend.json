@@ -71,7 +71,7 @@
             "carId": { "type": "string" },
             "immatriculation": { "type": "string" },
             "marque": { "type": "string" },
-            "modeleAnnee": { "type": "number" },
+            "dateMiseEnCirculation": { "type": "string", "format": "date-time", "description": "Date of first registration." },
             "couleur": { "type": "string" },
             "nbrPlaces": { "type": "number" },
             "puissance": { "type": "number" },

@@ -329,7 +329,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                 carId: selectedCar.id,
                 immatriculation: selectedCar.immat,
                 marque: `${selectedCar.marque} ${selectedCar.modele}`,
-                modeleAnnee: selectedCar.dateMiseEnCirculation?.toDate ? selectedCar.dateMiseEnCirculation.toDate().getFullYear() : new Date().getFullYear(),
+                dateMiseEnCirculation: selectedCar.dateMiseEnCirculation,
                 couleur: selectedCar.couleur || "Inconnue",
                 nbrPlaces: selectedCar.nbrPlaces || 5,
                 puissance: selectedCar.puissance || 7,
