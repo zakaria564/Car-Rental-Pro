@@ -187,6 +187,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
     defaultValues: getInitialValues(),
   });
   
+  const { setValue } = form;
   const selectedClientId = form.watch("clientId");
   const selectedCarId = form.watch("voitureId");
   const dateRange = form.watch("dateRange");
@@ -196,10 +197,10 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
     if (selectedCarId && !isUpdate) {
       const selectedCar = cars.find(c => c.id === selectedCarId);
       if (selectedCar) {
-        form.setValue('kilometrageDepart', selectedCar.kilometrage, { shouldValidate: true });
+        setValue('kilometrageDepart', selectedCar.kilometrage, { shouldValidate: true });
       }
     }
-  }, [selectedCarId, cars, isUpdate, form]);
+  }, [selectedCarId, cars, isUpdate, setValue]);
 
   const availableCars = cars.filter(car => car.disponible || (rental && car.id === rental.vehicule.carId));
 
@@ -260,7 +261,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                 posteRadio: data.posteRadioRetour,
                 lavage: data.lavageRetour,
                 dommages: Object.keys(data.dommagesRetour || {}).filter(k => data.dommagesRetour?.[k]),
-                dommagesNotes: data.dommagesRetourNotes || "",
+                dommagesRetourNotes: data.dommagesRetourNotes || "",
             },
             'location.dateFin': data.dateRetour,
             'location.nbrJours': finalRentalDays,
@@ -353,7 +354,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                 carId: selectedCar.id,
                 immatriculation: selectedCar.immat,
                 marque: `${selectedCar.marque} ${selectedCar.modele}`,
-                dateMiseEnCirculation: safeDateMiseEnCirculation ? new Date(safeDateMiseEnCirculation) : null,
+                dateMiseEnCirculation: selectedCar.dateMiseEnCirculation,
                 couleur: selectedCar.couleur || "Inconnue",
                 nbrPlaces: selectedCar.nbrPlaces || 5,
                 puissance: selectedCar.puissance || 7,
@@ -851,6 +852,8 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
     </Form>
   );
 }
+
+    
 
     
 
