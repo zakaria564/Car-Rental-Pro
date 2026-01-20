@@ -197,6 +197,81 @@ export default function RentalTable({ rentals, clients, cars, isDashboard = fals
   // Unified state for the rental being acted upon
   const [rentalForModal, setRentalForModal] = React.useState<Rental | null>(null);
 
+  const handlePrint = () => {
+    const printContent = document.getElementById('printable-contract');
+    if (!printContent) return;
+
+    const printWindow = window.open('', '_blank', 'height=800,width=800');
+    if (!printWindow) {
+      toast({
+        variant: "destructive",
+        title: "Erreur d'impression",
+        description: "Veuillez autoriser les pop-ups pour imprimer.",
+      });
+      return;
+    }
+
+    const styles = `
+      body { 
+        -webkit-print-color-adjust: exact;
+        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+        line-height: 1.5;
+        font-size: 14px;
+      }
+      .space-y-6 > :not([hidden]) ~ :not([hidden]) { margin-top: 1.5rem; }
+      .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+      .p-2 { padding: 0.5rem; }
+      .text-center { text-align: center; }
+      .mb-8 { margin-bottom: 2rem; }
+      .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+      .font-bold { font-weight: 700; }
+      .tracking-wider { letter-spacing: 0.05em; }
+      .text-muted-foreground { color: #64748b; }
+      .border { border: 1px solid #e2e8f0; }
+      .p-4 { padding: 1rem; }
+      .rounded-md { border-radius: 0.375rem; }
+      .mb-2 { margin-bottom: 0.5rem; }
+      .underline { text-decoration: underline; }
+      .font-semibold { font-weight: 600; }
+      .text-base { font-size: 1rem; }
+      .grid { display: grid; }
+      .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .gap-x-8 { column-gap: 2rem; }
+      .pt-16 { padding-top: 4rem; }
+      .gap-16 { gap: 4rem; }
+      .border-t { border-top-width: 1px; }
+      .pt-2 { padding-top: 0.5rem; }
+      .text-xs { font-size: 0.75rem; }
+      strong { font-weight: 600; }
+      @page {
+        size: A4;
+        margin: 20mm;
+      }
+      h1, h2, h3, p, div { 
+        break-inside: avoid;
+      }
+    `;
+
+    printWindow.document.write('<html><head><title>Contrat de Location</title>');
+    printWindow.document.write(`<style>${styles}</style>`);
+    printWindow.document.write('</head><body>');
+    printWindow.document.write(printContent.innerHTML);
+    printWindow.document.write('</body></html>');
+    
+    printWindow.document.close();
+    printWindow.focus();
+
+    setTimeout(() => {
+      try {
+        printWindow.print();
+        printWindow.close();
+      } catch (e) {
+        console.error("Print failed", e);
+        printWindow.close();
+      }
+    }, 250);
+  };
+
 
   const handleDeleteRental = async (rental: Rental) => {
     if (!firestore || !rental?.id) return;
@@ -486,7 +561,7 @@ export default function RentalTable({ rentals, clients, cars, isDashboard = fals
                 </DialogHeader>
                 <RentalDetails rental={rentalForModal} />
                 <DialogFooter className="no-print">
-                  <Button variant="outline" onClick={() => window.print()}>
+                  <Button variant="outline" onClick={handlePrint}>
                     <Printer className="mr-2 h-4 w-4"/>
                     Imprimer
                   </Button>
