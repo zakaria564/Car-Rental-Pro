@@ -59,11 +59,19 @@ type RentalTableProps = {
 };
 
 function RentalDetails({ rental }: { rental: Rental }) {
-    const safeLivraisonDate = rental.livraison.dateHeure?.toDate ? rental.livraison.dateHeure.toDate() : null;
-    const safeReceptionDate = rental.reception?.dateHeure?.toDate ? rental.reception.dateHeure.toDate() : null;
-    const safeDebutDate = rental.location.dateDebut?.toDate ? rental.location.dateDebut.toDate() : null;
-    const safeFinDate = rental.location.dateFin?.toDate ? rental.location.dateFin.toDate() : null;
-    const safeMiseEnCirculation = rental.vehicule.dateMiseEnCirculation?.toDate ? rental.vehicule.dateMiseEnCirculation.toDate() : null;
+    const getSafeDate = (date: any): Date | undefined => {
+        if (!date) return undefined;
+        if (date instanceof Date) return date;
+        if (date.toDate && typeof date.toDate === 'function') return date.toDate();
+        const parsed = new Date(date);
+        return isNaN(parsed.getTime()) ? undefined : parsed;
+    };
+
+    const safeLivraisonDate = getSafeDate(rental.livraison.dateHeure);
+    const safeReceptionDate = getSafeDate(rental.reception?.dateHeure);
+    const safeDebutDate = getSafeDate(rental.location.dateDebut);
+    const safeFinDate = getSafeDate(rental.location.dateFin);
+    const safeMiseEnCirculation = getSafeDate(rental.vehicule.dateMiseEnCirculation);
 
     return (
       <ScrollArea className="h-[70vh]">
@@ -594,5 +602,6 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
 }
 
     
+
 
 
