@@ -88,26 +88,17 @@
       background: white !important;
     }
 
-    /* Hide all elements that are not part of the printable contract */
-    body > *:not([data-radix-dialog-portal]) {
-      display: none !important;
+    /* Hide everything in the body by default */
+    body > * {
+        display: none !important;
     }
 
-    /* Style the dialog to become a normal page */
-    [data-radix-dialog-portal] > * {
-       position: static !important;
-       width: auto !important;
-       height: auto !important;
-       max-width: none !important;
-       translate: 0 0 !important;
-       border: none !important;
-       box-shadow: none !important;
-       padding: 0 !important;
-       margin: 0 !important;
-       animation: none !important;
+    /* Only show the dialog portal */
+    body > [data-radix-dialog-portal] {
+        display: block !important;
     }
 
-    /* Hide non-printable elements within the dialog */
+    /* Hide non-printable elements by class */
     .no-print {
       display: none !important;
     }
@@ -117,7 +108,21 @@
       display: none !important;
     }
 
-    /* Make scroll area content visible */
+    /* Reset dialog styles to act like a static page */
+    [data-radix-dialog-content] {
+       position: static !important;
+       width: 100% !important;
+       max-width: 100% !important;
+       height: auto !important;
+       border: none !important;
+       box-shadow: none !important;
+       padding: 0 !important;
+       margin: 0 !important;
+       animation: none !important;
+       transform: none !important;
+    }
+
+    /* Make scroll area content fully visible */
     [data-radix-scroll-area-viewport] {
       height: auto !important;
       overflow-y: visible !important;
@@ -131,7 +136,7 @@
       margin: 20mm;
     }
 
-    h1, h2, h3, p, div {
+    h1, h2, h3, p, div, span {
       break-inside: avoid;
     }
   }
