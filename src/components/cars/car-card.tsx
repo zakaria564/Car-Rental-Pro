@@ -96,9 +96,11 @@ export default function CarCard({ car }: { car: Car }) {
   return (
     <Card className="flex flex-row overflow-hidden group w-full">
       <div className="relative w-2/5">
-         <Badge variant={car.disponible ? "default" : "destructive"} className={`absolute top-2 right-2 z-10 ${car.disponible ? 'bg-green-600' : ''}`}>
-            {car.disponible ? "Disponible" : "Louée"}
-        </Badge>
+        {car.disponible ? (
+          <Badge className="absolute top-2 right-2 z-10 bg-green-600 text-white">Disponible</Badge>
+        ) : (
+          <Badge variant="destructive" className="absolute top-2 right-2 z-10">Louée</Badge>
+        )}
         <Image
             src={car.photoURL}
             alt={`${car.marque} ${car.modele}`}

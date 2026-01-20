@@ -60,10 +60,7 @@ const baseSchema = z.object({
   dommagesDepart: z.record(z.string(), z.boolean()).optional(),
   
   // Champs de retour
-  kilometrageRetour: z.preprocess(
-    (val) => (val === "" || val === null || val === undefined ? undefined : Number(val)),
-    z.coerce.number({invalid_type_error: "Veuillez entrer un nombre."}).optional()
-  ),
+  kilometrageRetour: z.coerce.number().optional(),
   carburantNiveauRetour: z.number().min(0).max(1).optional(),
   dommagesRetourNotes: z.string().optional(),
   dommagesRetour: z.record(z.string(), z.boolean()).optional(),
@@ -79,39 +76,30 @@ function getSafeDate(date: any): Date | undefined {
     return isNaN(parsed.getTime()) ? undefined : parsed;
 }
 
+const updateRentalFormSchema = baseSchema.extend({
+    kilometrageRetour: z.coerce.number({
+        required_error: "Le kilométrage de retour est requis.",
+        invalid_type_error: "Veuillez entrer un nombre valide.",
+    }).int().min(1, "Le kilométrage de retour doit être un nombre positif."),
+    dateRetour: z.date({
+        required_error: "La date de retour effective est requise."
+    })
+}).refine(data => data.kilometrageRetour >= data.kilometrageDepart, {
+    message: "Le kilométrage de retour ne peut être inférieur à celui de départ.",
+    path: ["kilometrageRetour"],
+}).refine(data => data.dateRetour >= data.dateRange.from, {
+    message: "La date de retour ne peut être antérieure à la date de début.",
+    path: ["dateRetour"],
+});
+
 
 export default function RentalForm({ rental, clients, cars, onFinished }: { rental: Rental | null, clients: Client[], cars: CarType[], onFinished: () => void }) {
   const { toast } = useToast();
   const router = useRouter();
   const { firestore } = useFirebase();
   const isUpdate = !!rental;
-
-  const rentalFormSchema = React.useMemo(() => {
-    if (isUpdate) {
-      return baseSchema.refine(
-        (data) => data.kilometrageRetour !== undefined && data.kilometrageRetour !== null, {
-            message: "Le kilométrage de retour est requis.",
-            path: ["kilometrageRetour"],
-        }
-      ).refine(
-          (data) => (data.kilometrageRetour ?? 0) >= (data.kilometrageDepart ?? 0), {
-            message: "Le kilométrage de retour ne peut être inférieur à celui de départ.",
-            path: ["kilometrageRetour"],
-          }
-      ).refine(
-          (data) => data.dateRetour !== undefined, {
-              message: "La date de retour effective est requise.",
-              path: ["dateRetour"],
-          }
-      ).refine(
-          (data) => data.dateRetour! >= data.dateRange.from, {
-              message: "La date de retour ne peut être antérieure à la date de début.",
-              path: ["dateRetour"],
-          }
-      );
-    }
-    return baseSchema;
-  }, [isUpdate]);
+  
+  const rentalFormSchema = isUpdate ? updateRentalFormSchema : baseSchema;
 
   const getInitialValues = React.useCallback(() => {
     if (rental) {
@@ -119,7 +107,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
         const rentalConducteur2 = rental.conducteur2 ? clients.find(c => c.cin === rental.conducteur2.cin) : null;
         return {
             clientId: rentalClient?.id ?? "",
-            conducteur2_clientId: rentalConducteur2?.id ?? "",
+            conducteur2_clientId: rentalConducteur2?.id ?? "_none_",
             voitureId: rental.vehicule.carId,
             dateRange: { from: getSafeDate(rental.location.dateDebut)!, to: getSafeDate(rental.location.dateFin)! },
             caution: rental.location.depot,
@@ -140,7 +128,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
     // Default values for a new rental
     return {
         clientId: "",
-        conducteur2_clientId: "",
+        conducteur2_clientId: "_none_",
         voitureId: "",
         dateRange: undefined,
         kilometrageDepart: '' as any,
@@ -198,6 +186,17 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
     return 0;
   }, [selectedCarForUI, rentalDaysForUI]);
 
+  const onError = (errors: any) => {
+    console.error("Form validation errors:", errors);
+    const firstErrorKey = Object.keys(errors)[0];
+    const firstErrorMessage = errors[firstErrorKey]?.message;
+    
+    toast({
+        variant: "destructive",
+        title: "Erreur de validation",
+        description: firstErrorMessage || "Veuillez corriger les erreurs en surbrillance.",
+    });
+  };
 
   async function onSubmit(data: z.infer<typeof rentalFormSchema>) {
     if (!firestore) return;
@@ -251,11 +250,20 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
         }
     } else {
         // --- CREATE LOGIC ---
-        const selectedCar = cars.find(c => c.id === data.voitureId)!;
-        const selectedClient = clients.find(c => c.id === data.clientId)!;
+        const selectedCar = cars.find(c => c.id === data.voitureId);
+        const selectedClient = clients.find(c => c.id === data.clientId);
         const selectedConducteur2 = (data.conducteur2_clientId && data.conducteur2_clientId !== '_none_') 
             ? clients.find(c => c.id === data.conducteur2_clientId) 
             : null;
+
+        if (!selectedCar || !selectedClient) {
+            toast({
+                variant: "destructive",
+                title: "Erreur de validation",
+                description: "Client ou voiture non sélectionné. Veuillez rafraîchir et réessayer.",
+            });
+            return;
+        }
 
         const rentalDays = differenceInCalendarDays(data.dateRange.to, data.dateRange.from) + 1;
         const totalAmount = rentalDays * selectedCar.prixParJour;
@@ -345,7 +353,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
   
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mt-4">
+      <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-6 mt-4">
         <Accordion type="multiple" defaultValue={['item-1', 'item-2', ...(rental ? ['item-3'] : [])]} className="w-full">
             <AccordionItem value="item-1">
                 <AccordionTrigger>Détails du contrat</AccordionTrigger>
@@ -729,5 +737,3 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
     </Form>
   );
 }
-
-    
