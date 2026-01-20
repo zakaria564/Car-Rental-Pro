@@ -18,7 +18,6 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import type { Car } from "@/lib/definitions";
-import { useRouter } from "next/navigation";
 import { useFirebase } from "@/firebase";
 import { collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
@@ -56,15 +55,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
   const { toast } = useToast();
   const { firestore } = useFirebase();
 
-  const form = useForm<CarFormValues>({
-    resolver: zodResolver(carFormSchema),
-    mode: "onChange",
-  });
-  
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-
-  React.useEffect(() => {
-    const initialValues = { 
+  const defaultValues = React.useMemo(() => ({
       marque: car?.marque ?? "",
       modele: car?.modele ?? "",
       immat: car?.immat ?? "",
@@ -79,9 +70,19 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
       puissance: car?.puissance ?? 0,
       nbrPlaces: car?.nbrPlaces ?? 0,
       modeleAnnee: car?.modeleAnnee ? new Date(car.modeleAnnee, 0, 1) : new Date(),
-    };
-    form.reset(initialValues);
-  }, [car, form.reset]);
+  }), [car]);
+
+  const form = useForm<CarFormValues>({
+    resolver: zodResolver(carFormSchema),
+    mode: "onChange",
+    defaultValues: defaultValues,
+  });
+  
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  React.useEffect(() => {
+    form.reset(defaultValues);
+  }, [defaultValues, form]);
 
   const onSubmit = (data: CarFormValues) => {
     if (!firestore) return;
@@ -112,7 +113,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
           path: carRef.path,
           operation: isNewCar ? 'create' : 'update',
           requestResourceData: carPayload
-        }, serverError);
+        }, serverError as Error);
         errorEmitter.emit('permission-error', permissionError);
 
         toast({
@@ -358,7 +359,3 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     </Form>
   );
 }
-
-    
-
-    
