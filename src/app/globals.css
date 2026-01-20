@@ -85,48 +85,49 @@
 
   @media print {
     body {
-      background: white !important;
+      background-color: white !important;
     }
 
-    /* Hide everything in the body by default */
-    body > * {
-        display: none !important;
+    /* Hide the main app container and other potential top-level elements */
+    body > #__next {
+      display: none !important;
     }
 
-    /* Only show the dialog portal */
+    /* Ensure the portal for the dialog is visible */
     body > [data-radix-dialog-portal] {
-        display: block !important;
+      display: block !important;
     }
 
-    /* Hide non-printable elements by class */
+    /* Hide elements explicitly marked as non-printable */
     .no-print {
       display: none !important;
     }
-    
-    /* Remove overlay */
+
+    /* Hide the dialog overlay */
     [data-radix-dialog-overlay] {
       display: none !important;
     }
 
-    /* Reset dialog styles to act like a static page */
+    /* Reset dialog content to be a static, full-page element */
     [data-radix-dialog-content] {
-       position: static !important;
-       width: 100% !important;
-       max-width: 100% !important;
-       height: auto !important;
-       border: none !important;
-       box-shadow: none !important;
-       padding: 0 !important;
-       margin: 0 !important;
-       animation: none !important;
-       transform: none !important;
+      position: static !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      height: auto !important;
+      border: none !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      animation: none !important;
+      transform: none !important;
     }
 
-    /* Make scroll area content fully visible */
+    /* Make the content inside the scroll area fully visible */
     [data-radix-scroll-area-viewport] {
       height: auto !important;
       overflow-y: visible !important;
     }
+    
     [data-radix-scroll-area-scrollbar] {
       display: none !important;
     }
