@@ -60,7 +60,7 @@ const baseSchema = z.object({
   dommagesDepart: z.record(z.string(), z.boolean()).optional(),
   
   // Champs de retour
-  kilometrageRetour: z.coerce.number().optional(),
+  kilometrageRetour: z.coerce.number({invalid_type_error: "Veuillez entrer un nombre."}).positive("Le kilométrage de retour doit être un nombre positif.").optional(),
   carburantNiveauRetour: z.number().min(0).max(1).optional(),
   dommagesRetourNotes: z.string().optional(),
   dommagesRetour: z.record(z.string(), z.boolean()).optional(),
@@ -80,11 +80,17 @@ const updateRentalFormSchema = baseSchema.extend({
     kilometrageRetour: z.coerce.number({
         required_error: "Le kilométrage de retour est requis.",
         invalid_type_error: "Veuillez entrer un nombre valide.",
-    }).int().min(1, "Le kilométrage de retour doit être un nombre positif."),
+    }).int().positive("Le kilométrage de retour doit être un nombre positif."),
     dateRetour: z.date({
         required_error: "La date de retour effective est requise."
     })
-}).refine(data => data.kilometrageRetour >= data.kilometrageDepart, {
+}).refine(data => {
+    // This validation only runs if kilometrageRetour is provided and is a number
+    if (typeof data.kilometrageRetour === 'number') {
+        return data.kilometrageRetour >= data.kilometrageDepart;
+    }
+    return true; // Pass validation if kilometrageRetour is not a number yet
+}, {
     message: "Le kilométrage de retour ne peut être inférieur à celui de départ.",
     path: ["kilometrageRetour"],
 }).refine(data => data.dateRetour >= data.dateRange.from, {
@@ -234,7 +240,6 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                 description: `La réception pour ${rental.locataire.nomPrenom} a été enregistrée avec le montant final de ${formatCurrency(finalAmountToPay, 'MAD')}.`,
             });
             onFinished();
-            router.refresh();
         } catch (serverError) {
             const permissionError = new FirestorePermissionError({
                 path: `batch write for ${rentalRef.path} and ${carDocRef.path}`,
@@ -250,22 +255,37 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
         }
     } else {
         // --- CREATE LOGIC ---
-        const selectedCar = cars.find(c => c.id === data.voitureId);
-        const selectedClient = clients.find(c => c.id === data.clientId);
-        const selectedConducteur2 = (data.conducteur2_clientId && data.conducteur2_clientId !== '_none_') 
-            ? clients.find(c => c.id === data.conducteur2_clientId) 
+        const {
+            voitureId,
+            clientId,
+            conducteur2_clientId,
+            dateRange,
+            caution,
+            kilometrageDepart,
+            carburantNiveauDepart,
+            roueSecours,
+            posteRadio,
+            lavage,
+            dommagesDepart,
+            dommagesDepartNotes
+        } = data;
+
+        const selectedCar = cars.find(c => c.id === voitureId);
+        const selectedClient = clients.find(c => c.id === clientId);
+        const selectedConducteur2 = (conducteur2_clientId && conducteur2_clientId !== '_none_') 
+            ? clients.find(c => c.id === conducteur2_clientId) 
             : null;
 
-        if (!selectedCar || !selectedClient) {
+        if (!selectedCar || !selectedClient || !dateRange) {
             toast({
                 variant: "destructive",
                 title: "Erreur de validation",
-                description: "Client ou voiture non sélectionné. Veuillez rafraîchir et réessayer.",
+                description: "Client, voiture ou dates invalides. Veuillez rafraîchir et réessayer.",
             });
             return;
         }
 
-        const rentalDays = differenceInCalendarDays(data.dateRange.to, data.dateRange.from) + 1;
+        const rentalDays = differenceInCalendarDays(dateRange.to, dateRange.from) + 1;
         const totalAmount = rentalDays * selectedCar.prixParJour;
         
         const rentalPayload = {
@@ -295,21 +315,21 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
             },
             livraison: {
                 dateHeure: serverTimestamp(),
-                kilometrage: data.kilometrageDepart,
-                carburantNiveau: data.carburantNiveauDepart,
-                roueSecours: data.roueSecours,
-                posteRadio: data.posteRadio,
-                lavage: data.lavage,
-                dommages: Object.keys(data.dommagesDepart || {}).filter(k => data.dommagesDepart?.[k]),
-                dommagesNotes: data.dommagesDepartNotes || "",
+                kilometrage: kilometrageDepart,
+                carburantNiveau: carburantNiveauDepart,
+                roueSecours: roueSecours,
+                posteRadio: posteRadio,
+                lavage: lavage,
+                dommages: Object.keys(dommagesDepart || {}).filter(k => dommagesDepart?.[k]),
+                dommagesNotes: dommagesDepartNotes || "",
             },
             reception: {},
             location: {
-                dateDebut: data.dateRange.from,
-                dateFin: data.dateRange.to,
+                dateDebut: dateRange.from,
+                dateFin: dateRange.to,
                 prixParJour: selectedCar.prixParJour,
                 nbrJours: rentalDays,
-                depot: data.caution || 0,
+                depot: caution || 0,
                 montantAPayer: totalAmount,
             },
             statut: 'en_cours' as 'en_cours',
@@ -330,7 +350,6 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                 description: `Le contrat pour ${selectedClient.nom} a été créé avec succès.`,
             });
             onFinished();
-            router.refresh();
         } catch (serverError: any) {
             const permissionError = new FirestorePermissionError({
                 path: `batch write for ${newRentalRef.path} and ${carDocRef.path}`,
@@ -382,11 +401,11 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Deuxième conducteur (Optionnel)</FormLabel>
-                          <Select 
-                            onValueChange={field.onChange} 
-                            value={field.value} 
-                            disabled={isUpdate}
-                          >
+                           <Select 
+                                onValueChange={field.onChange} 
+                                value={field.value || '_none_'} 
+                                disabled={isUpdate}
+                            >
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Sélectionner un deuxième conducteur" />

@@ -99,7 +99,6 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
     }
 
     onFinished();
-    router.refresh();
   }
 
   return (

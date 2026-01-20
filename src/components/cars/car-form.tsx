@@ -105,7 +105,6 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
           description: isNewCar ? "La nouvelle voiture a été ajoutée." : "Les informations ont été mises à jour.",
         });
         onFinished();
-        router.refresh();
       })
       .catch((serverError) => {
         const permissionError = new FirestorePermissionError({
