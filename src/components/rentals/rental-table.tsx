@@ -45,7 +45,7 @@ import { Dialog, DialogContent, DialogDescription as DialogDesc, DialogFooter, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import Image from "next/image";
 import { ScrollArea } from "../ui/scroll-area";
-import { doc, deleteDoc, updateDoc } from "firebase/firestore";
+import { doc, deleteDoc, updateDoc, writeBatch } from "firebase/firestore";
 import { useFirebase } from "@/firebase";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
@@ -204,14 +204,18 @@ export default function RentalTable({ rentals, clients, cars, isDashboard = fals
     const rentalDocRef = doc(firestore, 'rentals', rental.id);
     const carDocRef = doc(firestore, 'cars', rental.vehicule.carId);
     
+    const batch = writeBatch(firestore);
+    
+    // If the rental was active, we need to make the car available again.
+    if (rental.statut === 'en_cours') {
+      batch.update(carDocRef, { disponible: true });
+    }
+    
+    // Now delete the rental document.
+    batch.delete(rentalDocRef);
+
     try {
-      // If the rental was active, we need to make the car available again.
-      if (rental.statut === 'en_cours') {
-        await updateDoc(carDocRef, { disponible: true });
-      }
-      
-      // Now delete the rental document.
-      await deleteDoc(rentalDocRef);
+      await batch.commit();
 
       toast({
         title: "Contrat supprimé",
