@@ -224,6 +224,14 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
   async function onSubmit(data: z.infer<typeof rentalFormSchema>) {
     if (!firestore) return;
     
+    const getSafeDateForSaving = (date: any): Date | null => {
+        if (!date) return null;
+        if (date.toDate) return date.toDate();
+        if (date instanceof Date) return date;
+        const parsed = new Date(date);
+        return isNaN(parsed.getTime()) ? null : parsed;
+    };
+
     if (isUpdate && rental) {
         // --- UPDATE LOGIC ---
         const rentalRef = doc(firestore, 'rentals', rental.id);
@@ -250,14 +258,15 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
         batch.update(rentalRef, updatePayload);
         batch.update(carDocRef, { disponible: true });
 
-        try {
-            await batch.commit();
+        batch.commit()
+          .then(() => {
             toast({
                 title: "Location terminée",
                 description: `La réception pour ${rental.locataire.nomPrenom} a été enregistrée avec le montant final de ${formatCurrency(finalAmountToPay, 'MAD')}.`,
             });
             onFinished();
-        } catch (serverError) {
+          })
+          .catch((serverError) => {
             const permissionError = new FirestorePermissionError({
                 path: `batch write for ${rentalRef.path} and ${carDocRef.path}`,
                 operation: 'update',
@@ -269,7 +278,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                 title: "Erreur",
                 description: "Impossible de terminer la location. L'opération a échoué."
             });
-        }
+        });
     } else {
         // --- CREATE LOGIC ---
         const validatedData = rentalFormSchema.safeParse(data);
@@ -329,7 +338,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                 carId: selectedCar.id,
                 immatriculation: selectedCar.immat,
                 marque: `${selectedCar.marque} ${selectedCar.modele}`,
-                dateMiseEnCirculation: selectedCar.dateMiseEnCirculation,
+                dateMiseEnCirculation: getSafeDateForSaving(selectedCar.dateMiseEnCirculation),
                 couleur: selectedCar.couleur || "Inconnue",
                 nbrPlaces: selectedCar.nbrPlaces || 5,
                 puissance: selectedCar.puissance || 7,
@@ -366,14 +375,15 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
         batch.set(newRentalRef, rentalPayload);
         batch.update(carDocRef, { disponible: false });
 
-        try {
-            await batch.commit();
+        batch.commit()
+          .then(() => {
             toast({
                 title: "Contrat créé",
                 description: `Le contrat pour ${selectedClient.nom} a été créé avec succès.`,
             });
             onFinished();
-        } catch (serverError: any) {
+          })
+          .catch((serverError: any) => {
             const permissionError = new FirestorePermissionError({
                 path: `batch write for ${newRentalRef.path} and ${carDocRef.path}`,
                 operation: 'create',
@@ -385,7 +395,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                 title: "Erreur lors de la création",
                 description: "Une erreur est survenue. Vérifiez vos permissions et réessayez.",
             });
-        }
+        });
     }
   }
 
@@ -779,5 +789,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
     </Form>
   );
 }
+
+    
 
     
