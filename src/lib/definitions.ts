@@ -67,6 +67,9 @@ export type Rental = {
     dateHeure?: any; // Timestamp
     kilometrage?: number;
     carburantNiveau?: number;
+    roueSecours?: boolean;
+    posteRadio?: boolean;
+    lavage?: boolean;
     dommages?: string[];
     dommagesNotes?: string;
   };

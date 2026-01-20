@@ -32,7 +32,7 @@ import { Textarea } from "../ui/textarea";
 import { Slider } from "../ui/slider";
 import CarDamageDiagram from "./car-damage-diagram";
 import { useFirebase } from "@/firebase";
-import { collection, doc, serverTimestamp, setDoc, writeBatch } from "firebase/firestore";
+import { collection, doc, serverTimestamp, setDoc, writeBatch, Timestamp } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 
@@ -63,6 +63,9 @@ const baseSchema = z.object({
     z.coerce.number({invalid_type_error: "Veuillez entrer un nombre."}).positive("Le kilométrage de retour doit être un nombre positif.").optional()
   ),
   carburantNiveauRetour: z.number().min(0).max(1).optional(),
+  roueSecoursRetour: z.boolean().default(true),
+  posteRadioRetour: z.boolean().default(true),
+  lavageRetour: z.boolean().default(true),
   dommagesRetourNotes: z.string().optional(),
   dommagesRetour: z.record(z.string(), z.boolean()).optional(),
   dateRetour: z.date().optional(),
@@ -72,10 +75,11 @@ const baseSchema = z.object({
 const timestampToDate = (timestamp: any): Date | null => {
     if (!timestamp) return null;
     if (timestamp instanceof Date) return timestamp;
+    // This is the important part: Firestore Timestamps have a toDate() method.
     if (timestamp.toDate && typeof timestamp.toDate === 'function') {
         return timestamp.toDate();
     }
-    // Attempt to parse if it's a string or number
+    // Fallback for strings or numbers
     const d = new Date(timestamp);
     if (!isNaN(d.getTime())) {
         return d;
@@ -151,6 +155,9 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
             dommagesRetourNotes: rental.reception?.dommagesNotes || "",
             dommagesRetour: rental.reception?.dommages?.reduce((acc, curr) => ({...acc, [curr]: true}), {}),
             dateRetour: rental.reception?.dateHeure ? getSafeDate(rental.reception.dateHeure) : new Date(),
+            roueSecoursRetour: rental.reception?.roueSecours ?? true,
+            posteRadioRetour: rental.reception?.posteRadio ?? true,
+            lavageRetour: rental.reception?.lavage ?? true,
         };
     }
     // Default values for a new rental
@@ -172,6 +179,9 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
         posteRadio: true,
         lavage: true,
         dateRetour: new Date(),
+        roueSecoursRetour: true,
+        posteRadioRetour: true,
+        lavageRetour: true,
     }
   }, [rental, clients]);
 
@@ -251,6 +261,9 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                 dateHeure: data.dateRetour,
                 kilometrage: data.kilometrageRetour,
                 carburantNiveau: data.carburantNiveauRetour,
+                roueSecours: data.roueSecoursRetour,
+                posteRadio: data.posteRadioRetour,
+                lavage: data.lavageRetour,
                 dommages: Object.keys(data.dommagesRetour || {}).filter(k => data.dommagesRetour?.[k]),
                 dommagesNotes: data.dommagesRetourNotes || "",
             },
@@ -326,6 +339,9 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
         const rentalDays = differenceInCalendarDays(dateRange.to, dateRange.from) + 1;
         const totalAmount = rentalDays * selectedCar.prixParJour;
         
+        // This is the robust way to handle the timestamp from Firestore
+        const safeDateMiseEnCirculation = timestampToDate(selectedCar.dateMiseEnCirculation);
+
         const rentalPayload = {
             locataire: {
                 cin: selectedClient.cin,
@@ -344,7 +360,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                 carId: selectedCar.id,
                 immatriculation: selectedCar.immat,
                 marque: `${selectedCar.marque} ${selectedCar.modele}`,
-                dateMiseEnCirculation: timestampToDate(selectedCar.dateMiseEnCirculation),
+                dateMiseEnCirculation: safeDateMiseEnCirculation,
                 couleur: selectedCar.couleur || "Inconnue",
                 nbrPlaces: selectedCar.nbrPlaces || 5,
                 puissance: selectedCar.puissance || 7,
@@ -740,6 +756,53 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                           </FormItem>
                         )}
                       />
+                       <div>
+                        <FormLabel>Checklist des équipements (Retour)</FormLabel>
+                        <div className="grid grid-cols-2 gap-4 mt-2">
+                            <FormField
+                              control={form.control}
+                              name="roueSecoursRetour"
+                              render={({ field }) => (
+                                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                  <FormControl>
+                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                  </FormControl>
+                                  <div className="space-y-1 leading-none">
+                                    <FormLabel>Roue de secours</FormLabel>
+                                  </div>
+                                </FormItem>
+                              )}
+                            />
+                             <FormField
+                              control={form.control}
+                              name="posteRadioRetour"
+                              render={({ field }) => (
+                                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                  <FormControl>
+                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                  </FormControl>
+                                  <div className="space-y-1 leading-none">
+                                    <FormLabel>Poste Radio</FormLabel>
+                                  </div>
+                                </FormItem>
+                              )}
+                            />
+                             <FormField
+                              control={form.control}
+                              name="lavageRetour"
+                              render={({ field }) => (
+                                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                  <FormControl>
+                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                  </FormControl>
+                                  <div className="space-y-1 leading-none">
+                                    <FormLabel>Voiture propre</FormLabel>
+                                  </div>
+                                </FormItem>
+                              )}
+                            />
+                        </div>
+                    </div>
                       <div>
                           <FormField
                               control={form.control}

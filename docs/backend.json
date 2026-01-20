@@ -98,6 +98,9 @@
             "dateHeure": { "type": "string", "format": "date-time" },
             "kilometrage": { "type": "number" },
             "carburantNiveau": { "type": "number" },
+            "roueSecours": { "type": "boolean" },
+            "posteRadio": { "type": "boolean" },
+            "lavage": { "type": "boolean" },
             "dommages": { "type": "array", "items": { "type": "string" } },
             "dommagesNotes": { "type": "string" }
           }
