@@ -32,11 +32,9 @@ import { Textarea } from "../ui/textarea";
 import { Slider } from "../ui/slider";
 import CarDamageDiagram from "./car-damage-diagram";
 import { useFirebase } from "@/firebase";
-import { addDoc, collection, doc, serverTimestamp, setDoc, updateDoc, writeBatch } from "firebase/firestore";
-import { useRouter } from "next/navigation";
+import { collection, doc, serverTimestamp, setDoc, writeBatch } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
-import { Switch } from "../ui/switch";
 
 
 const baseSchema = z.object({
@@ -51,7 +49,7 @@ const baseSchema = z.object({
     (val) => (val === "" || val === null || val === undefined ? undefined : Number(val)),
     z.coerce.number({invalid_type_error: "Veuillez entrer un nombre."}).min(0, "La caution ne peut pas être négative.").optional()
   ),
-  kilometrageDepart: z.coerce.number().int().min(0, "Le kilométrage doit être positif."),
+  kilometrageDepart: z.coerce.number({invalid_type_error: "Le kilométrage est requis."}).int().min(0, "Le kilométrage doit être positif."),
   carburantNiveauDepart: z.number().min(0).max(1),
   roueSecours: z.boolean().default(false),
   posteRadio: z.boolean().default(false),
@@ -60,7 +58,10 @@ const baseSchema = z.object({
   dommagesDepart: z.record(z.string(), z.boolean()).optional(),
   
   // Champs de retour
-  kilometrageRetour: z.coerce.number({invalid_type_error: "Veuillez entrer un nombre."}).positive("Le kilométrage de retour doit être un nombre positif.").optional(),
+  kilometrageRetour: z.preprocess(
+    (val) => (val === "" || val === null || val === undefined ? undefined : Number(val)),
+    z.coerce.number({invalid_type_error: "Veuillez entrer un nombre."}).positive("Le kilométrage de retour doit être un nombre positif.").optional()
+  ),
   carburantNiveauRetour: z.number().min(0).max(1).optional(),
   dommagesRetourNotes: z.string().optional(),
   dommagesRetour: z.record(z.string(), z.boolean()).optional(),
@@ -76,36 +77,43 @@ function getSafeDate(date: any): Date | undefined {
     return isNaN(parsed.getTime()) ? undefined : parsed;
 }
 
-const updateRentalFormSchema = baseSchema.extend({
-    kilometrageRetour: z.coerce.number({
-        required_error: "Le kilométrage de retour est requis.",
-        invalid_type_error: "Veuillez entrer un nombre valide.",
-    }).int().positive("Le kilométrage de retour doit être un nombre positif."),
-    dateRetour: z.date({
-        required_error: "La date de retour effective est requise."
-    })
-}).refine(data => {
-    // This validation only runs if kilometrageRetour is provided and is a number
-    if (typeof data.kilometrageRetour === 'number') {
-        return data.kilometrageRetour >= data.kilometrageDepart;
-    }
-    return true; // Pass validation if kilometrageRetour is not a number yet
-}, {
-    message: "Le kilométrage de retour ne peut être inférieur à celui de départ.",
-    path: ["kilometrageRetour"],
-}).refine(data => data.dateRetour >= data.dateRange.from, {
-    message: "La date de retour ne peut être antérieure à la date de début.",
-    path: ["dateRetour"],
-});
-
-
 export default function RentalForm({ rental, clients, cars, onFinished }: { rental: Rental | null, clients: Client[], cars: CarType[], onFinished: () => void }) {
   const { toast } = useToast();
-  const router = useRouter();
   const { firestore } = useFirebase();
   const isUpdate = !!rental;
-  
-  const rentalFormSchema = isUpdate ? updateRentalFormSchema : baseSchema;
+
+  const rentalFormSchema = React.useMemo(() => {
+    if (isUpdate) {
+        return baseSchema.extend({
+            kilometrageRetour: z.coerce.number({
+                required_error: "Le kilométrage de retour est requis.",
+                invalid_type_error: "Veuillez entrer un nombre valide.",
+            }).int().positive("Le kilométrage de retour doit être un nombre positif."),
+            dateRetour: z.date({
+                required_error: "La date de retour effective est requise."
+            })
+        }).refine(data => {
+            // This validation only runs if kilometrageRetour is provided and is a number
+            if (typeof data.kilometrageRetour === 'number' && typeof data.kilometrageDepart === 'number') {
+                return data.kilometrageRetour >= data.kilometrageDepart;
+            }
+            return true;
+        }, {
+            message: "Le kilométrage de retour ne peut être inférieur à celui de départ.",
+            path: ["kilometrageRetour"],
+        }).refine(data => {
+            if (data.dateRetour && data.dateRange?.from) {
+               return data.dateRetour >= data.dateRange.from
+            }
+            return true;
+        }, {
+            message: "La date de retour ne peut être antérieure à la date de début.",
+            path: ["dateRetour"],
+        });
+    }
+    return baseSchema;
+  }, [isUpdate]);
+
 
   const getInitialValues = React.useCallback(() => {
     if (rental) {
@@ -113,7 +121,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
         const rentalConducteur2 = rental.conducteur2 ? clients.find(c => c.cin === rental.conducteur2.cin) : null;
         return {
             clientId: rentalClient?.id ?? "",
-            conducteur2_clientId: rentalConducteur2?.id ?? "_none_",
+            conducteur2_clientId: rentalConducteur2?.id ?? '_none_',
             voitureId: rental.vehicule.carId,
             dateRange: { from: getSafeDate(rental.location.dateDebut)!, to: getSafeDate(rental.location.dateFin)! },
             caution: rental.location.depot,
@@ -163,6 +171,15 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
   const selectedCarId = form.watch("voitureId");
   const dateRange = form.watch("dateRange");
   const dateRetour = form.watch("dateRetour");
+
+  React.useEffect(() => {
+    if (selectedCarId && !isUpdate) {
+      const selectedCar = cars.find(c => c.id === selectedCarId);
+      if (selectedCar) {
+        form.setValue('kilometrageDepart', selectedCar.kilometrage, { shouldValidate: true });
+      }
+    }
+  }, [selectedCarId, cars, isUpdate, form]);
 
   const availableCars = cars.filter(car => car.disponible || (rental && car.id === rental.vehicule.carId));
 
@@ -255,6 +272,12 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
         }
     } else {
         // --- CREATE LOGIC ---
+        const validatedData = rentalFormSchema.safeParse(data);
+        if (!validatedData.success) {
+            onError(validatedData.error.flatten().fieldErrors);
+            return;
+        }
+
         const {
             voitureId,
             clientId,
@@ -268,7 +291,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
             lavage,
             dommagesDepart,
             dommagesDepartNotes
-        } = data;
+        } = validatedData.data;
 
         const selectedCar = cars.find(c => c.id === voitureId);
         const selectedClient = clients.find(c => c.id === clientId);
@@ -279,8 +302,8 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
         if (!selectedCar || !selectedClient || !dateRange) {
             toast({
                 variant: "destructive",
-                title: "Erreur de validation",
-                description: "Client, voiture ou dates invalides. Veuillez rafraîchir et réessayer.",
+                title: "Données invalides",
+                description: "Client, voiture ou dates invalides. Veuillez réessayer.",
             });
             return;
         }
@@ -756,3 +779,5 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
     </Form>
   );
 }
+
+    
