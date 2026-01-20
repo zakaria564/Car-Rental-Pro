@@ -45,7 +45,7 @@ import { Dialog, DialogContent, DialogDescription as DialogDesc, DialogFooter, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import Image from "next/image";
 import { ScrollArea } from "../ui/scroll-area";
-import { doc, deleteDoc } from "firebase/firestore";
+import { doc, deleteDoc, updateDoc } from "firebase/firestore";
 import { useFirebase } from "@/firebase";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
@@ -198,27 +198,39 @@ export default function RentalTable({ rentals, clients, cars, isDashboard = fals
   const [rentalForModal, setRentalForModal] = React.useState<Rental | null>(null);
 
 
-  const handleDeleteRental = async (rentalId: string) => {
-    if (!firestore || !rentalId) return;
-    const rentalDocRef = doc(firestore, 'rentals', rentalId);
+  const handleDeleteRental = async (rental: Rental) => {
+    if (!firestore || !rental?.id) return;
     
-    deleteDoc(rentalDocRef).then(() => {
-        toast({
-            title: "Contrat supprimé",
-            description: "Le contrat de location a été supprimé de la base de données.",
-        });
-    }).catch(serverError => {
-        const permissionError = new FirestorePermissionError({
-            path: rentalDocRef.path,
-            operation: 'delete'
-        }, serverError as Error);
-        errorEmitter.emit('permission-error', permissionError);
-        toast({
-            variant: "destructive",
-            title: "Erreur de suppression",
-            description: "Vous n'avez pas la permission de supprimer ce contrat.",
-        });
-    });
+    const rentalDocRef = doc(firestore, 'rentals', rental.id);
+    const carDocRef = doc(firestore, 'cars', rental.vehicule.carId);
+    
+    try {
+      // If the rental was active, we need to make the car available again.
+      if (rental.statut === 'en_cours') {
+        await updateDoc(carDocRef, { disponible: true });
+      }
+      
+      // Now delete the rental document.
+      await deleteDoc(rentalDocRef);
+
+      toast({
+        title: "Contrat supprimé",
+        description: "Le contrat de location a été supprimé.",
+      });
+
+    } catch (serverError) {
+      const permissionError = new FirestorePermissionError({
+          path: rentalDocRef.path, // We can be more specific, but this is ok
+          operation: 'delete'
+      }, serverError as Error);
+      errorEmitter.emit('permission-error', permissionError);
+      toast({
+          variant: "destructive",
+          title: "Erreur de suppression",
+          description: "Impossible de supprimer ce contrat. L'état de la voiture peut être incorrect.",
+      });
+    }
+
     setIsAlertOpen(false);
   };
 
@@ -493,7 +505,7 @@ export default function RentalTable({ rentals, clients, cars, isDashboard = fals
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel>Annuler</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => handleDeleteRental(rentalForModal!.id!)} className="bg-destructive hover:bg-destructive/90">Supprimer</AlertDialogAction>
+                    <AlertDialogAction onClick={() => handleDeleteRental(rentalForModal!)} className="bg-destructive hover:bg-destructive/90">Supprimer</AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         )}
@@ -501,3 +513,5 @@ export default function RentalTable({ rentals, clients, cars, isDashboard = fals
     </>
   );
 }
+
+    
