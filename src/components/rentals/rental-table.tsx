@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from "react";
@@ -52,8 +53,8 @@ import { FirestorePermissionError } from "@/firebase/errors";
 
 type RentalTableProps = {
   rentals: Rental[];
-  clients: Client[];
-  cars: Car[];
+  clients?: Client[];
+  cars?: Car[];
   isDashboard?: boolean;
 };
 
@@ -183,7 +184,7 @@ function RentalDetails({ rental }: { rental: Rental }) {
 }
 
 
-export default function RentalTable({ rentals, clients, cars, isDashboard = false }: RentalTableProps) {
+export default function RentalTable({ rentals, clients = [], cars = [], isDashboard = false }: RentalTableProps) {
   const { toast } = useToast();
   const { firestore } = useFirebase();
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -201,7 +202,7 @@ export default function RentalTable({ rentals, clients, cars, isDashboard = fals
     const printContent = document.getElementById('printable-contract');
     if (!printContent) return;
 
-    const printWindow = window.open('', '_blank', 'height=800,width=800');
+    const printWindow = window.open('', '_blank');
     if (!printWindow) {
       toast({
         variant: "destructive",
@@ -214,40 +215,43 @@ export default function RentalTable({ rentals, clients, cars, isDashboard = fals
     const styles = `
       body { 
         -webkit-print-color-adjust: exact;
-        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-        line-height: 1.5;
-        font-size: 14px;
+        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+        line-height: 1.4;
+        font-size: 10px;
+        margin: 0;
+        padding: 0;
       }
-      .space-y-6 > :not([hidden]) ~ :not([hidden]) { margin-top: 1.5rem; }
-      .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
-      .p-2 { padding: 0.5rem; }
+      p { margin: 0.1rem 0; }
+      .space-y-6 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.75rem; }
+      .text-sm { font-size: 10px; line-height: 1.2; }
+      .p-2 { padding: 0.25rem; }
       .text-center { text-align: center; }
-      .mb-8 { margin-bottom: 2rem; }
-      .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+      .mb-8 { margin-bottom: 1rem; }
+      .text-2xl { font-size: 1.25rem; line-height: 1.5rem; }
       .font-bold { font-weight: 700; }
       .tracking-wider { letter-spacing: 0.05em; }
       .text-muted-foreground { color: #64748b; }
       .border { border: 1px solid #e2e8f0; }
-      .p-4 { padding: 1rem; }
+      .p-4 { padding: 0.5rem; }
       .rounded-md { border-radius: 0.375rem; }
-      .mb-2 { margin-bottom: 0.5rem; }
+      .mb-2 { margin-bottom: 0.25rem; }
       .underline { text-decoration: underline; }
       .font-semibold { font-weight: 600; }
-      .text-base { font-size: 1rem; }
+      .text-base { font-size: 11px; }
       .grid { display: grid; }
       .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .gap-x-8 { column-gap: 2rem; }
-      .pt-16 { padding-top: 4rem; }
-      .gap-16 { gap: 4rem; }
+      .gap-x-8 { column-gap: 1.5rem; }
+      .pt-16 { padding-top: 2rem; }
+      .gap-16 { gap: 2rem; }
       .border-t { border-top-width: 1px; }
       .pt-2 { padding-top: 0.5rem; }
-      .text-xs { font-size: 0.75rem; }
+      .text-xs { font-size: 9px; }
       strong { font-weight: 600; }
       @page {
         size: A4;
-        margin: 20mm;
+        margin: 15mm;
       }
-      h1, h2, h3, p, div { 
+      h1, h2, h3, h4, h5, h6, p, div {
         break-inside: avoid;
       }
     `;
@@ -594,3 +598,4 @@ export default function RentalTable({ rentals, clients, cars, isDashboard = fals
 }
 
     
+
