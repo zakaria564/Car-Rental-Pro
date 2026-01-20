@@ -65,9 +65,12 @@ export default function DashboardPage() {
   const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
   const monthlyRevenue = rentals.reduce((acc, r) => {
-    const rentalDate = r.createdAt.toDate();
-    if (rentalDate >= firstDayOfMonth) {
-      return acc + (r.location.montantAPayer || 0);
+    // Check if createdAt exists and has the toDate method (i.e., it's a Firestore Timestamp)
+    if (r.createdAt?.toDate) {
+      const rentalDate = r.createdAt.toDate();
+      if (rentalDate >= firstDayOfMonth) {
+        return acc + (r.location.montantAPayer || 0);
+      }
     }
     return acc;
   }, 0);
