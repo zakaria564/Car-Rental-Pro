@@ -53,11 +53,18 @@ const carFormSchema = z.object({
 type CarFormValues = z.infer<typeof carFormSchema>;
 
 export default function CarForm({ car, onFinished }: { car: Car | null, onFinished: () => void }) {
-  const router = useRouter();
   const { toast } = useToast();
   const { firestore } = useFirebase();
 
-  const defaultValues: Partial<CarFormValues> = { 
+  const form = useForm<CarFormValues>({
+    resolver: zodResolver(carFormSchema),
+    mode: "onChange",
+  });
+  
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  React.useEffect(() => {
+    const initialValues = { 
       marque: car?.marque ?? "",
       modele: car?.modele ?? "",
       immat: car?.immat ?? "",
@@ -71,16 +78,10 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
       prixParJour: car?.prixParJour ?? 0,
       puissance: car?.puissance ?? 0,
       nbrPlaces: car?.nbrPlaces ?? 0,
-      modeleAnnee: car?.modeleAnnee ? new Date(car.modeleAnnee) : new Date(),
-  };
-
-  const form = useForm<CarFormValues>({
-    resolver: zodResolver(carFormSchema),
-    defaultValues,
-    mode: "onChange",
-  });
-  
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
+      modeleAnnee: car?.modeleAnnee ? new Date(car.modeleAnnee, 0, 1) : new Date(),
+    };
+    form.reset(initialValues);
+  }, [car, form.reset]);
 
   const onSubmit = (data: CarFormValues) => {
     if (!firestore) return;
@@ -357,5 +358,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     </Form>
   );
 }
+
+    
 
     
