@@ -68,6 +68,20 @@ const baseSchema = z.object({
   dateRetour: z.date().optional(),
 });
 
+// A robust function to convert Firestore Timestamps or other formats to a JS Date object.
+const timestampToDate = (timestamp: any): Date | null => {
+    if (!timestamp) return null;
+    if (timestamp instanceof Date) return timestamp;
+    if (timestamp.toDate && typeof timestamp.toDate === 'function') {
+        return timestamp.toDate();
+    }
+    // Attempt to parse if it's a string or number
+    const d = new Date(timestamp);
+    if (!isNaN(d.getTime())) {
+        return d;
+    }
+    return null;
+}
 
 function getSafeDate(date: any): Date | undefined {
     if (!date) return undefined;
@@ -330,7 +344,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                 carId: selectedCar.id,
                 immatriculation: selectedCar.immat,
                 marque: `${selectedCar.marque} ${selectedCar.modele}`,
-                dateMiseEnCirculation: selectedCar.dateMiseEnCirculation,
+                dateMiseEnCirculation: timestampToDate(selectedCar.dateMiseEnCirculation),
                 couleur: selectedCar.couleur || "Inconnue",
                 nbrPlaces: selectedCar.nbrPlaces || 5,
                 puissance: selectedCar.puissance || 7,
@@ -781,7 +795,5 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
     </Form>
   );
 }
-
-    
 
     
