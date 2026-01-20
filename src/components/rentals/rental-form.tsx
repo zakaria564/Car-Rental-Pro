@@ -63,9 +63,9 @@ const baseSchema = z.object({
     z.coerce.number({invalid_type_error: "Veuillez entrer un nombre."}).positive("Le kilométrage de retour doit être un nombre positif.").optional()
   ),
   carburantNiveauRetour: z.number().min(0).max(1).optional(),
-  roueSecoursRetour: z.boolean().default(true),
-  posteRadioRetour: z.boolean().default(true),
-  lavageRetour: z.boolean().default(true),
+  roueSecoursRetour: z.boolean().default(true).optional(),
+  posteRadioRetour: z.boolean().default(true).optional(),
+  lavageRetour: z.boolean().default(true).optional(),
   dommagesRetourNotes: z.string().optional(),
   dommagesRetour: z.record(z.string(), z.boolean()).optional(),
   dateRetour: z.date().optional(),
@@ -75,11 +75,9 @@ const baseSchema = z.object({
 const timestampToDate = (timestamp: any): Date | null => {
     if (!timestamp) return null;
     if (timestamp instanceof Date) return timestamp;
-    // This is the important part: Firestore Timestamps have a toDate() method.
     if (timestamp.toDate && typeof timestamp.toDate === 'function') {
         return timestamp.toDate();
     }
-    // Fallback for strings or numbers
     const d = new Date(timestamp);
     if (!isNaN(d.getTime())) {
         return d;
@@ -111,7 +109,6 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                 required_error: "La date de retour effective est requise."
             })
         }).refine(data => {
-            // This validation only runs if kilometrageRetour is provided and is a number
             if (typeof data.kilometrageRetour === 'number' && typeof data.kilometrageDepart === 'number') {
                 return data.kilometrageRetour >= data.kilometrageDepart;
             }
@@ -160,7 +157,6 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
             lavageRetour: rental.reception?.lavage ?? true,
         };
     }
-    // Default values for a new rental
     return {
         clientId: "",
         conducteur2_clientId: "_none_",
@@ -249,7 +245,6 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
     if (!firestore) return;
 
     if (isUpdate && rental) {
-        // --- UPDATE LOGIC ---
         const rentalRef = doc(firestore, 'rentals', rental.id);
         const carDocRef = doc(firestore, 'cars', rental.vehicule.carId);
         
@@ -275,7 +270,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
 
         const batch = writeBatch(firestore);
         batch.update(rentalRef, updatePayload);
-        batch.update(carDocRef, { disponible: true });
+        batch.update(carDocRef, { disponible: true, kilometrage: data.kilometrageRetour });
 
         batch.commit()
           .then(() => {
@@ -299,7 +294,6 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
             });
         });
     } else {
-        // --- CREATE LOGIC ---
         const validatedData = rentalFormSchema.safeParse(data);
         if (!validatedData.success) {
             onError(validatedData.error.flatten().fieldErrors);
@@ -339,7 +333,6 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
         const rentalDays = differenceInCalendarDays(dateRange.to, dateRange.from) + 1;
         const totalAmount = rentalDays * selectedCar.prixParJour;
         
-        // This is the robust way to handle the timestamp from Firestore
         const safeDateMiseEnCirculation = timestampToDate(selectedCar.dateMiseEnCirculation);
 
         const rentalPayload = {
@@ -360,7 +353,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                 carId: selectedCar.id,
                 immatriculation: selectedCar.immat,
                 marque: `${selectedCar.marque} ${selectedCar.modele}`,
-                dateMiseEnCirculation: safeDateMiseEnCirculation,
+                dateMiseEnCirculation: safeDateMiseEnCirculation ? new Date(safeDateMiseEnCirculation) : null,
                 couleur: selectedCar.couleur || "Inconnue",
                 nbrPlaces: selectedCar.nbrPlaces || 5,
                 puissance: selectedCar.puissance || 7,
@@ -858,5 +851,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
     </Form>
   );
 }
+
+    
 
     
