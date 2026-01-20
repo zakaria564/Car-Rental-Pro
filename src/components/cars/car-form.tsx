@@ -33,7 +33,7 @@ import { fr } from "date-fns/locale";
 const carFormSchema = z.object({
   marque: z.string().min(2, "La marque doit comporter au moins 2 caractères."),
   modele: z.string().min(1, "Le modèle est requis."),
-  modeleAnnee: z.date({
+  dateMiseEnCirculation: z.date({
     required_error: "La date de mise en circulation est requise.",
   }),
   immat: z.string().min(5, "La plaque d'immatriculation semble trop courte."),
@@ -51,11 +51,21 @@ const carFormSchema = z.object({
 
 type CarFormValues = z.infer<typeof carFormSchema>;
 
+const getSafeDate = (date: any): Date => {
+    if (!date) return new Date();
+    if (date.toDate) return date.toDate(); // Firestore Timestamp
+    const parsed = new Date(date);
+    return isNaN(parsed.getTime()) ? new Date() : parsed;
+};
+
 export default function CarForm({ car, onFinished }: { car: Car | null, onFinished: () => void }) {
   const { toast } = useToast();
   const { firestore } = useFirebase();
 
-  const defaultValues = React.useMemo(() => ({
+  const form = useForm<CarFormValues>({
+    resolver: zodResolver(carFormSchema),
+    mode: "onChange",
+    defaultValues: {
       marque: car?.marque ?? "",
       modele: car?.modele ?? "",
       immat: car?.immat ?? "",
@@ -69,20 +79,30 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
       prixParJour: car?.prixParJour ?? 0,
       puissance: car?.puissance ?? 0,
       nbrPlaces: car?.nbrPlaces ?? 0,
-      modeleAnnee: car?.modeleAnnee ? new Date(car.modeleAnnee, 0, 1) : new Date(),
-  }), [car]);
-
-  const form = useForm<CarFormValues>({
-    resolver: zodResolver(carFormSchema),
-    mode: "onChange",
-    defaultValues: defaultValues,
+      dateMiseEnCirculation: getSafeDate(car?.dateMiseEnCirculation),
+    },
   });
   
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   React.useEffect(() => {
-    form.reset(defaultValues);
-  }, [defaultValues, form]);
+    form.reset({
+      marque: car?.marque ?? "",
+      modele: car?.modele ?? "",
+      immat: car?.immat ?? "",
+      numChassis: car?.numChassis ?? "",
+      couleur: car?.couleur ?? "",
+      carburantType: car?.carburantType ?? "Essence",
+      etat: car?.etat ?? "new",
+      disponible: car?.disponible ?? true,
+      photoURL: car?.photoURL ?? "",
+      kilometrage: car?.kilometrage ?? 0,
+      prixParJour: car?.prixParJour ?? 0,
+      puissance: car?.puissance ?? 0,
+      nbrPlaces: car?.nbrPlaces ?? 0,
+      dateMiseEnCirculation: getSafeDate(car?.dateMiseEnCirculation),
+    });
+  }, [car, form]);
 
   const onSubmit = (data: CarFormValues) => {
     if (!firestore) return;
@@ -93,7 +113,6 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
 
     const carPayload = {
       ...data,
-      modeleAnnee: data.modeleAnnee.getFullYear(), // We only store the year as per original data model.
       createdAt: car?.createdAt || serverTimestamp(),
       photoURL: data.photoURL || `https://picsum.photos/seed/${carId}/600/400`,
     };
@@ -157,7 +176,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
         />
         <FormField
           control={form.control}
-          name="modeleAnnee"
+          name="dateMiseEnCirculation"
           render={({ field }) => (
             <FormItem className="flex flex-col">
               <FormLabel>Date de mise en circulation</FormLabel>

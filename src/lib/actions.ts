@@ -57,7 +57,7 @@ export async function checkMaintenance(
 const GenerateImageSchema = z.object({
     marque: z.string(),
     modele: z.string(),
-    modeleAnnee: z.coerce.number(),
+    annee: z.coerce.number(),
     couleur: z.string(),
 });
 

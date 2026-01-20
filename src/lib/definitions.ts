@@ -10,7 +10,7 @@ export type Car = {
   disponible: boolean;
   prixParJour: number;
   createdAt: any; // Can be Timestamp
-  modeleAnnee: number;
+  dateMiseEnCirculation: any; // Can be Timestamp
   kilometrage: number;
   couleur: string;
   nbrPlaces: number;

@@ -34,6 +34,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { Separator } from "../ui/separator";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 function CarDetails({ car }: { car: Car }) {
     return (
@@ -41,7 +43,7 @@ function CarDetails({ car }: { car: Car }) {
             <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                 <p><strong>Marque:</strong> {car.marque}</p>
                 <p><strong>Modèle:</strong> {car.modele}</p>
-                <p><strong>Année:</strong> {car.modeleAnnee}</p>
+                <p><strong>Mise en circulation:</strong> {car.dateMiseEnCirculation?.toDate ? format(car.dateMiseEnCirculation.toDate(), 'dd/MM/yyyy', { locale: fr }) : 'N/A'}</p>
                 <p><strong>Immatriculation:</strong> {car.immat}</p>
                 <p><strong>N° de châssis:</strong> {car.numChassis}</p>
                 <p><strong>Couleur:</strong> {car.couleur}</p>

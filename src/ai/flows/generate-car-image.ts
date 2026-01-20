@@ -10,12 +10,12 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 
 const GenerateCarImageInputSchema = z.object({
   marque: z.string().describe('The make of the car (e.g., Tesla).'),
   modele: z.string().describe('The model of the car (e.g., Model S).'),
-  modeleAnnee: z.number().describe('The model year of the car (e.g., 2023).'),
+  annee: z.number().describe('The model year of the car (e.g., 2023).'),
   couleur: z.string().describe('The color of the car (e.g., Red).'),
 });
 
@@ -37,7 +37,7 @@ const generateCarImagePrompt = ai.definePrompt(
   {
     name: 'generateCarImagePrompt',
     input: { schema: GenerateCarImageInputSchema },
-    prompt: `Generate a photorealistic image of a {{couleur}} {{marque}} {{modele}} from the year {{modeleAnnee}}. The car should be the main subject, clean, and parked in a neutral, outdoor setting like a clean parking lot or a modern street during the day. The image should look like a professional photograph for a car rental website.`,
+    prompt: `Generate a photorealistic image of a {{couleur}} {{marque}} {{modele}} from the year {{annee}}. The car should be the main subject, clean, and parked in a neutral, outdoor setting like a clean parking lot or a modern street during the day. The image should look like a professional photograph for a car rental website.`,
   }
 );
 
