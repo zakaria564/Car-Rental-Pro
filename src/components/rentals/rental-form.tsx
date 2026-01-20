@@ -223,14 +223,6 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
 
   async function onSubmit(data: z.infer<typeof rentalFormSchema>) {
     if (!firestore) return;
-    
-    const getSafeDateForSaving = (date: any): Date | null => {
-        if (!date) return null;
-        if (date.toDate) return date.toDate();
-        if (date instanceof Date) return date;
-        const parsed = new Date(date);
-        return isNaN(parsed.getTime()) ? null : parsed;
-    };
 
     if (isUpdate && rental) {
         // --- UPDATE LOGIC ---
@@ -338,7 +330,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                 carId: selectedCar.id,
                 immatriculation: selectedCar.immat,
                 marque: `${selectedCar.marque} ${selectedCar.modele}`,
-                dateMiseEnCirculation: getSafeDateForSaving(selectedCar.dateMiseEnCirculation),
+                dateMiseEnCirculation: selectedCar.dateMiseEnCirculation,
                 couleur: selectedCar.couleur || "Inconnue",
                 nbrPlaces: selectedCar.nbrPlaces || 5,
                 puissance: selectedCar.puissance || 7,
