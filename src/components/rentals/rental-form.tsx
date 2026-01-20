@@ -32,14 +32,14 @@ import { Textarea } from "../ui/textarea";
 import { Slider } from "../ui/slider";
 import CarDamageDiagram from "./car-damage-diagram";
 import { useFirebase } from "@/firebase";
-import { addDoc, collection, doc, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
+import { addDoc, collection, doc, serverTimestamp, setDoc, updateDoc, writeBatch } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { Switch } from "../ui/switch";
 
 
-const rentalFormSchemaObject = {
+const baseSchema = z.object({
   clientId: z.string({ required_error: "Veuillez sélectionner un client." }).min(1, "Veuillez sélectionner un client."),
   conducteur2_clientId: z.string().optional(),
   voitureId: z.string({ required_error: "Veuillez sélectionner une voiture." }).min(1, "Veuillez sélectionner une voiture."),
@@ -48,10 +48,10 @@ const rentalFormSchemaObject = {
     to: z.date({ required_error: "Une date de fin est requise." }),
   }),
   caution: z.preprocess(
-    (val) => (val === "" || val === null || val === undefined ? undefined : val),
+    (val) => (val === "" || val === null || val === undefined ? undefined : Number(val)),
     z.coerce.number({invalid_type_error: "Veuillez entrer un nombre."}).min(0, "La caution ne peut pas être négative.").optional()
   ),
-  kilometrageDepart: z.coerce.number().min(0, "Le kilométrage doit être positif."),
+  kilometrageDepart: z.coerce.number().int().min(0, "Le kilométrage doit être positif."),
   carburantNiveauDepart: z.number().min(0).max(1),
   roueSecours: z.boolean().default(false),
   posteRadio: z.boolean().default(false),
@@ -59,15 +59,16 @@ const rentalFormSchemaObject = {
   dommagesDepartNotes: z.string().optional(),
   dommagesDepart: z.record(z.string(), z.boolean()).optional(),
   
+  // Champs de retour
   kilometrageRetour: z.preprocess(
-    (val) => (val === "" || val === null ? undefined : val),
+    (val) => (val === "" || val === null || val === undefined ? undefined : Number(val)),
     z.coerce.number({invalid_type_error: "Veuillez entrer un nombre."}).optional()
   ),
   carburantNiveauRetour: z.number().min(0).max(1).optional(),
   dommagesRetourNotes: z.string().optional(),
   dommagesRetour: z.record(z.string(), z.boolean()).optional(),
   dateRetour: z.date().optional(),
-};
+});
 
 
 function getSafeDate(date: any): Date | undefined {
@@ -83,21 +84,17 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
   const { toast } = useToast();
   const router = useRouter();
   const { firestore } = useFirebase();
-
   const isUpdate = !!rental;
 
   const rentalFormSchema = React.useMemo(() => {
-    let schema = z.object(rentalFormSchemaObject);
-
     if (isUpdate) {
-      return schema.refine(
+      return baseSchema.refine(
         (data) => data.kilometrageRetour !== undefined && data.kilometrageRetour !== null, {
-            message: "Le kilométrage de retour doit être renseigné.",
+            message: "Le kilométrage de retour est requis.",
             path: ["kilometrageRetour"],
         }
       ).refine(
-          (data) => data.kilometrageRetour! >= (data.kilometrageDepart || 0),
-          {
+          (data) => (data.kilometrageRetour ?? 0) >= (data.kilometrageDepart ?? 0), {
             message: "Le kilométrage de retour ne peut être inférieur à celui de départ.",
             path: ["kilometrageRetour"],
           }
@@ -113,8 +110,8 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
           }
       );
     }
-    return schema;
-  }, [isUpdate, rental]);
+    return baseSchema;
+  }, [isUpdate]);
 
   const getInitialValues = React.useCallback(() => {
     if (rental) {
@@ -204,7 +201,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
 
   async function onSubmit(data: z.infer<typeof rentalFormSchema>) {
     if (!firestore) return;
-
+    
     if (isUpdate && rental) {
         // --- UPDATE LOGIC ---
         const rentalRef = doc(firestore, 'rentals', rental.id);
@@ -227,10 +224,12 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
             statut: 'terminee' as 'terminee',
         };
 
-        try {
-            await updateDoc(rentalRef, updatePayload);
-            await updateDoc(carDocRef, { disponible: true });
+        const batch = writeBatch(firestore);
+        batch.update(rentalRef, updatePayload);
+        batch.update(carDocRef, { disponible: true });
 
+        try {
+            await batch.commit();
             toast({
                 title: "Location terminée",
                 description: `La réception pour ${rental.locataire.nomPrenom} a été enregistrée avec le montant final de ${formatCurrency(finalAmountToPay, 'MAD')}.`,
@@ -239,7 +238,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
             router.refresh();
         } catch (serverError) {
             const permissionError = new FirestorePermissionError({
-                path: rentalRef.path,
+                path: `batch write for ${rentalRef.path} and ${carDocRef.path}`,
                 operation: 'update',
                 requestResourceData: updatePayload
             }, serverError as Error);
@@ -247,21 +246,19 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
             toast({
                 variant: 'destructive',
                 title: "Erreur",
-                description: "Impossible de terminer la location."
+                description: "Impossible de terminer la location. L'opération a échoué."
             });
         }
     } else {
         // --- CREATE LOGIC ---
-        const selectedCar = cars.find(c => c.id === data.voitureId);
-        const selectedClient = clients.find(c => c.id === data.clientId);
+        const selectedCar = cars.find(c => c.id === data.voitureId)!;
+        const selectedClient = clients.find(c => c.id === data.clientId)!;
         const selectedConducteur2 = (data.conducteur2_clientId && data.conducteur2_clientId !== '_none_') 
             ? clients.find(c => c.id === data.conducteur2_clientId) 
             : null;
 
-        if (!selectedCar || !selectedClient) {
-            toast({ variant: "destructive", title: "Erreur", description: "Veuillez sélectionner un client et une voiture." });
-            return;
-        }
+        const rentalDays = differenceInCalendarDays(data.dateRange.to, data.dateRange.from) + 1;
+        const totalAmount = rentalDays * selectedCar.prixParJour;
         
         const rentalPayload = {
             locataire: {
@@ -303,21 +300,23 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                 dateDebut: data.dateRange.from,
                 dateFin: data.dateRange.to,
                 prixParJour: selectedCar.prixParJour,
-                nbrJours: rentalDaysForUI,
+                nbrJours: rentalDays,
                 depot: data.caution || 0,
-                montantAPayer: prixTotalForUI,
+                montantAPayer: totalAmount,
             },
             statut: 'en_cours' as 'en_cours',
             createdAt: serverTimestamp(),
         };
-
-        const rentalsCollection = collection(firestore, 'rentals');
+        
+        const newRentalRef = doc(collection(firestore, 'rentals'));
         const carDocRef = doc(firestore, 'cars', selectedCar.id);
+        const batch = writeBatch(firestore);
+
+        batch.set(newRentalRef, rentalPayload);
+        batch.update(carDocRef, { disponible: false });
 
         try {
-            await addDoc(rentalsCollection, rentalPayload);
-            await updateDoc(carDocRef, { disponible: false });
-
+            await batch.commit();
             toast({
                 title: "Contrat créé",
                 description: `Le contrat pour ${selectedClient.nom} a été créé avec succès.`,
@@ -326,7 +325,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
             router.refresh();
         } catch (serverError: any) {
             const permissionError = new FirestorePermissionError({
-                path: rentalsCollection.path,
+                path: `batch write for ${newRentalRef.path} and ${carDocRef.path}`,
                 operation: 'create',
                 requestResourceData: rentalPayload
             }, serverError);
@@ -375,7 +374,11 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Deuxième conducteur (Optionnel)</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value || ''} disabled={isUpdate}>
+                          <Select 
+                            onValueChange={field.onChange} 
+                            value={field.value} 
+                            disabled={isUpdate}
+                          >
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Sélectionner un deuxième conducteur" />
@@ -421,7 +424,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                               <FormControl>
                                 <Button
                                   variant={"outline"}
-                                  readOnly={isUpdate}
+                                  disabled={isUpdate}
                                   className={cn("w-full pl-3 text-left font-normal", !field.value?.from && "text-muted-foreground")}
                                 >
                                   {field.value?.from ? (
