@@ -51,17 +51,17 @@ function CarDetails({ car }: { car: Car }) {
         <ScrollArea className="h-[70vh] pr-4">
             <div className="space-y-4 text-sm">
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                    <p><strong>Marque:</strong> {car.marque}</p>
-                    <p><strong>Modèle:</strong> {car.modele}</p>
-                    <p><strong>Mise en circulation:</strong> {car.dateMiseEnCirculation?.toDate ? format(car.dateMiseEnCirculation.toDate(), 'dd/MM/yyyy', { locale: fr }) : 'N/A'}</p>
-                    <p><strong>Immatriculation:</strong> {car.immat}</p>
-                    <p><strong>N° de châssis:</strong> {car.numChassis}</p>
-                    <p><strong>Couleur:</strong> {car.couleur}</p>
-                    <p><strong>Kilométrage:</strong> {car.kilometrage.toLocaleString()} km</p>
-                    <p><strong>Carburant:</strong> {car.carburantType}</p>
-                    <p><strong>Puissance:</strong> {car.puissance} cv</p>
-                    <p><strong>Places:</strong> {car.nbrPlaces}</p>
-                    <p><strong>État:</strong> {car.etat}</p>
+                    <div><strong>Marque:</strong> {car.marque}</div>
+                    <div><strong>Modèle:</strong> {car.modele}</div>
+                    <div><strong>Mise en circulation:</strong> {car.dateMiseEnCirculation?.toDate ? format(car.dateMiseEnCirculation.toDate(), 'dd/MM/yyyy', { locale: fr }) : 'N/A'}</div>
+                    <div><strong>Immatriculation:</strong> {car.immat}</div>
+                    <div><strong>N° de châssis:</strong> {car.numChassis}</div>
+                    <div><strong>Couleur:</strong> {car.couleur}</div>
+                    <div><strong>Kilométrage:</strong> {car.kilometrage.toLocaleString()} km</div>
+                    <div><strong>Carburant:</strong> {car.carburantType}</div>
+                    <div><strong>Puissance:</strong> {car.puissance} cv</div>
+                    <div><strong>Places:</strong> {car.nbrPlaces}</div>
+                    <div><strong>État:</strong> {car.etat}</div>
                     <div className="flex items-center gap-2"><strong>Disponibilité:</strong> <Badge variant={car.disponible ? "default" : "destructive"} className={car.disponible ? 'bg-green-600' : ''}>{car.disponible ? "Disponible" : "Louée"}</Badge></div>
                 </div>
                 <Separator />
@@ -77,7 +77,7 @@ function CarDetails({ car }: { car: Car }) {
                         {isVisiteExpired && <Badge variant="destructive">Expirée</Badge>}
                         {isVisiteExpiringSoon && <Badge className="bg-accent text-accent-foreground hover:bg-accent/80">Expire bientôt</Badge>}
                     </div>
-                    <p><strong>Vignette:</strong> {car.anneeVignette || 'N/A'}</p>
+                    <div><strong>Vignette:</strong> {car.anneeVignette || 'N/A'}</div>
                 </div>
                 {car.maintenanceHistory && (
                     <>
@@ -90,7 +90,7 @@ function CarDetails({ car }: { car: Car }) {
                 )}
                 <Separator />
                 <div>
-                    <p className="font-bold text-lg"><strong>Prix par jour:</strong> {formatCurrency(car.prixParJour, 'MAD')}</p>
+                    <div className="font-bold text-lg"><strong>Prix par jour:</strong> {formatCurrency(car.prixParJour, 'MAD')}</div>
                 </div>
             </div>
         </ScrollArea>
@@ -155,25 +155,27 @@ export default function CarCard({ car }: { car: Car }) {
   return (
     <Card className="flex flex-row overflow-hidden group w-full">
       <div className="relative w-2/5">
-        {needsAttention && (
-            <TooltipProvider>
-              <Tooltip>
-                  <TooltipTrigger asChild>
-                      <div className="absolute top-2 left-2 z-10 p-1 bg-background/70 rounded-full">
-                          <TriangleAlert className="h-5 w-5 text-accent" />
-                      </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                      <p>{attentionMessage}</p>
-                  </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-        )}
-        {car.disponible ? (
-          <Badge className="absolute top-2 right-2 z-10 bg-green-600 text-white">Disponible</Badge>
-        ) : (
-          <Badge variant="destructive" className="absolute top-2 right-2 z-10">Louée</Badge>
-        )}
+        <div className="absolute top-2 right-2 z-10 flex items-center gap-2">
+            {needsAttention && (
+                <TooltipProvider>
+                  <Tooltip>
+                      <TooltipTrigger asChild>
+                          <div className="p-1 bg-background/70 rounded-full">
+                              <TriangleAlert className="h-5 w-5 text-accent" />
+                          </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                          <p>{attentionMessage}</p>
+                      </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+            )}
+            {car.disponible ? (
+              <Badge className="bg-green-600 text-white">Disponible</Badge>
+            ) : (
+              <Badge variant="destructive">Louée</Badge>
+            )}
+        </div>
         <Image
             src={car.photoURL}
             alt={`${car.marque} ${car.modele}`}
