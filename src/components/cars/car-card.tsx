@@ -67,16 +67,16 @@ function CarDetails({ car }: { car: Car }) {
                 <Separator />
                  <div className="space-y-2">
                     <h4 className="font-semibold text-base">Documents & Expirations</h4>
-                    <p className="flex items-center gap-2">
+                    <div className="flex items-center gap-2">
                         <strong>Expiration Assurance:</strong> {assuranceDate ? format(assuranceDate, 'dd/MM/yyyy', { locale: fr }) : 'N/A'}
                         {isAssuranceExpired && <Badge variant="destructive">Expirée</Badge>}
                         {isAssuranceExpiringSoon && <Badge className="bg-accent text-accent-foreground hover:bg-accent/80">Expire bientôt</Badge>}
-                    </p>
-                    <p className="flex items-center gap-2">
+                    </div>
+                    <div className="flex items-center gap-2">
                         <strong>Prochaine Visite:</strong> {visiteDate ? format(visiteDate, 'dd/MM/yyyy', { locale: fr }) : 'N/A'}
                         {isVisiteExpired && <Badge variant="destructive">Expirée</Badge>}
                         {isVisiteExpiringSoon && <Badge className="bg-accent text-accent-foreground hover:bg-accent/80">Expire bientôt</Badge>}
-                    </p>
+                    </div>
                     <p><strong>Vignette:</strong> {car.anneeVignette || 'N/A'}</p>
                 </div>
                 {car.maintenanceHistory && (
