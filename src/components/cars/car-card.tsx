@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { Wrench, Pencil, Trash2, FileText, TriangleAlert, Gauge, Fuel } from "lucide-react";
+import { Wrench, Pencil, Trash2, FileText, TriangleAlert, Gauge, Fuel, Cog } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -59,6 +59,7 @@ function CarDetails({ car }: { car: Car }) {
                     <div><strong>Couleur:</strong> {car.couleur}</div>
                     <div><strong>Kilométrage:</strong> {car.kilometrage.toLocaleString()} km</div>
                     <div><strong>Carburant:</strong> {car.carburantType}</div>
+                    <div><strong>Transmission:</strong> {car.transmission}</div>
                     <div><strong>Puissance:</strong> {car.puissance} cv</div>
                     <div><strong>Places:</strong> {car.nbrPlaces}</div>
                     <div><strong>État:</strong> {car.etat}</div>
@@ -197,6 +198,10 @@ export default function CarCard({ car }: { car: Car }) {
                 <Fuel className="h-4 w-4" />
                 <span>{car.carburantType}</span>
               </div>
+              <div className="flex items-center gap-1.5">
+                <Cog className="h-4 w-4" />
+                <span>{car.transmission}</span>
+              </div>
           </div>
         </div>
         <div className="mt-4">
@@ -298,5 +303,3 @@ export default function CarCard({ car }: { car: Car }) {
     </Card>
   );
 }
-
-    

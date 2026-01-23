@@ -16,6 +16,7 @@ export type Car = {
   nbrPlaces: number;
   puissance: number;
   carburantType: 'Diesel' | 'Essence' | 'Electrique';
+  transmission: 'Manuelle' | 'Automatique';
   dateExpirationAssurance?: any;
   dateProchaineVisiteTechnique?: any;
   anneeVignette?: number;
@@ -56,6 +57,7 @@ export type Rental = {
     nbrPlaces: number;
     puissance: number;
     carburantType: string;
+    transmission: string;
     photoURL: string;
   };
   livraison: {

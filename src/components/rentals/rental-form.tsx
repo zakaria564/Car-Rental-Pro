@@ -131,7 +131,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
   }, [isUpdate]);
 
 
-  const getInitialValues = React.useCallback(() => {
+  const getInitialValues = React.useCallback((currentCars: CarType[]) => {
     if (rental) {
         const rentalClient = clients.find(c => c.cin === rental.locataire.cin);
         const rentalConducteur2 = rental.conducteur2 ? clients.find(c => c.cin === rental.conducteur2.cin) : null;
@@ -185,7 +185,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
   const form = useForm<z.infer<typeof rentalFormSchema>>({
     resolver: zodResolver(rentalFormSchema),
     mode: "onChange",
-    defaultValues: getInitialValues(),
+    defaultValues: getInitialValues(cars),
   });
   
   const { setValue } = form;
@@ -193,6 +193,10 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
   const selectedCarId = form.watch("voitureId");
   const dateRange = form.watch("dateRange");
   const dateRetour = form.watch("dateRetour");
+
+  React.useEffect(() => {
+    form.reset(getInitialValues(cars));
+  }, [cars, form, getInitialValues]);
 
   React.useEffect(() => {
     if (selectedCarId && !isUpdate) {
@@ -361,6 +365,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                 nbrPlaces: selectedCar.nbrPlaces || 5,
                 puissance: selectedCar.puissance || 7,
                 carburantType: selectedCar.carburantType || 'Essence',
+                transmission: selectedCar.transmission || 'Manuelle',
                 photoURL: selectedCar.photoURL
             },
             livraison: {

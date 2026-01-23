@@ -45,6 +45,7 @@ const carFormSchema = z.object({
   nbrPlaces: z.coerce.number().int("Le nombre de places doit être un nombre entier.").min(2, "Le nombre de places est requis.").max(9),
   puissance: z.coerce.number().int("La puissance doit être un nombre entier.").min(4, "La puissance est requise."),
   carburantType: z.enum(['Diesel', 'Essence', 'Electrique']),
+  transmission: z.enum(['Manuelle', 'Automatique']),
   prixParJour: z.coerce.number().min(1, "Le prix doit être supérieur à 0."),
   etat: z.enum(["new", "good", "fair", "poor"]),
   disponible: z.boolean().default(true),
@@ -87,6 +88,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
       nbrPlaces: 4,
       puissance: 7,
       carburantType: "Essence" as const,
+      transmission: "Manuelle" as const,
       prixParJour: 250,
       etat: "new" as const,
       disponible: true,
@@ -324,6 +326,27 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                             <SelectItem value="Essence">Essence</SelectItem>
                             <SelectItem value="Diesel">Diesel</SelectItem>
                             <SelectItem value="Electrique">Électrique</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="transmission"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Transmission</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Type de transmission" />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                            <SelectItem value="Manuelle">Manuelle</SelectItem>
+                            <SelectItem value="Automatique">Automatique</SelectItem>
                             </SelectContent>
                         </Select>
                         <FormMessage />

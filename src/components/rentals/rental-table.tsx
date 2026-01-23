@@ -128,6 +128,7 @@ function RentalDetails({ rental }: { rental: Rental }) {
                         <p><strong>Couleur:</strong> {rental.vehicule.couleur}</p>
                         <p><strong>Carburant:</strong> {rental.vehicule.carburantType}</p>
                         <p><strong>Puissance:</strong> {rental.vehicule.puissance} ch</p>
+                        <p><strong>Transmission:</strong> {rental.vehicule.transmission}</p>
                     </div>
                 </div>
             </div>
@@ -602,6 +603,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
 }
 
     
+
 
 
 
