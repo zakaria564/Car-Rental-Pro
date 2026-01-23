@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { Wrench, Pencil, Trash2, FileText, TriangleAlert } from "lucide-react";
+import { Wrench, Pencil, Trash2, FileText, TriangleAlert, Gauge, Fuel } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Car } from "@/lib/definitions";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import CarForm from "./car-form";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -62,7 +62,7 @@ function CarDetails({ car }: { car: Car }) {
                     <div><strong>Puissance:</strong> {car.puissance} cv</div>
                     <div><strong>Places:</strong> {car.nbrPlaces}</div>
                     <div><strong>État:</strong> {car.etat}</div>
-                    <div className="flex items-center gap-2"><strong>Disponibilité:</strong> <Badge variant={car.disponible ? "default" : "destructive"} className={car.disponible ? 'bg-green-600' : ''}>{car.disponible ? "Disponible" : "Louée"}</Badge></div>
+                    <div className="flex items-center gap-2"><strong>Disponibilité:</strong> <Badge variant={car.disponible ? "default" : "destructive"} className={cn(car.disponible ? 'bg-green-600' : '')}>{car.disponible ? "Disponible" : "Louée"}</Badge></div>
                 </div>
                 <Separator />
                  <div className="space-y-2">
@@ -153,8 +153,8 @@ export default function CarCard({ car }: { car: Car }) {
   };
 
   return (
-    <Card className="flex flex-row overflow-hidden group w-full">
-      <div className="relative w-2/5">
+    <Card className="flex flex-col sm:flex-row overflow-hidden group w-full">
+      <div className="relative w-full sm:w-2/5 h-48 sm:h-auto">
         <div className="absolute top-2 right-2 z-10 flex items-center gap-2">
             {car.disponible ? (
               <Badge className="bg-green-600 text-white">Disponible</Badge>
@@ -184,10 +184,20 @@ export default function CarCard({ car }: { car: Car }) {
             data-ai-hint="car photo"
         />
       </div>
-      <div className="p-4 flex flex-col flex-grow w-3/5">
+      <div className="p-4 flex flex-col flex-grow w-full sm:w-3/5">
         <div className="flex-grow">
           <h3 className="text-lg font-bold truncate">{car.marque} {car.modele}</h3>
           <p className="text-sm text-muted-foreground">{car.immat}</p>
+          <div className="mt-2 flex items-center text-xs text-muted-foreground gap-4">
+              <div className="flex items-center gap-1.5">
+                <Gauge className="h-4 w-4" />
+                <span>{car.kilometrage.toLocaleString()} km</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Fuel className="h-4 w-4" />
+                <span>{car.carburantType}</span>
+              </div>
+          </div>
         </div>
         <div className="mt-4">
           <div className="font-bold text-xl mb-4">{formatCurrency(car.prixParJour, 'MAD')}<span className="text-xs font-normal text-muted-foreground">/jour</span></div>
@@ -288,3 +298,5 @@ export default function CarCard({ car }: { car: Car }) {
     </Card>
   );
 }
+
+    
