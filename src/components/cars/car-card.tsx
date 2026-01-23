@@ -158,14 +158,14 @@ export default function CarCard({ car }: { car: Car }) {
       {needsAttention && (
         <TooltipProvider>
           <Tooltip>
-              <TooltipTrigger asChild>
-                   <div className="absolute top-2 right-2 z-10 p-1">
-                      <TriangleAlert className="h-5 w-5 text-accent" />
-                  </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                  <p>{attentionMessage}</p>
-              </TooltipContent>
+            <TooltipTrigger asChild>
+              <div className="absolute top-2 right-2 z-10 p-1">
+                <TriangleAlert className="h-5 w-5 text-accent" />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{attentionMessage}</p>
+            </TooltipContent>
           </Tooltip>
         </TooltipProvider>
       )}
@@ -181,7 +181,7 @@ export default function CarCard({ car }: { car: Car }) {
             src={car.photoURL}
             alt={`${car.marque} ${car.modele}`}
             fill
-            className="object-cover"
+            className="object-contain"
             data-ai-hint="car photo"
         />
       </div>
@@ -303,5 +303,3 @@ export default function CarCard({ car }: { car: Car }) {
     </Card>
   );
 }
-
-    
