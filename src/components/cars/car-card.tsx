@@ -38,27 +38,48 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
 function CarDetails({ car }: { car: Car }) {
+    const isAssuranceExpired = car.dateExpirationAssurance && car.dateExpirationAssurance.toDate() < new Date();
+    const isVisiteExpired = car.dateProchaineVisiteTechnique && car.dateProchaineVisiteTechnique.toDate() < new Date();
+
     return (
-        <div className="space-y-4 text-sm">
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                <p><strong>Marque:</strong> {car.marque}</p>
-                <p><strong>Modèle:</strong> {car.modele}</p>
-                <p><strong>Mise en circulation:</strong> {car.dateMiseEnCirculation?.toDate ? format(car.dateMiseEnCirculation.toDate(), 'dd/MM/yyyy', { locale: fr }) : 'N/A'}</p>
-                <p><strong>Immatriculation:</strong> {car.immat}</p>
-                <p><strong>N° de châssis:</strong> {car.numChassis}</p>
-                <p><strong>Couleur:</strong> {car.couleur}</p>
-                <p><strong>Kilométrage:</strong> {car.kilometrage.toLocaleString()} km</p>
-                <p><strong>Carburant:</strong> {car.carburantType}</p>
-                <p><strong>Puissance:</strong> {car.puissance} cv</p>
-                <p><strong>Places:</strong> {car.nbrPlaces}</p>
-                <p><strong>État:</strong> {car.etat}</p>
-                <div className="flex items-center gap-2"><strong>Disponibilité:</strong> <Badge variant={car.disponible ? "default" : "destructive"} className={car.disponible ? 'bg-green-600' : ''}>{car.disponible ? "Disponible" : "Louée"}</Badge></div>
+        <ScrollArea className="h-[70vh] pr-4">
+            <div className="space-y-4 text-sm">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                    <p><strong>Marque:</strong> {car.marque}</p>
+                    <p><strong>Modèle:</strong> {car.modele}</p>
+                    <p><strong>Mise en circulation:</strong> {car.dateMiseEnCirculation?.toDate ? format(car.dateMiseEnCirculation.toDate(), 'dd/MM/yyyy', { locale: fr }) : 'N/A'}</p>
+                    <p><strong>Immatriculation:</strong> {car.immat}</p>
+                    <p><strong>N° de châssis:</strong> {car.numChassis}</p>
+                    <p><strong>Couleur:</strong> {car.couleur}</p>
+                    <p><strong>Kilométrage:</strong> {car.kilometrage.toLocaleString()} km</p>
+                    <p><strong>Carburant:</strong> {car.carburantType}</p>
+                    <p><strong>Puissance:</strong> {car.puissance} cv</p>
+                    <p><strong>Places:</strong> {car.nbrPlaces}</p>
+                    <p><strong>État:</strong> {car.etat}</p>
+                    <div className="flex items-center gap-2"><strong>Disponibilité:</strong> <Badge variant={car.disponible ? "default" : "destructive"} className={car.disponible ? 'bg-green-600' : ''}>{car.disponible ? "Disponible" : "Louée"}</Badge></div>
+                </div>
+                <Separator />
+                 <div className="space-y-2">
+                    <h4 className="font-semibold text-base">Documents & Expirations</h4>
+                    <p className="flex items-center gap-2"><strong>Expiration Assurance:</strong> {car.dateExpirationAssurance?.toDate ? format(car.dateExpirationAssurance.toDate(), 'dd/MM/yyyy', { locale: fr }) : 'N/A'} {isAssuranceExpired && <Badge variant="destructive">Expirée</Badge>}</p>
+                    <p className="flex items-center gap-2"><strong>Prochaine Visite:</strong> {car.dateProchaineVisiteTechnique?.toDate ? format(car.dateProchaineVisiteTechnique.toDate(), 'dd/MM/yyyy', { locale: fr }) : 'N/A'} {isVisiteExpired && <Badge variant="destructive">Expirée</Badge>}</p>
+                    <p><strong>Vignette:</strong> {car.anneeVignette || 'N/A'}</p>
+                </div>
+                {car.maintenanceHistory && (
+                    <>
+                        <Separator />
+                        <div className="space-y-2">
+                            <h4 className="font-semibold text-base">Historique d'entretien</h4>
+                            <p className="whitespace-pre-wrap text-xs bg-muted p-2 rounded-md border">{car.maintenanceHistory}</p>
+                        </div>
+                    </>
+                )}
+                <Separator />
+                <div>
+                    <p className="font-bold text-lg"><strong>Prix par jour:</strong> {formatCurrency(car.prixParJour, 'MAD')}</p>
+                </div>
             </div>
-            <Separator />
-            <div>
-                <p className="font-bold text-lg"><strong>Prix par jour:</strong> {formatCurrency(car.prixParJour, 'MAD')}</p>
-            </div>
-        </div>
+        </ScrollArea>
     );
 }
 
@@ -178,7 +199,7 @@ export default function CarCard({ car }: { car: Car }) {
                             <DialogHeader>
                                 <DialogTitle>Vérification IA de l'entretien pour {car.marque} {car.modele}</DialogTitle>
                             </DialogHeader>
-                            <MaintenanceChecker carId={car.id} />
+                            <MaintenanceChecker car={car} />
                         </DialogContent>
                     </Dialog>
 

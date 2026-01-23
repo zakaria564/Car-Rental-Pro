@@ -16,6 +16,10 @@ export type Car = {
   nbrPlaces: number;
   puissance: number;
   carburantType: 'Diesel' | 'Essence' | 'Electrique';
+  dateExpirationAssurance?: any;
+  dateProchaineVisiteTechnique?: any;
+  anneeVignette?: number;
+  maintenanceHistory?: string;
 };
 
 export type Client = {

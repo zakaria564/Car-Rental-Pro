@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, AlertCircle, CheckCircle, Wrench } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Badge } from '../ui/badge';
+import type { Car } from '@/lib/definitions';
 
 function SubmitButton() {
     const { pending } = useFormStatus();
@@ -21,7 +22,7 @@ function SubmitButton() {
     );
 }
 
-export default function MaintenanceChecker({ carId }: { carId: string }) {
+export default function MaintenanceChecker({ car }: { car: Car }) {
     const initialState: MaintenanceState = { message: null, errors: {} };
     const [state, dispatch] = useActionState(checkMaintenance, initialState);
 
@@ -31,7 +32,7 @@ export default function MaintenanceChecker({ carId }: { carId: string }) {
                 Utilisez notre outil alimenté par l'IA pour prédire si cette voiture a besoin d'un entretien en fonction de son utilisation récente et de son historique.
             </p>
             <form action={dispatch} className="space-y-4">
-                <input type="hidden" name="carId" value={carId} />
+                <input type="hidden" name="carId" value={car.id} />
                 <div className="space-y-2">
                     <Label htmlFor="usageData">Données d'utilisation récentes</Label>
                     <Textarea
@@ -47,8 +48,9 @@ export default function MaintenanceChecker({ carId }: { carId: string }) {
                     <Textarea
                         id="historicalMaintenanceData"
                         name="historicalMaintenanceData"
-                        placeholder="par exemple, 'Dernière vidange il y a 6 mois. Plaquettes de frein remplacées il y a 1 an.'"
+                        placeholder="L'historique d'entretien de la voiture sera utilisé. Vous pouvez ajouter des détails supplémentaires ici si nécessaire."
                         required
+                        defaultValue={car.maintenanceHistory || ""}
                     />
                      {state.errors?.historicalMaintenanceData && <p className="text-sm font-medium text-destructive">{state.errors.historicalMaintenanceData[0]}</p>}
                 </div>

@@ -23,7 +23,11 @@
         "couleur": { "type": "string", "description": "Color of the car." },
         "nbrPlaces": { "type": "number", "description": "Number of seats." },
         "puissance": { "type": "number", "description": "Fiscal power of the car." },
-        "carburantType": { "type": "string", "enum": ["Diesel", "Essence", "Electrique"], "description": "Type of fuel." }
+        "carburantType": { "type": "string", "enum": ["Diesel", "Essence", "Electrique"], "description": "Type of fuel." },
+        "dateExpirationAssurance": { "type": "string", "format": "date-time", "description": "Insurance expiration date." },
+        "dateProchaineVisiteTechnique": { "type": "string", "format": "date-time", "description": "Next technical inspection date." },
+        "anneeVignette": { "type": "number", "description": "Tax sticker year." },
+        "maintenanceHistory": { "type": "string", "description": "A text field for logging maintenance history." }
       },
       "required": ["marque", "modele", "immat", "numChassis", "prixParJour", "etat", "disponible", "dateMiseEnCirculation", "kilometrage", "couleur", "nbrPlaces", "puissance", "carburantType"]
     },

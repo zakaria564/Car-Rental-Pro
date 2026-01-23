@@ -29,6 +29,8 @@ import { Calendar } from "../ui/calendar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
+import { Textarea } from "../ui/textarea";
 
 const carFormSchema = z.object({
   marque: z.string().min(2, "La marque doit comporter au moins 2 caractères."),
@@ -47,62 +49,67 @@ const carFormSchema = z.object({
   etat: z.enum(["new", "good", "fair", "poor"]),
   disponible: z.boolean().default(true),
   photoURL: z.string().url("Veuillez entrer une URL valide.").optional().or(z.literal('')),
+  dateExpirationAssurance: z.date().optional().nullable(),
+  dateProchaineVisiteTechnique: z.date().optional().nullable(),
+  anneeVignette: z.coerce.number().optional().nullable(),
+  maintenanceHistory: z.string().optional().nullable(),
 });
 
 type CarFormValues = z.infer<typeof carFormSchema>;
 
-const getSafeDate = (date: any): Date => {
-    if (!date) return new Date();
+const getSafeDate = (date: any): Date | undefined => {
+    if (!date) return undefined;
     if (date.toDate) return date.toDate(); // Firestore Timestamp
     const parsed = new Date(date);
-    return isNaN(parsed.getTime()) ? new Date() : parsed;
+    return isNaN(parsed.getTime()) ? undefined : parsed;
 };
 
 export default function CarForm({ car, onFinished }: { car: Car | null, onFinished: () => void }) {
   const { toast } = useToast();
   const { firestore } = useFirebase();
 
+  const defaultValues = React.useMemo(() => {
+    return car ? {
+      ...car,
+      dateMiseEnCirculation: getSafeDate(car.dateMiseEnCirculation),
+      dateExpirationAssurance: getSafeDate(car.dateExpirationAssurance),
+      dateProchaineVisiteTechnique: getSafeDate(car.dateProchaineVisiteTechnique),
+      anneeVignette: car.anneeVignette ?? undefined,
+      maintenanceHistory: car.maintenanceHistory ?? ""
+    } : {
+      marque: "",
+      modele: "",
+      dateMiseEnCirculation: new Date(),
+      immat: "",
+      numChassis: "",
+      kilometrage: 0,
+      couleur: "",
+      nbrPlaces: 4,
+      puissance: 7,
+      carburantType: "Essence" as const,
+      prixParJour: 250,
+      etat: "new" as const,
+      disponible: true,
+      photoURL: "",
+      dateExpirationAssurance: null,
+      dateProchaineVisiteTechnique: null,
+      anneeVignette: new Date().getFullYear(),
+      maintenanceHistory: "",
+    }
+  }, [car]);
+
   const form = useForm<CarFormValues>({
     resolver: zodResolver(carFormSchema),
     mode: "onChange",
-    defaultValues: {
-      marque: car?.marque ?? "",
-      modele: car?.modele ?? "",
-      immat: car?.immat ?? "",
-      numChassis: car?.numChassis ?? "",
-      couleur: car?.couleur ?? "",
-      carburantType: car?.carburantType ?? "Essence",
-      etat: car?.etat ?? "new",
-      disponible: car?.disponible ?? true,
-      photoURL: car?.photoURL ?? "",
-      kilometrage: car?.kilometrage ?? 0,
-      prixParJour: car?.prixParJour ?? 0,
-      puissance: car?.puissance ?? 0,
-      nbrPlaces: car?.nbrPlaces ?? 0,
-      dateMiseEnCirculation: getSafeDate(car?.dateMiseEnCirculation),
-    },
+    defaultValues,
   });
   
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   React.useEffect(() => {
-    form.reset({
-      marque: car?.marque ?? "",
-      modele: car?.modele ?? "",
-      immat: car?.immat ?? "",
-      numChassis: car?.numChassis ?? "",
-      couleur: car?.couleur ?? "",
-      carburantType: car?.carburantType ?? "Essence",
-      etat: car?.etat ?? "new",
-      disponible: car?.disponible ?? true,
-      photoURL: car?.photoURL ?? "",
-      kilometrage: car?.kilometrage ?? 0,
-      prixParJour: car?.prixParJour ?? 0,
-      puissance: car?.puissance ?? 0,
-      nbrPlaces: car?.nbrPlaces ?? 0,
-      dateMiseEnCirculation: getSafeDate(car?.dateMiseEnCirculation),
-    });
-  }, [car, form]);
+    form.reset(defaultValues);
+  }, [car, defaultValues, form]);
+
 
   const onSubmit = (data: CarFormValues) => {
     if (!firestore) return;
@@ -148,229 +155,329 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-4">
-        <FormField
-          control={form.control}
-          name="marque"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Marque</FormLabel>
-              <FormControl>
-                <Input placeholder="Tesla" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="modele"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Modèle</FormLabel>
-              <FormControl>
-                <Input placeholder="Model S" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="dateMiseEnCirculation"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Date de mise en circulation</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground"
-                      )}
-                    >
-                      {field.value ? (
-                        format(field.value, "PPP", { locale: fr })
-                      ) : (
-                        <span>Choisir une date</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    disabled={(date) =>
-                      date > new Date() || date < new Date("1990-01-01")
-                    }
-                    initialFocus
-                    locale={fr}
-                  />
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="immat"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Plaque d'immatriculation</FormLabel>
-              <FormControl>
-                <Input placeholder="VOITURE-123" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-         <FormField
-          control={form.control}
-          name="numChassis"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Numéro de châssis</FormLabel>
-              <FormControl>
-                <Input placeholder="17 caractères alphanumériques" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="kilometrage"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Kilométrage</FormLabel>
-              <FormControl>
-                <Input type="number" placeholder="54000" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="couleur"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Couleur</FormLabel>
-              <FormControl>
-                <Input placeholder="Noir" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <div className="grid grid-cols-2 gap-4">
-            <FormField
-            control={form.control}
-            name="nbrPlaces"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Places</FormLabel>
-                <FormControl>
-                    <Input type="number" placeholder="5" {...field} />
-                </FormControl>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-            <FormField
-            control={form.control}
-            name="puissance"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Puissance (cv)</FormLabel>
-                <FormControl>
-                    <Input type="number" placeholder="8" {...field} />
-                </FormControl>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-        </div>
+        <Accordion type="multiple" defaultValue={['item-1', 'item-2']} className="w-full">
+            <AccordionItem value="item-1">
+                <AccordionTrigger>Informations Générales</AccordionTrigger>
+                <AccordionContent className="pt-4 space-y-4">
+                    <FormField
+                    control={form.control}
+                    name="marque"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Marque</FormLabel>
+                        <FormControl>
+                            <Input placeholder="Tesla" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="modele"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Modèle</FormLabel>
+                        <FormControl>
+                            <Input placeholder="Model S" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="dateMiseEnCirculation"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                        <FormLabel>Date de mise en circulation</FormLabel>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                            <FormControl>
+                                <Button
+                                variant={"outline"}
+                                className={cn(
+                                    "w-full pl-3 text-left font-normal",
+                                    !field.value && "text-muted-foreground"
+                                )}
+                                >
+                                {field.value ? (
+                                    format(field.value, "PPP", { locale: fr })
+                                ) : (
+                                    <span>Choisir une date</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                            </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                disabled={(date) =>
+                                date > new Date() || date < new Date("1990-01-01")
+                                }
+                                initialFocus
+                                locale={fr}
+                            />
+                            </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="immat"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Plaque d'immatriculation</FormLabel>
+                        <FormControl>
+                            <Input placeholder="VOITURE-123" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="numChassis"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Numéro de châssis</FormLabel>
+                        <FormControl>
+                            <Input placeholder="17 caractères alphanumériques" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="kilometrage"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Kilométrage</FormLabel>
+                        <FormControl>
+                            <Input type="number" placeholder="54000" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="couleur"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Couleur</FormLabel>
+                        <FormControl>
+                            <Input placeholder="Noir" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                        control={form.control}
+                        name="nbrPlaces"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Places</FormLabel>
+                            <FormControl>
+                                <Input type="number" placeholder="5" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                        <FormField
+                        control={form.control}
+                        name="puissance"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Puissance (cv)</FormLabel>
+                            <FormControl>
+                                <Input type="number" placeholder="8" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                    </div>
 
-        <FormField
-          control={form.control}
-          name="carburantType"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Carburant</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Type de carburant" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="Essence">Essence</SelectItem>
-                  <SelectItem value="Diesel">Diesel</SelectItem>
-                  <SelectItem value="Electrique">Électrique</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="prixParJour"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Prix par jour (MAD)</FormLabel>
-              <FormControl>
-                <Input type="number" placeholder="99.99" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="etat"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>État</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionnez l'état de la voiture" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="new">Neuf</SelectItem>
-                  <SelectItem value="good">Bon</SelectItem>
-                  <SelectItem value="fair">Passable</SelectItem>
-                  <SelectItem value="poor">Mauvais</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-            control={form.control}
-            name="photoURL"
-            render={({ field }) => (
-                <FormItem>
-                    <FormLabel>Photo (URL)</FormLabel>
-                    <FormControl>
-                        <Input type="text" placeholder="https://exemple.com/image.png" {...field} />
-                    </FormControl>
-                     <FormDescription>
-                        Collez l'URL de l'image ici. Si le champ est laissé vide, une image par défaut sera utilisée.
-                    </FormDescription>
-                    <FormMessage />
-                </FormItem>
-            )}
-        />
+                    <FormField
+                    control={form.control}
+                    name="carburantType"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Carburant</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Type de carburant" />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                            <SelectItem value="Essence">Essence</SelectItem>
+                            <SelectItem value="Diesel">Diesel</SelectItem>
+                            <SelectItem value="Electrique">Électrique</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="prixParJour"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Prix par jour (MAD)</FormLabel>
+                        <FormControl>
+                            <Input type="number" placeholder="99.99" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="etat"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>État</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Sélectionnez l'état de la voiture" />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                            <SelectItem value="new">Neuf</SelectItem>
+                            <SelectItem value="good">Bon</SelectItem>
+                            <SelectItem value="fair">Passable</SelectItem>
+                            <SelectItem value="poor">Mauvais</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="photoURL"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Photo (URL)</FormLabel>
+                                <FormControl>
+                                    <Input type="text" placeholder="https://exemple.com/image.png" {...field} />
+                                </FormControl>
+                                <FormDescription>
+                                    Collez l'URL de l'image ici. Si le champ est laissé vide, une image par défaut sera utilisée.
+                                </FormDescription>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </AccordionContent>
+            </AccordionItem>
+             <AccordionItem value="item-2">
+                <AccordionTrigger>Documents & Entretien</AccordionTrigger>
+                <AccordionContent className="pt-4 space-y-4">
+                     <FormField
+                        control={form.control}
+                        name="dateExpirationAssurance"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                            <FormLabel>Date d'expiration de l'assurance</FormLabel>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                <FormControl>
+                                    <Button
+                                    variant={"outline"}
+                                    className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
+                                    >
+                                    {field.value ? (format(field.value, "PPP", { locale: fr })) : (<span>Choisir une date</span>)}
+                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                    </Button>
+                                </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus locale={fr}/>
+                                </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="dateProchaineVisiteTechnique"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-col">
+                                <FormLabel>Date de la prochaine visite technique</FormLabel>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                    <FormControl>
+                                        <Button
+                                        variant={"outline"}
+                                        className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
+                                        >
+                                        {field.value ? (format(field.value, "PPP", { locale: fr })) : (<span>Choisir une date</span>)}
+                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                        </Button>
+                                    </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus locale={fr}/>
+                                    </PopoverContent>
+                                </Popover>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="anneeVignette"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Année de la vignette</FormLabel>
+                                <FormControl>
+                                    <Input type="number" placeholder={new Date().getFullYear().toString()} {...field} value={field.value ?? ''} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="maintenanceHistory"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Historique d'entretien</FormLabel>
+                                 <FormControl>
+                                    <Textarea
+                                        placeholder="20/01/2024 - Vidange d'huile (50,000 km)&#10;15/03/2024 - Remplacement des plaquettes de frein avant"
+                                        className="min-h-32"
+                                        {...field}
+                                        value={field.value ?? ''}
+                                    />
+                                </FormControl>
+                                <FormDescription>
+                                    Notez chaque intervention avec la date, la description, et le kilométrage.
+                                </FormDescription>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                </AccordionContent>
+            </AccordionItem>
+        </Accordion>
+
+        
         <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isSubmitting}>
           {isSubmitting ? 'Enregistrement...' : (car ? 'Mettre à jour la voiture' : 'Ajouter une voiture')}
         </Button>
