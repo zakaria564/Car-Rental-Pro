@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -158,7 +159,7 @@ export default function CarCard({ car }: { car: Car }) {
         <TooltipProvider>
           <Tooltip>
               <TooltipTrigger asChild>
-                  <div className="absolute top-2 right-2 z-10 p-1 bg-background/70 rounded-full">
+                   <div className="absolute top-2 right-2 z-10 p-1">
                       <TriangleAlert className="h-5 w-5 text-accent" />
                   </div>
               </TooltipTrigger>
@@ -189,18 +190,18 @@ export default function CarCard({ car }: { car: Car }) {
           <h3 className="text-lg font-bold truncate">{car.marque} {car.modele}</h3>
           <p className="text-sm text-muted-foreground">{car.immat}</p>
           <div className="mt-2 flex flex-wrap items-center text-xs text-muted-foreground gap-x-4 gap-y-1">
-              <div className="flex items-center gap-1.5">
+              <span className="inline-flex items-center gap-1.5">
                 <Gauge className="h-4 w-4" />
                 <span>{car.kilometrage.toLocaleString()} km</span>
-              </div>
-              <div className="flex items-center gap-1.5">
+              </span>
+              <span className="inline-flex items-center gap-1.5">
                 <Fuel className="h-4 w-4" />
                 <span>{car.carburantType}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
+              </span>
+              <span className="inline-flex items-center gap-1.5">
                 <Cog className="h-4 w-4" />
                 <span>{car.transmission}</span>
-              </div>
+              </span>
           </div>
         </div>
         <div className="mt-4">
@@ -302,3 +303,5 @@ export default function CarCard({ car }: { car: Car }) {
     </Card>
   );
 }
+
+    
