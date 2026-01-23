@@ -75,6 +75,7 @@ const baseSchema = z.object({
 const timestampToDate = (timestamp: any): Date | null => {
     if (!timestamp) return null;
     if (timestamp instanceof Date) return timestamp;
+    if (timestamp instanceof Timestamp) return timestamp.toDate();
     if (timestamp.toDate && typeof timestamp.toDate === 'function') {
         return timestamp.toDate();
     }
@@ -348,13 +349,14 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                     nomPrenom: selectedConducteur2.nom,
                     cin: selectedConducteur2.cin,
                     permisNo: selectedConducteur2.permisNo || 'N/A',
+                    telephone: selectedConducteur2.telephone,
                 }
             }),
             vehicule: {
                 carId: selectedCar.id,
                 immatriculation: selectedCar.immat,
                 marque: `${selectedCar.marque} ${selectedCar.modele}`,
-                dateMiseEnCirculation: selectedCar.dateMiseEnCirculation,
+                dateMiseEnCirculation: safeDateMiseEnCirculation,
                 couleur: selectedCar.couleur || "Inconnue",
                 nbrPlaces: selectedCar.nbrPlaces || 5,
                 puissance: selectedCar.puissance || 7,

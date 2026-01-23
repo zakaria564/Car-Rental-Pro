@@ -45,6 +45,7 @@ export type Rental = {
     cin: string;
     nomPrenom: string;
     permisNo: string;
+    telephone: string;
   };
   vehicule: {
     carId: string;
