@@ -223,7 +223,9 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
 
     if (fromDate && toDate) {
         const days = differenceInCalendarDays(toDate, fromDate);
-        return days >= 0 ? days + 1 : 0;
+        if (days < 0) return 0;
+        // Same day rental is 1 day. 23rd to 24th is 1 day (diff is 1).
+        return days === 0 ? 1 : days;
     }
     return 0;
   }, [dateRange, dateRetour, isUpdate]);
@@ -335,8 +337,9 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
             });
             return;
         }
-
-        const rentalDays = differenceInCalendarDays(dateRange.to, dateRange.from) + 1;
+        
+        const dayDiff = differenceInCalendarDays(dateRange.to, dateRange.from);
+        const rentalDays = dayDiff < 0 ? 0 : (dayDiff === 0 ? 1 : dayDiff);
         const totalAmount = rentalDays * selectedCar.prixParJour;
         
         const safeDateMiseEnCirculation = timestampToDate(selectedCar.dateMiseEnCirculation);
