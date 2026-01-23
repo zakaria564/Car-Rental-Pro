@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -164,20 +163,18 @@ export default function CarCard({ car }: { car: Car }) {
             )}
         </div>
         {needsAttention && (
-            <div className="absolute top-2 right-2 z-10">
-                <TooltipProvider>
-                  <Tooltip>
-                      <TooltipTrigger asChild>
-                          <div className="p-1 bg-background/70 rounded-full">
-                              <TriangleAlert className="h-5 w-5 text-accent" />
-                          </div>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                          <p>{attentionMessage}</p>
-                      </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-            </div>
+          <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <div className="absolute top-2 right-2 z-10 p-1 bg-background/70 rounded-full">
+                        <TriangleAlert className="h-5 w-5 text-accent" />
+                    </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>{attentionMessage}</p>
+                </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
         <Image
             src={car.photoURL}
