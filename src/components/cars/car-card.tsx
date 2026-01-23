@@ -156,6 +156,11 @@ export default function CarCard({ car }: { car: Car }) {
     <Card className="flex flex-row overflow-hidden group w-full">
       <div className="relative w-2/5">
         <div className="absolute top-2 right-2 z-10 flex items-center gap-2">
+            {car.disponible ? (
+              <Badge className="bg-green-600 text-white">Disponible</Badge>
+            ) : (
+              <Badge variant="destructive">Louée</Badge>
+            )}
             {needsAttention && (
                 <TooltipProvider>
                   <Tooltip>
@@ -169,11 +174,6 @@ export default function CarCard({ car }: { car: Car }) {
                       </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-            )}
-            {car.disponible ? (
-              <Badge className="bg-green-600 text-white">Disponible</Badge>
-            ) : (
-              <Badge variant="destructive">Louée</Badge>
             )}
         </div>
         <Image
