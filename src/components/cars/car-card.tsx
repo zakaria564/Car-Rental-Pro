@@ -155,14 +155,16 @@ export default function CarCard({ car }: { car: Car }) {
 
   return (
     <Card className="flex flex-col sm:flex-row overflow-hidden group w-full">
-      <div className="relative w-full sm:w-2/5 h-48 sm:h-auto">
-        <div className="absolute top-2 right-2 z-10 flex items-center gap-2">
+      <div className="relative w-full sm:w-1/3 h-48 sm:h-auto">
+        <div className="absolute top-2 left-2 z-10">
             {car.disponible ? (
               <Badge className="bg-green-600 text-white">Disponible</Badge>
             ) : (
               <Badge variant="destructive">Louée</Badge>
             )}
-            {needsAttention && (
+        </div>
+        {needsAttention && (
+            <div className="absolute top-2 right-2 z-10">
                 <TooltipProvider>
                   <Tooltip>
                       <TooltipTrigger asChild>
@@ -175,8 +177,8 @@ export default function CarCard({ car }: { car: Car }) {
                       </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-            )}
-        </div>
+            </div>
+        )}
         <Image
             src={car.photoURL}
             alt={`${car.marque} ${car.modele}`}
@@ -185,11 +187,11 @@ export default function CarCard({ car }: { car: Car }) {
             data-ai-hint="car photo"
         />
       </div>
-      <div className="p-4 flex flex-col flex-grow w-full sm:w-3/5">
+      <div className="p-4 flex flex-col flex-grow w-full sm:w-2/3">
         <div className="flex-grow">
           <h3 className="text-lg font-bold truncate">{car.marque} {car.modele}</h3>
           <p className="text-sm text-muted-foreground">{car.immat}</p>
-          <div className="mt-2 flex items-center text-xs text-muted-foreground gap-4">
+          <div className="mt-2 flex flex-wrap items-center text-xs text-muted-foreground gap-x-4 gap-y-1">
               <div className="flex items-center gap-1.5">
                 <Gauge className="h-4 w-4" />
                 <span>{car.kilometrage.toLocaleString()} km</span>
