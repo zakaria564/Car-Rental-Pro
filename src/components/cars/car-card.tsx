@@ -153,7 +153,21 @@ export default function CarCard({ car }: { car: Car }) {
   };
 
   return (
-    <Card className="flex flex-col sm:flex-row overflow-hidden group w-full">
+    <Card className="relative flex flex-col sm:flex-row overflow-hidden group w-full">
+      {needsAttention && (
+        <TooltipProvider>
+          <Tooltip>
+              <TooltipTrigger asChild>
+                  <div className="absolute top-2 right-2 z-10 p-1 bg-background/70 rounded-full">
+                      <TriangleAlert className="h-5 w-5 text-accent" />
+                  </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                  <p>{attentionMessage}</p>
+              </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
       <div className="relative w-full sm:w-1/3 h-48 sm:h-auto">
         <div className="absolute top-2 left-2 z-10">
             {car.disponible ? (
@@ -162,20 +176,6 @@ export default function CarCard({ car }: { car: Car }) {
               <Badge variant="destructive">Louée</Badge>
             )}
         </div>
-        {needsAttention && (
-          <TooltipProvider>
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <div className="absolute top-2 right-2 z-10 p-1 bg-background/70 rounded-full">
-                        <TriangleAlert className="h-5 w-5 text-accent" />
-                    </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                    <p>{attentionMessage}</p>
-                </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
         <Image
             src={car.photoURL}
             alt={`${car.marque} ${car.modele}`}
