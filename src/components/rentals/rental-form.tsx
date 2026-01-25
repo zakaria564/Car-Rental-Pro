@@ -59,7 +59,7 @@ const baseSchema = z.object({
   lavage: z.boolean().default(false),
   dommagesDepartNotes: z.string().optional(),
   dommagesDepart: z.record(z.string(), damageTypeEnum).optional(),
-  photosDepart: z.any().optional(),
+  photosDepart: z.array(z.instanceof(File)).optional(),
   
   // Champs de retour
   kilometrageRetour: z.preprocess(
@@ -72,7 +72,7 @@ const baseSchema = z.object({
   lavageRetour: z.boolean().default(true).optional(),
   dommagesRetourNotes: z.string().optional(),
   dommagesRetour: z.record(z.string(), damageTypeEnum).optional(),
-  photosRetour: z.any().optional(),
+  photosRetour: z.array(z.instanceof(File)).optional(),
   dateRetour: z.date().optional(),
 });
 
@@ -273,7 +273,14 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
   };
 
   async function onSubmit(data: z.infer<typeof rentalFormSchema>) {
-    if (!firestore || !storage || !auth.currentUser) return;
+    if (!firestore || !storage || !auth.currentUser) {
+        toast({
+            variant: "destructive",
+            title: "Erreur d'authentification",
+            description: "Vous devez être connecté pour effectuer cette action."
+        });
+        return;
+    }
     
     setIsSubmitting(true);
     const userId = auth.currentUser.uid;
@@ -283,19 +290,26 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
         const photoURLs: string[] = [];
         toast({ title: `Envoi de ${files.length} photo(s)...`, description: "Veuillez patienter." });
 
-        for (const file of files) {
+        const uploadPromises = files.map(async (file) => {
             const filePath = `inspections/${rentalId}/${category}/${Date.now()}_${file.name}`;
             const storageRef = ref(storage, filePath);
-            try {
-                const snapshot = await uploadBytes(storageRef, file);
-                const downloadURL = await getDownloadURL(snapshot.ref);
-                photoURLs.push(downloadURL);
-            } catch (uploadError) {
-                console.error("File upload error:", uploadError);
-                toast({ variant: 'destructive', title: `Erreur d'envoi pour ${file.name}` });
-                throw uploadError;
-            }
+            const snapshot = await uploadBytes(storageRef, file);
+            return getDownloadURL(snapshot.ref);
+        });
+
+        try {
+            const urls = await Promise.all(uploadPromises);
+            photoURLs.push(...urls);
+        } catch (uploadError: any) {
+            console.error("File upload error:", uploadError);
+            const permissionError = new FirestorePermissionError({
+                path: `inspections/${rentalId}/${category}`,
+                operation: 'create', // Representing file upload
+            }, uploadError);
+            errorEmitter.emit('permission-error', permissionError);
+            throw new Error(`Erreur d'envoi d'une photo. Vérifiez vos permissions.`);
         }
+        
         return photoURLs;
     };
     

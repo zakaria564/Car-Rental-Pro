@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -39,6 +40,10 @@ const MultiPhotoFormField = React.forwardRef<
             const updatedFiles = [...previews, ...newFiles];
             setPreviews(updatedFiles);
             setValue(name, updatedFiles, { shouldValidate: true });
+        }
+        // Reset the input value to allow selecting the same file again
+        if (e.target) {
+            e.target.value = "";
         }
     };
 
