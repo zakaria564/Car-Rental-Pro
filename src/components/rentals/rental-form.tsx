@@ -293,6 +293,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             } catch (uploadError) {
                 console.error("File upload error:", uploadError);
                 toast({ variant: 'destructive', title: `Erreur d'envoi pour ${file.name}` });
+                throw uploadError;
             }
         }
         return photoURLs;
@@ -302,9 +303,9 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
         rentalId: string, 
         carId: string, 
         type: 'depart' | 'retour',
-        inspectionData: any
+        inspectionData: any,
+        batch: import("firebase/firestore").WriteBatch
     ) => {
-        const batch = writeBatch(firestore);
         const inspectionRef = doc(collection(firestore, 'inspections'));
         
         const uploadedPhotoUrls = await uploadPhotos(
@@ -333,6 +334,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
         if (damages) {
             for (const partId of Object.keys(damages)) {
                 const damageType = damages[partId];
+                if (!damageType) continue;
                 const partInfo = carParts.find(p => p.id === partId);
                 const damageDocRef = doc(collection(firestore, `inspections/${inspectionRef.id}/damages`));
                 const damagePayload: Omit<Damage, 'id'> = {
@@ -340,20 +342,20 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                     damageType: damageType,
                     positionX: partInfo?.x || 0,
                     positionY: partInfo?.y || 0,
-                    // photoURL will be added in a future step
                 };
                 batch.set(damageDocRef, damagePayload);
             }
         }
         
-        await batch.commit();
         return inspectionRef.id;
     }
 
 
     try {
+        const batch = writeBatch(firestore);
+
         if (mode === 'check-in' && rental) {
-            const receptionInspectionId = await handleInspection(rental.id, rental.vehicule.carId, 'retour', data);
+            const receptionInspectionId = await handleInspection(rental.id, rental.vehicule.carId, 'retour', data, batch);
             
             const rentalRef = doc(firestore, 'rentals', rental.id);
             const carDocRef = doc(firestore, 'cars', rental.vehicule.carId);
@@ -369,7 +371,6 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                 statut: 'terminee' as 'terminee',
             };
 
-            const batch = writeBatch(firestore);
             batch.update(rentalRef, updatePayload);
             batch.update(carDocRef, { disponible: true, kilometrage: data.kilometrageRetour });
 
@@ -414,12 +415,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                 : null;
 
             if (!selectedCar || !selectedClient) {
-                toast({
-                    variant: "destructive",
-                    title: "Données invalides",
-                    description: "Client ou voiture invalides. Veuillez réessayer.",
-                });
-                return;
+                 throw new Error("Client ou voiture invalides. Veuillez réessayer.");
             }
             
             const dayDiff = differenceInCalendarDays(startOfDay(dateRange.to), startOfDay(dateRange.from));
@@ -429,7 +425,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             const safeDateMiseEnCirculation = timestampToDate(selectedCar.dateMiseEnCirculation);
             const newRentalRef = doc(collection(firestore, 'rentals'));
             
-            const livraisonInspectionId = await handleInspection(newRentalRef.id, selectedCar.id, 'depart', data);
+            const livraisonInspectionId = await handleInspection(newRentalRef.id, selectedCar.id, 'depart', data, batch);
 
             const rentalPayload: Omit<Rental, 'id'> & {createdAt: any} = {
                 locataire: {
@@ -472,8 +468,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             };
             
             const carDocRef = doc(firestore, 'cars', selectedCar.id);
-            const batch = writeBatch(firestore);
-
+            
             batch.set(newRentalRef, rentalPayload);
             batch.update(carDocRef, { disponible: false });
 
@@ -484,12 +479,12 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             });
             onFinished();
         }
-    } catch (error) {
+    } catch (error: any) {
         console.error("Submission error:", error);
         toast({
             variant: "destructive",
             title: "Erreur",
-            description: "Une erreur est survenue lors de l'enregistrement."
+            description: error.message || "Une erreur est survenue lors de l'enregistrement."
         });
     } finally {
         setIsSubmitting(false);
