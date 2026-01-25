@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import type { Rental, Car as CarType, Client, DamageType, Damage } from "@/lib/definitions";
+import type { Rental, Car as CarType, Client, DamageType, Damage, Inspection } from "@/lib/definitions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { CalendarIcon } from "lucide-react";
@@ -32,10 +32,11 @@ import { Textarea } from "../ui/textarea";
 import { Slider } from "../ui/slider";
 import CarDamageDiagram, { carParts } from "./car-damage-diagram";
 import { useFirebase } from "@/firebase";
-import { collection, doc, serverTimestamp, setDoc, writeBatch, Timestamp, updateDoc, addDoc } from "firebase/firestore";
+import { collection, doc, serverTimestamp, setDoc, writeBatch, Timestamp, updateDoc, getDoc, getDocs } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { ExistingPhotoViewer } from "../ui/multi-file-input";
+import { Skeleton } from "../ui/skeleton";
 
 const damageTypeEnum = z.enum(['rayure', 'rayure_importante', 'choc', 'a_remplacer']);
 
@@ -110,6 +111,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
   const { toast } = useToast();
   const { firestore, auth } = useFirebase();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isLoadingDefaults, setIsLoadingDefaults] = React.useState(false);
 
   const rentalFormSchema = React.useMemo(() => {
     if (mode === 'check-in') {
@@ -150,82 +152,144 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
     });
   }, [mode]);
 
+  const newRentalInitialValues = {
+      clientId: "",
+      conducteur2_clientId: "_none_",
+      voitureId: "",
+      dateRange: undefined,
+      kilometrageDepart: '' as any,
+      caution: undefined,
+      carburantNiveauDepart: 0.5,
+      dommagesDepart: {},
+      dommagesRetour: {},
+      dommagesDepartNotes: "",
+      photosDepart: "",
+      kilometrageRetour: undefined,
+      carburantNiveauRetour: 0.5,
+      dommagesRetourNotes: "",
+      photosRetour: "",
+      roueSecours: true,
+      posteRadio: true,
+      lavage: true,
+      dateRetour: new Date(),
+      roueSecoursRetour: true,
+      posteRadioRetour: true,
+      lavageRetour: true,
+  };
 
-  const getInitialValues = React.useCallback(() => {
-    if (rental && rental.livraison) { // Check for old data structure
+  const [initialValues, setInitialValues] = React.useState(newRentalInitialValues);
+
+  const form = useForm<z.infer<typeof rentalFormSchema>>({
+    resolver: zodResolver(rentalFormSchema),
+    mode: "onChange",
+    defaultValues: initialValues,
+  });
+  
+  React.useEffect(() => {
+    const loadRentalData = async () => {
+        if (!rental || !firestore) return;
+        setIsLoadingDefaults(true);
+
+        const fetchInspection = async (inspectionId: string) => {
+            const inspectionRef = doc(firestore, 'inspections', inspectionId);
+            const inspectionSnap = await getDoc(inspectionRef);
+            if (!inspectionSnap.exists()) return null;
+
+            const damagesRef = collection(firestore, `inspections/${inspectionId}/damages`);
+            const damagesSnap = await getDocs(damagesRef);
+            const damagesData = damagesSnap.docs.reduce((acc, doc) => {
+                const data = doc.data() as Omit<Damage, 'id'>;
+                if (data.partName && data.damageType) {
+                   acc[data.partName] = data.damageType;
+                }
+                return acc;
+            }, {} as { [key: string]: DamageType });
+            
+            return { ...inspectionSnap.data(), damages: damagesData };
+        };
+
         const rentalClient = clients.find(c => c.cin === rental.locataire.cin);
         const rentalConducteur2 = rental.conducteur2 ? clients.find(c => c.cin === rental.conducteur2.cin) : null;
         
-        // This is complex because we need to fetch inspection data. 
-        // For simplicity in the form, we will just prepare the fields.
-        // The display of existing photos is handled in the read-only view.
-        return {
+        let livraisonData: any = rental.livraison; // backward compatibility
+        let receptionData: any = rental.reception; // backward compatibility
+
+        if (rental.livraisonInspectionId) {
+            const insp = await fetchInspection(rental.livraisonInspectionId);
+            if (insp) {
+               livraisonData = {
+                   kilometrage: insp.kilometrage,
+                   carburantNiveau: insp.carburantNiveau,
+                   roueSecours: insp.roueSecours,
+                   posteRadio: insp.posteRadio,
+                   lavage: insp.lavage,
+                   dommagesNotes: insp.notes,
+                   damages: insp.damages,
+                   photos: insp.photos || []
+               }
+            }
+        }
+        if (mode === 'check-in' && rental.receptionInspectionId) {
+             const insp = await fetchInspection(rental.receptionInspectionId);
+             if (insp) {
+                receptionData = {
+                   dateHeure: insp.timestamp,
+                   kilometrage: insp.kilometrage,
+                   carburantNiveau: insp.carburantNiveau,
+                   roueSecours: insp.roueSecours,
+                   posteRadio: insp.posteRadio,
+                   lavage: insp.lavage,
+                   dommagesNotes: insp.notes,
+                   damages: insp.damages,
+                   photos: insp.photos || []
+                }
+             }
+        }
+
+        const defaults = {
             clientId: rentalClient?.id ?? "",
             conducteur2_clientId: rentalConducteur2?.id ?? '_none_',
             voitureId: rental.vehicule.carId,
             dateRange: { from: getSafeDate(rental.location.dateDebut)!, to: getSafeDate(rental.location.dateFin)! },
             caution: rental.location.depot,
-            kilometrageDepart: rental.livraison.kilometrage,
-            carburantNiveauDepart: rental.livraison.carburantNiveau,
-            roueSecours: rental.livraison.roueSecours,
-            posteRadio: rental.livraison.posteRadio,
-            lavage: rental.livraison.lavage,
-            dommagesDepartNotes: rental.livraison.dommagesNotes || "",
-            dommagesDepart: rental.livraison.dommages,
-            photosDepart: rental.livraison.photos?.join('\n') ?? '',
-            kilometrageRetour: rental.reception?.kilometrage,
-            carburantNiveauRetour: rental.reception?.carburantNiveau,
-            dommagesRetourNotes: rental.reception?.dommagesNotes || "",
-            dommagesRetour: rental.reception?.dommages,
-            photosRetour: rental.reception?.photos?.join('\n') ?? '',
-            dateRetour: rental.reception?.dateHeure ? getSafeDate(rental.reception.dateHeure) : new Date(),
-            roueSecoursRetour: rental.reception?.roueSecours ?? true,
-            posteRadioRetour: rental.reception?.posteRadio ?? true,
-            lavageRetour: rental.reception?.lavage ?? true,
-        };
-    }
-    // New rental
-    return {
-        clientId: "",
-        conducteur2_clientId: "_none_",
-        voitureId: "",
-        dateRange: undefined,
-        kilometrageDepart: '' as any,
-        caution: undefined,
-        carburantNiveauDepart: 0.5,
-        dommagesDepart: {},
-        dommagesRetour: {},
-        dommagesDepartNotes: "",
-        photosDepart: "",
-        kilometrageRetour: undefined,
-        carburantNiveauRetour: 0.5,
-        dommagesRetourNotes: "",
-        photosRetour: "",
-        roueSecours: true,
-        posteRadio: true,
-        lavage: true,
-        dateRetour: new Date(),
-        roueSecoursRetour: true,
-        posteRadioRetour: true,
-        lavageRetour: true,
-    }
-  }, [rental, clients]);
+            
+            kilometrageDepart: livraisonData?.kilometrage,
+            carburantNiveauDepart: livraisonData?.carburantNiveau,
+            roueSecours: livraisonData?.roueSecours,
+            posteRadio: livraisonData?.posteRadio,
+            lavage: livraisonData?.lavage,
+            dommagesDepartNotes: livraisonData?.dommagesNotes || "",
+            dommagesDepart: livraisonData?.damages || {},
+            photosDepart: (livraisonData?.photos || []).join('\n'),
 
-  const form = useForm<z.infer<typeof rentalFormSchema>>({
-    resolver: zodResolver(rentalFormSchema),
-    mode: "onChange",
-    defaultValues: getInitialValues(),
-  });
+            kilometrageRetour: receptionData?.kilometrage,
+            carburantNiveauRetour: receptionData?.carburantNiveau,
+            roueSecoursRetour: receptionData?.roueSecours ?? true,
+            posteRadioRetour: receptionData?.posteRadio ?? true,
+            lavageRetour: receptionData?.lavage ?? true,
+            dommagesRetourNotes: receptionData?.dommagesNotes || "",
+            dommagesRetour: receptionData?.damages || {},
+            photosRetour: (receptionData?.photos || []).join('\n'),
+            dateRetour: receptionData?.dateHeure ? getSafeDate(receptionData.dateHeure) : new Date(),
+        };
+        
+        setInitialValues(defaults);
+        form.reset(defaults);
+        setIsLoadingDefaults(false);
+    };
+
+    if (mode === 'edit' || mode === 'check-in') {
+        loadRentalData();
+    } else {
+         form.reset(newRentalInitialValues);
+    }
+  }, [rental, mode, firestore, clients, form]);
   
   const { setValue } = form;
   const selectedClientId = form.watch("clientId");
   const selectedCarId = form.watch("voitureId");
   const dateRange = form.watch("dateRange");
   const dateRetour = form.watch("dateRetour");
-
-  React.useEffect(() => {
-    form.reset(getInitialValues());
-  }, [cars, form, getInitialValues]);
 
   React.useEffect(() => {
     if (selectedCarId && mode === 'new') {
@@ -288,7 +352,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
     setIsSubmitting(true);
     const userId = auth.currentUser.uid;
     
-    const handleInspection = async (
+    const handleInspection = (
         rentalId: string, 
         carId: string, 
         type: 'depart' | 'retour',
@@ -304,7 +368,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             vehicleId: carId,
             rentalId: rentalId,
             userId: userId,
-            timestamp: serverTimestamp(),
+            timestamp: type === 'depart' ? serverTimestamp() : inspectionData.dateRetour,
             type: type,
             notes: type === 'depart' ? inspectionData.dommagesDepartNotes : inspectionData.dommagesRetourNotes,
             kilometrage: type === 'depart' ? inspectionData.kilometrageDepart : inspectionData.kilometrageRetour,
@@ -319,7 +383,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
         const damages = type === 'depart' ? inspectionData.dommagesDepart : inspectionData.dommagesRetour;
         if (damages) {
             for (const partId of Object.keys(damages)) {
-                const damageType = damages[partId];
+                const damageType = damages[partId as keyof typeof damages];
                 if (!damageType) continue;
                 const partInfo = carParts.find(p => p.id === partId);
                 const damageDocRef = doc(collection(firestore, `inspections/${inspectionRef.id}/damages`));
@@ -341,7 +405,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
         const batch = writeBatch(firestore);
 
         if (mode === 'check-in' && rental) {
-            const receptionInspectionId = await handleInspection(rental.id, rental.vehicule.carId, 'retour', data, batch);
+            const receptionInspectionId = handleInspection(rental.id, rental.vehicule.carId, 'retour', data, batch);
             
             const rentalRef = doc(firestore, 'rentals', rental.id);
             const carDocRef = doc(firestore, 'cars', rental.vehicule.carId);
@@ -411,7 +475,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             const safeDateMiseEnCirculation = timestampToDate(selectedCar.dateMiseEnCirculation);
             const newRentalRef = doc(collection(firestore, 'rentals'));
             
-            const livraisonInspectionId = await handleInspection(newRentalRef.id, selectedCar.id, 'depart', data, batch);
+            const livraisonInspectionId = handleInspection(newRentalRef.id, selectedCar.id, 'depart', data, batch);
 
             const rentalPayload: Omit<Rental, 'id'> & {createdAt: any} = {
                 locataire: {
@@ -484,6 +548,18 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
       edit: 'Mettre à jour le contrat',
       'check-in': 'Terminer et Réceptionner le Véhicule'
   };
+
+  if (isLoadingDefaults) {
+    return (
+        <div className="space-y-4 mt-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-40 w-full" />
+            <Skeleton className="h-10 w-full" />
+        </div>
+    );
+  }
 
   return (
     <Form {...form}>
@@ -594,7 +670,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                                 onSelect={field.onChange}
                                 numberOfMonths={2}
                                 locale={fr}
-                                disabled={date => mode === 'new' ? date < new Date(new Date().setHours(0,0,0,0)) : date < field.value.from}
+                                disabled={date => mode === 'new' ? date < new Date(new Date().setHours(0,0,0,0)) : (rental?.location?.dateDebut ? date < getSafeDate(rental.location.dateDebut)! : false)}
                               />
                             </PopoverContent>
                           </Popover>
@@ -976,3 +1052,5 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
     </Form>
   );
 }
+
+    
