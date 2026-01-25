@@ -16,13 +16,13 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import type { Rental, Car as CarType, Client } from "@/lib/definitions";
+import type { Rental, Car as CarType, Client, DamageType } from "@/lib/definitions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { CalendarIcon } from "lucide-react";
 import { Calendar } from "../ui/calendar";
 import { cn, formatCurrency } from "@/lib/utils";
-import { format, differenceInCalendarDays } from "date-fns";
+import { format, differenceInCalendarDays, startOfDay } from "date-fns";
 import { fr } from 'date-fns/locale';
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
@@ -36,6 +36,7 @@ import { collection, doc, serverTimestamp, setDoc, writeBatch, Timestamp, update
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 
+const damageTypeEnum = z.enum(['rayure', 'rayure_importante', 'choc', 'a_remplacer']);
 
 const baseSchema = z.object({
   clientId: z.string({ required_error: "Veuillez sélectionner un client." }).min(1, "Veuillez sélectionner un client."),
@@ -55,7 +56,7 @@ const baseSchema = z.object({
   posteRadio: z.boolean().default(false),
   lavage: z.boolean().default(false),
   dommagesDepartNotes: z.string().optional(),
-  dommagesDepart: z.record(z.string(), z.boolean()).optional(),
+  dommagesDepart: z.record(z.string(), damageTypeEnum).optional(),
   
   // Champs de retour
   kilometrageRetour: z.preprocess(
@@ -67,7 +68,7 @@ const baseSchema = z.object({
   posteRadioRetour: z.boolean().default(true).optional(),
   lavageRetour: z.boolean().default(true).optional(),
   dommagesRetourNotes: z.string().optional(),
-  dommagesRetour: z.record(z.string(), z.boolean()).optional(),
+  dommagesRetour: z.record(z.string(), damageTypeEnum).optional(),
   dateRetour: z.date().optional(),
 });
 
@@ -162,11 +163,11 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             posteRadio: rental.livraison.posteRadio,
             lavage: rental.livraison.lavage,
             dommagesDepartNotes: rental.livraison.dommagesNotes || "",
-            dommagesDepart: rental.livraison.dommages?.reduce((acc, curr) => ({...acc, [curr]: true}), {}),
+            dommagesDepart: rental.livraison.dommages,
             kilometrageRetour: rental.reception?.kilometrage,
             carburantNiveauRetour: rental.reception?.carburantNiveau,
             dommagesRetourNotes: rental.reception?.dommagesNotes || "",
-            dommagesRetour: rental.reception?.dommages?.reduce((acc, curr) => ({...acc, [curr]: true}), {}),
+            dommagesRetour: rental.reception?.dommages,
             dateRetour: rental.reception?.dateHeure ? getSafeDate(rental.reception.dateHeure) : new Date(),
             roueSecoursRetour: rental.reception?.roueSecours ?? true,
             posteRadioRetour: rental.reception?.posteRadio ?? true,
@@ -233,9 +234,8 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
     const to = (mode === 'check-in' && rental) ? dateRetour : dateRange?.to;
 
     if (from && to) {
-        const days = differenceInCalendarDays(to, from);
-        if (days < 0) return 0;
-        return days === 0 ? 1 : days;
+        const days = differenceInCalendarDays(startOfDay(to), startOfDay(from));
+        return days < 1 ? 1 : days;
     }
     return 0;
   }, [dateRange, dateRetour, mode, rental]);
@@ -262,7 +262,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
 
   async function onSubmit(data: z.infer<typeof rentalFormSchema>) {
     if (!firestore) return;
-
+    
     if (mode === 'check-in' && rental) {
         const rentalRef = doc(firestore, 'rentals', rental.id);
         const carDocRef = doc(firestore, 'cars', rental.vehicule.carId);
@@ -278,7 +278,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                 roueSecours: data.roueSecoursRetour,
                 posteRadio: data.posteRadioRetour,
                 lavage: data.lavageRetour,
-                dommages: Object.keys(data.dommagesRetour || {}).filter(k => data.dommagesRetour?.[k]),
+                dommages: data.dommagesRetour || {},
                 dommagesRetourNotes: data.dommagesRetourNotes || "",
             },
             'location.dateFin': data.dateRetour,
@@ -317,8 +317,8 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
         const { dateRange } = data;
         const rentalRef = doc(firestore, 'rentals', rental.id);
 
-        const dayDiff = differenceInCalendarDays(dateRange.to, dateRange.from);
-        const finalRentalDays = dayDiff < 0 ? 0 : (dayDiff === 0 ? 1 : dayDiff);
+        const dayDiff = differenceInCalendarDays(startOfDay(dateRange.to), startOfDay(dateRange.from));
+        const finalRentalDays = dayDiff < 1 ? 1 : dayDiff;
         const finalAmountToPay = finalRentalDays * rental.location.prixParJour;
 
         const updatePayload = {
@@ -377,8 +377,8 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             return;
         }
         
-        const dayDiff = differenceInCalendarDays(dateRange.to, dateRange.from);
-        const rentalDays = dayDiff < 0 ? 0 : (dayDiff === 0 ? 1 : dayDiff);
+        const dayDiff = differenceInCalendarDays(startOfDay(dateRange.to), startOfDay(dateRange.from));
+        const rentalDays = dayDiff < 1 ? 1 : dayDiff;
         const totalAmount = rentalDays * selectedCar.prixParJour;
         
         const safeDateMiseEnCirculation = timestampToDate(selectedCar.dateMiseEnCirculation);
@@ -417,7 +417,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                 roueSecours: roueSecours,
                 posteRadio: posteRadio,
                 lavage: lavage,
-                dommages: Object.keys(dommagesDepart || {}).filter(k => dommagesDepart?.[k]),
+                dommages: dommagesDepart || {},
                 dommagesNotes: dommagesDepartNotes || "",
             },
             reception: {},
@@ -696,7 +696,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Schéma des dommages (Départ)</FormLabel>
-                                    <FormDescription>Cliquez sur les zones pour marquer les dommages existants.</FormDescription>
+                                    <FormDescription>Cliquez sur une zone pour spécifier le type de dommage.</FormDescription>
                                     <FormControl>
                                         <CarDamageDiagram 
                                             damages={field.value || {}} 

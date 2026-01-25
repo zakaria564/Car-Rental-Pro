@@ -95,7 +95,14 @@
             "roueSecours": { "type": "boolean" },
             "posteRadio": { "type": "boolean" },
             "lavage": { "type": "boolean" },
-            "dommages": { "type": "array", "items": { "type": "string" } },
+            "dommages": {
+              "type": "object",
+              "description": "An object mapping damaged part IDs to the type of damage.",
+              "additionalProperties": {
+                "type": "string",
+                "enum": ["rayure", "rayure_importante", "choc", "a_remplacer"]
+              }
+            },
             "dommagesNotes": { "type": "string" }
           }
         },
@@ -108,7 +115,14 @@
             "roueSecours": { "type": "boolean" },
             "posteRadio": { "type": "boolean" },
             "lavage": { "type": "boolean" },
-            "dommages": { "type": "array", "items": { "type": "string" } },
+            "dommages": {
+              "type": "object",
+              "description": "An object mapping damaged part IDs to the type of damage.",
+              "additionalProperties": {
+                "type": "string",
+                "enum": ["rayure", "rayure_importante", "choc", "a_remplacer"]
+              }
+            },
             "dommagesNotes": { "type": "string" }
           }
         },

@@ -36,8 +36,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import type { Rental, Client, Car } from "@/lib/definitions";
-import { formatCurrency } from "@/lib/utils";
+import type { Rental, Client, Car, DamageType } from "@/lib/definitions";
+import { damageTypes } from "@/lib/definitions";
+import { formatCurrency, cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import RentalForm from "./rental-form";
 import { useToast } from "@/hooks/use-toast";
@@ -49,6 +50,7 @@ import { doc, deleteDoc, updateDoc, writeBatch } from "firebase/firestore";
 import { useFirebase } from "@/firebase";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
+import { carParts } from "./car-damage-diagram";
 
 type RentalTableProps = {
   rentals: Rental[];
@@ -71,6 +73,26 @@ function RentalDetails({ rental }: { rental: Rental }) {
     const safeDebutDate = getSafeDate(rental.location.dateDebut);
     const safeFinDate = getSafeDate(rental.location.dateFin);
     const safeMiseEnCirculation = getSafeDate(rental.vehicule.dateMiseEnCirculation);
+
+    const formatDamages = (damagesObject: { [key: string]: DamageType } | undefined) => {
+      if (!damagesObject || Object.keys(damagesObject).length === 0) {
+          return "Aucun dommage signalé.";
+      }
+      const partLabels = carParts.reduce((acc, part) => {
+          acc[part.id] = part.label;
+          return acc;
+      }, {} as {[key: string]: string});
+  
+      return (
+          <ul className="list-disc pl-5 text-xs">
+              {Object.entries(damagesObject).map(([partId, damageType]) => (
+                  <li key={partId}>
+                      {partLabels[partId] || partId}: <span className="font-semibold">{damageTypes[damageType].label}</span>
+                  </li>
+              ))}
+          </ul>
+      );
+    };
 
     return (
       <ScrollArea className="h-[70vh]">
@@ -160,7 +182,7 @@ function RentalDetails({ rental }: { rental: Rental }) {
                         <p><strong>Date:</strong> {safeLivraisonDate ? format(safeLivraisonDate, "dd/MM/yyyy HH:mm", { locale: fr }) : 'N/A'}</p>
                         <p><strong>Kilométrage:</strong> {rental.livraison.kilometrage.toLocaleString()} km</p>
                         <p><strong>Niveau Carburant:</strong> {rental.livraison.carburantNiveau * 100}%</p>
-                        {rental.livraison.dommages && rental.livraison.dommages.length > 0 && <p><strong>Dommages:</strong> {rental.livraison.dommages.join(', ')}</p>}
+                        <div><strong className="block mb-1">Dommages:</strong> {formatDamages(rental.livraison.dommages)}</div>
                         {rental.livraison.dommagesNotes && <p><strong>Notes:</strong> {rental.livraison.dommagesNotes}</p>}
                     </div>
                     <div>
@@ -170,7 +192,7 @@ function RentalDetails({ rental }: { rental: Rental }) {
                             <p><strong>Date:</strong> {format(safeReceptionDate, "dd/MM/yyyy HH:mm", { locale: fr })}</p>
                             <p><strong>Kilométrage:</strong> {rental.reception.kilometrage?.toLocaleString()} km</p>
                             <p><strong>Niveau Carburant:</strong> {rental.reception.carburantNiveau ? rental.reception.carburantNiveau * 100 + '%' : 'N/A'}</p>
-                            {rental.reception.dommages && rental.reception.dommages.length > 0 && <p><strong>Dommages:</strong> {rental.reception.dommages.join(', ')}</p>}
+                            <div><strong className="block mb-1">Dommages:</strong> {formatDamages(rental.reception.dommages)}</div>
                             {rental.reception.dommagesNotes && <p><strong>Notes:</strong> {rental.reception.dommagesNotes}</p>}
                           </>
                         ) : <p>Véhicule non retourné.</p>}
@@ -264,7 +286,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
         size: A4;
         margin: 10mm; /* Reduced page margins */
       }
-      h1, h2, h3, h4, h5, h6, p, div {
+      h1, h2, h3, h4, h5, h6, p, div, ul, li {
         break-inside: avoid;
       }
     `;
@@ -629,4 +651,3 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     </>
   );
 }
-

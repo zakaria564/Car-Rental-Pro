@@ -34,6 +34,15 @@ export type Client = {
   permisNo?: string;
 };
 
+export const damageTypes = {
+  rayure: { label: 'Rayure', color: 'bg-yellow-400/70 border-yellow-500' },
+  rayure_importante: { label: 'Rayure importante', color: 'bg-orange-500/70 border-orange-600' },
+  choc: { label: 'Choc', color: 'bg-red-600/70 border-red-700' },
+  a_remplacer: { label: 'À remplacer', color: 'bg-gray-800/80 border-gray-900 text-white' },
+} as const;
+
+export type DamageType = keyof typeof damageTypes;
+
 export type Rental = {
   id: string;
   locataire: {
@@ -67,7 +76,7 @@ export type Rental = {
     roueSecours: boolean;
     posteRadio: boolean;
     lavage: boolean;
-    dommages: string[];
+    dommages: { [key: string]: DamageType };
     dommagesNotes?: string;
   };
   reception: {
@@ -77,7 +86,7 @@ export type Rental = {
     roueSecours?: boolean;
     posteRadio?: boolean;
     lavage?: boolean;
-    dommages?: string[];
+    dommages?: { [key: string]: DamageType };
     dommagesNotes?: string;
   };
   location: {
