@@ -32,7 +32,7 @@ import { Textarea } from "../ui/textarea";
 import { Slider } from "../ui/slider";
 import CarDamageDiagram from "./car-damage-diagram";
 import { useFirebase } from "@/firebase";
-import { collection, doc, serverTimestamp, setDoc, writeBatch, Timestamp } from "firebase/firestore";
+import { collection, doc, serverTimestamp, setDoc, writeBatch, Timestamp, updateDoc } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 
@@ -338,7 +338,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             'location.montantAPayer': finalAmountToPay,
         };
 
-        setDoc(rentalRef, updatePayload, { merge: true })
+        updateDoc(rentalRef, updatePayload)
           .then(() => {
             toast({ title: "Contrat mis à jour", description: `La location a été étendue jusqu'au ${format(dateRange.to, "dd/MM/yyyy")}.` });
             onFinished();
