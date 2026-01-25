@@ -1,0 +1,14 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Les images sont publiques en lecture pour pouvoir les afficher dans l'application.
+    // L'écriture est restreinte aux utilisateurs authentifiés.
+    // Dans une application de production, il est recommandé de restreindre davantage
+    // l'accès en écriture, par exemple, aux seuls utilisateurs impliqués dans le contrat de location.
+    match /{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+  }
+}
