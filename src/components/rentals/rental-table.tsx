@@ -213,69 +213,69 @@ function RentalDetails({ rental }: { rental: Rental }) {
                 <p className="text-muted-foreground">Contrat N°: {rental.id?.substring(0, 8).toUpperCase()}</p>
             </div>
             
-            <div className="print-main-grid">
-              <div className="print-left-col space-y-4">
+            <div className="space-y-4">
                 {/* Parties */}
-                <div className="border p-3 rounded-md space-y-3">
-                    <h3 className="font-bold text-base underline">LES PARTIES</h3>
-                     <div>
-                        <h4 className="font-semibold">Le Loueur :</h4>
-                        <p>Location Auto Pro</p>
-                        <p>Agdal, Rabat, Maroc</p>
-                        <p>Tél: +212 537 00 00 00</p>
-                    </div>
-                    <div>
-                        <h4 className="font-semibold">Le Locataire (Conducteur Principal) :</h4>
-                        <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-                            <p><strong>Nom:</strong> {rental.locataire.nomPrenom}</p>
-                            <p><strong>CIN/Passeport:</strong> {rental.locataire.cin}</p>
-                            <p><strong>Permis N°:</strong> {rental.locataire.permisNo}</p>
-                            <p><strong>Téléphone:</strong> {rental.locataire.telephone}</p>
+                <div className="border p-3 rounded-md">
+                    <h3 className="font-bold text-base underline mb-2">LES PARTIES</h3>
+                    <div className="print-grid-2-col">
+                        <div>
+                            <h4 className="font-semibold">Le Loueur :</h4>
+                            <p>Location Auto Pro</p>
+                            <p>Agdal, Rabat, Maroc</p>
+                            <p>Tél: +212 537 00 00 00</p>
+                        </div>
+                        <div>
+                            <h4 className="font-semibold">Le Locataire (Conducteur Principal) :</h4>
+                            <div className="grid grid-cols-2 gap-x-2 gap-y-1">
+                                <p><strong>Nom:</strong> {rental.locataire.nomPrenom}</p>
+                                <p><strong>CIN/Passeport:</strong> {rental.locataire.cin}</p>
+                                <p><strong>Permis N°:</strong> {rental.locataire.permisNo}</p>
+                                <p><strong>Téléphone:</strong> {rental.locataire.telephone}</p>
+                            </div>
+                            {rental.conducteur2 && (
+                            <div className="mt-2">
+                                <h4 className="font-semibold">Deuxième Conducteur :</h4>
+                                 <div className="grid grid-cols-2 gap-x-2 gap-y-1">
+                                    <p><strong>Nom:</strong> {rental.conducteur2.nomPrenom}</p>
+                                    <p><strong>CIN/Passeport:</strong> {rental.conducteur2.cin}</p>
+                                    <p><strong>Permis N°:</strong> {rental.conducteur2.permisNo}</p>
+                                </div>
+                            </div>
+                            )}
                         </div>
                     </div>
-                    {rental.conducteur2 && (
-                    <div className="mt-2">
-                        <h4 className="font-semibold">Deuxième Conducteur :</h4>
-                         <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-                            <p><strong>Nom:</strong> {rental.conducteur2.nomPrenom}</p>
-                            <p><strong>CIN/Passeport:</strong> {rental.conducteur2.cin}</p>
-                            <p><strong>Permis N°:</strong> {rental.conducteur2.permisNo}</p>
-                        </div>
-                    </div>
-                    )}
                 </div>
-
 
                 {/* Vehicle & Conditions */}
-                <div className="border p-3 rounded-md space-y-3">
-                    <h3 className="font-bold text-base underline">DÉTAILS DE LA LOCATION</h3>
-                     <div>
-                        <h4 className="font-semibold">Véhicule Loué :</h4>
-                        <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-                            <p><strong>Marque/Modèle:</strong> {rental.vehicule.marque}</p>
-                            <p><strong>Immatriculation:</strong> {rental.vehicule.immatriculation}</p>
-                            <p><strong>Carburant:</strong> {rental.vehicule.carburantType}</p>
-                            <p><strong>Transmission:</strong> {rental.vehicule.transmission}</p>
+                <div className="border p-3 rounded-md">
+                    <h3 className="font-bold text-base underline mb-2">DÉTAILS DE LA LOCATION</h3>
+                    <div className="print-grid-2-col">
+                        <div>
+                            <h4 className="font-semibold">Véhicule Loué :</h4>
+                            <div className="grid grid-cols-2 gap-x-2 gap-y-1">
+                                <p><strong>Marque/Modèle:</strong> {rental.vehicule.marque}</p>
+                                <p><strong>Immatriculation:</strong> {rental.vehicule.immatriculation}</p>
+                                <p><strong>Carburant:</strong> {rental.vehicule.carburantType}</p>
+                                <p><strong>Transmission:</strong> {rental.vehicule.transmission}</p>
+                            </div>
                         </div>
-                    </div>
-                    <div>
-                        <h4 className="font-semibold">Période & Coût :</h4>
-                        <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-                           <p><strong>Début:</strong> {safeDebutDate ? format(safeDebutDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</p>
-                           <p><strong>Fin Prévue:</strong> {safeFinDate ? format(safeFinDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</p>
+                        <div>
+                            <h4 className="font-semibold">Période & Coût :</h4>
+                            <div className="grid grid-cols-2 gap-x-2 gap-y-1">
+                               <p><strong>Début:</strong> {safeDebutDate ? format(safeDebutDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</p>
+                               <p><strong>Fin Prévue:</strong> {safeFinDate ? format(safeFinDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</p>
+                            </div>
+                            <p><strong>Durée:</strong> {rental.location.nbrJours} jour(s)</p>
+                            <p><strong>Dépôt de Caution:</strong> {formatCurrency(rental.location.depot || 0, 'MAD')}</p>
+                            <p className="font-bold"><strong>Prix Total:</strong> {formatCurrency(rental.location.montantAPayer, 'MAD')}</p>
                         </div>
-                        <p><strong>Durée:</strong> {rental.location.nbrJours} jour(s)</p>
-                        <p><strong>Dépôt de Caution:</strong> {formatCurrency(rental.location.depot || 0, 'MAD')}</p>
-                        <p className="font-bold"><strong>Prix Total:</strong> {formatCurrency(rental.location.montantAPayer, 'MAD')}</p>
                     </div>
                 </div>
-              </div>
 
-              <div className="print-right-col mt-4 md:mt-0">
                 {/* Delivery / Return state */}
-                <div className="border p-3 rounded-md h-full">
+                <div className="border p-3 rounded-md">
                     <h3 className="font-bold text-base mb-2 underline">ÉTAT DU VÉHICULE</h3>
-                    <div className="space-y-4">
+                    <div className="print-grid-2-col">
                         {rental.livraisonInspectionId ? (
                             <InspectionDetailsView inspectionId={rental.livraisonInspectionId} />
                         ) : (
@@ -289,8 +289,8 @@ function RentalDetails({ rental }: { rental: Rental }) {
                         )}
                     </div>
                 </div>
-              </div>
             </div>
+
           </div>
             {/* Signatures */}
             <div className="signatures-section">
@@ -373,22 +373,16 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       }
       
       @media print {
-        .print-main-grid {
+        .print-grid-2-col {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 4mm;
           align-items: start;
         }
-        .print-left-col, .print-right-col {
-          margin-top: 0 !important;
-          page-break-inside: avoid;
-        }
-        .print-right-col .border {
-          height: 100%;
-        }
         .border {
           border-width: 0.5pt !important;
           border-color: #ccc !important;
+          padding: 2mm !important;
         }
       }
 
@@ -794,6 +788,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
 }
 
     
+
 
 
 
