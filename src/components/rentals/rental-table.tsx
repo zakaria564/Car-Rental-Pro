@@ -213,70 +213,74 @@ function RentalDetails({ rental }: { rental: Rental }) {
                 <p className="text-muted-foreground">Contrat N°: {rental.id?.substring(0, 8).toUpperCase()}</p>
             </div>
             
-            <div className="space-y-4">
-              {/* Parties */}
-              <div className="border p-3 rounded-md space-y-3">
-                  <h3 className="font-bold text-base underline">LES PARTIES</h3>
-                   <div>
-                      <h4 className="font-semibold">Le Loueur :</h4>
-                      <p>Location Auto Pro</p>
-                      <p>Agdal, Rabat, Maroc</p>
-                      <p>Tél: +212 537 00 00 00</p>
-                  </div>
-                  <div>
-                      <h4 className="font-semibold">Le Locataire (Conducteur Principal) :</h4>
-                      <p><strong>Nom:</strong> {rental.locataire.nomPrenom}</p>
-                      <p><strong>CIN/Passeport:</strong> {rental.locataire.cin}</p>
-                      <p><strong>Permis N°:</strong> {rental.locataire.permisNo}</p>
-                      <p><strong>Téléphone:</strong> {rental.locataire.telephone}</p>
-                  </div>
-                  {rental.conducteur2 && (
-                  <div className="mt-2">
-                      <h4 className="font-semibold">Deuxième Conducteur :</h4>
-                      <p><strong>Nom:</strong> {rental.conducteur2.nomPrenom}</p>
-                      <p><strong>CIN/Passeport:</strong> {rental.conducteur2.cin}</p>
-                      <p><strong>Permis N°:</strong> {rental.conducteur2.permisNo}</p>
-                  </div>
-                  )}
+            <div className="print-main-grid">
+              <div className="print-left-col space-y-4">
+                {/* Parties */}
+                <div className="border p-3 rounded-md space-y-3">
+                    <h3 className="font-bold text-base underline">LES PARTIES</h3>
+                     <div>
+                        <h4 className="font-semibold">Le Loueur :</h4>
+                        <p>Location Auto Pro</p>
+                        <p>Agdal, Rabat, Maroc</p>
+                        <p>Tél: +212 537 00 00 00</p>
+                    </div>
+                    <div>
+                        <h4 className="font-semibold">Le Locataire (Conducteur Principal) :</h4>
+                        <p><strong>Nom:</strong> {rental.locataire.nomPrenom}</p>
+                        <p><strong>CIN/Passeport:</strong> {rental.locataire.cin}</p>
+                        <p><strong>Permis N°:</strong> {rental.locataire.permisNo}</p>
+                        <p><strong>Téléphone:</strong> {rental.locataire.telephone}</p>
+                    </div>
+                    {rental.conducteur2 && (
+                    <div className="mt-2">
+                        <h4 className="font-semibold">Deuxième Conducteur :</h4>
+                        <p><strong>Nom:</strong> {rental.conducteur2.nomPrenom}</p>
+                        <p><strong>CIN/Passeport:</strong> {rental.conducteur2.cin}</p>
+                        <p><strong>Permis N°:</strong> {rental.conducteur2.permisNo}</p>
+                    </div>
+                    )}
+                </div>
+
+
+                {/* Vehicle & Conditions */}
+                <div className="border p-3 rounded-md space-y-3">
+                    <h3 className="font-bold text-base underline">DÉTAILS DE LA LOCATION</h3>
+                     <div className="space-y-1">
+                        <h4 className="font-semibold">Véhicule Loué :</h4>
+                        <p><strong>Marque/Modèle:</strong> {rental.vehicule.marque}</p>
+                        <p><strong>Immatriculation:</strong> {rental.vehicule.immatriculation}</p>
+                        <p><strong>Carburant:</strong> {rental.vehicule.carburantType}</p>
+                        <p><strong>Transmission:</strong> {rental.vehicule.transmission}</p>
+                    </div>
+                    <div className="space-y-1">
+                        <h4 className="font-semibold">Période & Coût :</h4>
+                        <p><strong>Début:</strong> {safeDebutDate ? format(safeDebutDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</p>
+                        <p><strong>Fin Prévue:</strong> {safeFinDate ? format(safeFinDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</p>
+                        <p><strong>Durée:</strong> {rental.location.nbrJours} jour(s)</p>
+                        <p><strong>Dépôt de Caution:</strong> {formatCurrency(rental.location.depot || 0, 'MAD')}</p>
+                        <p><strong>Prix Total:</strong> {formatCurrency(rental.location.montantAPayer, 'MAD')}</p>
+                    </div>
+                </div>
               </div>
 
+              <div className="print-right-col mt-4 md:mt-0">
+                {/* Delivery / Return state */}
+                <div className="border p-3 rounded-md h-full">
+                    <h3 className="font-bold text-base mb-2 underline">ÉTAT DU VÉHICULE</h3>
+                    <div className="space-y-4">
+                        {rental.livraisonInspectionId ? (
+                            <InspectionDetailsView inspectionId={rental.livraisonInspectionId} />
+                        ) : (
+                            <OldInspectionDetailsView data={rental.livraison} type="depart" />
+                        )}
 
-              {/* Vehicle & Conditions */}
-              <div className="border p-3 rounded-md space-y-3">
-                  <h3 className="font-bold text-base underline">DÉTAILS DE LA LOCATION</h3>
-                   <div className="space-y-1">
-                      <h4 className="font-semibold">Véhicule Loué :</h4>
-                      <p><strong>Marque/Modèle:</strong> {rental.vehicule.marque}</p>
-                      <p><strong>Immatriculation:</strong> {rental.vehicule.immatriculation}</p>
-                      <p><strong>Carburant:</strong> {rental.vehicule.carburantType}</p>
-                      <p><strong>Transmission:</strong> {rental.vehicule.transmission}</p>
-                  </div>
-                  <div className="space-y-1">
-                      <h4 className="font-semibold">Période & Coût :</h4>
-                      <p><strong>Début:</strong> {safeDebutDate ? format(safeDebutDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</p>
-                      <p><strong>Fin Prévue:</strong> {safeFinDate ? format(safeFinDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</p>
-                      <p><strong>Durée:</strong> {rental.location.nbrJours} jour(s)</p>
-                      <p><strong>Dépôt de Caution:</strong> {formatCurrency(rental.location.depot || 0, 'MAD')}</p>
-                      <p><strong>Prix Total:</strong> {formatCurrency(rental.location.montantAPayer, 'MAD')}</p>
-                  </div>
-              </div>
-
-              {/* Delivery / Return state */}
-              <div className="border p-3 rounded-md">
-                  <h3 className="font-bold text-base mb-2 underline">ÉTAT DU VÉHICULE</h3>
-                  <div className="space-y-4">
-                      {rental.livraisonInspectionId ? (
-                          <InspectionDetailsView inspectionId={rental.livraisonInspectionId} />
-                      ) : (
-                          <OldInspectionDetailsView data={rental.livraison} type="depart" />
-                      )}
-
-                      {rental.receptionInspectionId ? (
-                          <InspectionDetailsView inspectionId={rental.receptionInspectionId} />
-                      ) : (
-                          <OldInspectionDetailsView data={rental.reception} type="retour" />
-                      )}
-                  </div>
+                        {rental.receptionInspectionId ? (
+                            <InspectionDetailsView inspectionId={rental.receptionInspectionId} />
+                        ) : (
+                            <OldInspectionDetailsView data={rental.reception} type="retour" />
+                        )}
+                    </div>
+                </div>
               </div>
             </div>
           </div>
@@ -360,9 +364,27 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
         padding-top: 5mm;
       }
       
-      #printable-contract .contract-body > div,
-      #printable-contract .contract-body .space-y-4 > div {
-        margin-bottom: 2mm;
+      @media print {
+        .print-main-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 4mm;
+          align-items: start;
+        }
+        .print-left-col, .print-right-col {
+          margin-top: 0 !important;
+          page-break-inside: avoid;
+        }
+        .print-right-col .border {
+          height: 100%;
+        }
+        .border {
+          border-width: 0.5pt !important;
+          border-color: #ccc !important;
+        }
+      }
+
+      #printable-contract .contract-body > div {
         break-inside: avoid;
       }
       #printable-contract p { margin: 0.3mm 0; }
@@ -375,7 +397,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       #printable-contract .text-2xl { font-size: 14pt; }
       #printable-contract .tracking-wider { letter-spacing: 0.05em; }
       #printable-contract .text-muted-foreground { color: #555; }
-      #printable-contract .border { border: 0.5pt solid #ccc; }
+      
       #printable-contract .rounded-md { border-radius: 3px; }
       #printable-contract .mb-2 { margin-bottom: 1mm; }
       #printable-contract .underline { text-decoration: underline; }
@@ -392,10 +414,11 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       #printable-contract .block { display: block; }
       #printable-contract .mb-1 { margin-bottom: 1mm; }
       
-      #printable-contract .printable-diagram-wrapper { padding: 1mm 0; text-align: center; }
-      #printable-contract .printable-diagram-wrapper > div { max-width: 150px !important; margin: 0 auto; display: inline-block; }
-      #printable-contract .printable-diagram-wrapper svg { max-width: 100% !important; height: auto !important; }
-      
+      .printable-diagram-wrapper { padding: 1mm 0; text-align: center; }
+      .printable-diagram-wrapper > div { max-width: 150px !important; margin: 0 auto; display: inline-block; cursor: default !important; }
+      .printable-diagram-wrapper svg { max-width: 100% !important; height: auto !important; }
+      .printable-diagram-wrapper svg rect:hover { fill: none !important; }
+
       #printable-contract *, #printable-contract *::before, #printable-contract *::after {
         break-inside: avoid !important;
       }
@@ -763,6 +786,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
 }
 
     
+
 
 
 
