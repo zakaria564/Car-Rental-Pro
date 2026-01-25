@@ -344,45 +344,57 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     }
 
     const styles = `
-      body { 
-        -webkit-print-color-adjust: exact;
-        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
-        line-height: 1.4;
-        font-size: 9px; /* Reduced font size */
-        margin: 0;
-        padding: 0;
+      body {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        font-family: Arial, sans-serif;
+        background-color: white;
       }
-      p { margin: 0.05rem 0; } /* Reduced paragraph margin */
-      .space-y-6 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.5rem; } /* Reduced section spacing */
-      .text-sm { font-size: 9px; line-height: 1.1; }
-      .p-4 { padding: 0.4rem; } /* Reduced padding */
-      .text-center { text-align: center; }
-      .mb-8 { margin-bottom: 0.75rem; }
-      .text-2xl { font-size: 1.1rem; line-height: 1.3rem; }
-      .font-bold { font-weight: 700; }
-      .tracking-wider { letter-spacing: 0.05em; }
-      .text-muted-foreground { color: #64748b; }
-      .border { border: 1px solid #e2e8f0; }
-      .rounded-md { border-radius: 0.375rem; }
-      .mb-2 { margin-bottom: 0.2rem; }
-      .underline { text-decoration: underline; }
-      .font-semibold { font-weight: 600; }
-      .text-base { font-size: 10px; }
-      .grid { display: grid; }
-      .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .gap-x-8 { column-gap: 1rem; }
-      .pt-16 { padding-top: 1rem; } /* Reduced signature padding */
-      .gap-16 { gap: 1.5rem; }
-      .border-t { border-top-width: 1px; }
-      .pt-2 { padding-top: 0.25rem; }
-      .text-xs { font-size: 8px; }
-      strong { font-weight: 600; }
+      .no-print { display: none !important; }
+      #printable-contract {
+        font-size: 8pt;
+        line-height: 1.3;
+      }
+      #printable-contract p { margin: 0.5mm 0; }
+      #printable-contract h2, #printable-contract h3, #printable-contract h4 { margin: 1mm 0; padding: 0; font-weight: bold; }
+      #printable-contract strong { font-weight: bold; }
+      #printable-contract .space-y-6 > :not([hidden]) ~ :not([hidden]) { margin-top: 3mm; }
+      #printable-contract .text-sm { font-size: 8pt; line-height: 1.2; }
+      #printable-contract .p-4 { padding: 2mm; }
+      #printable-contract .text-center { text-align: center; }
+      #printable-contract .mb-8 { margin-bottom: 4mm; }
+      #printable-contract .text-2xl { font-size: 14pt; font-weight: bold; }
+      #printable-contract .font-bold { font-weight: bold; }
+      #printable-contract .tracking-wider { letter-spacing: 0.05em; }
+      #printable-contract .text-muted-foreground { color: #555; }
+      #printable-contract .border { border: 0.5pt solid #ccc; }
+      #printable-contract .rounded-md { border-radius: 4px; }
+      #printable-contract .mb-2 { margin-bottom: 1mm; }
+      #printable-contract .underline { text-decoration: underline; }
+      #printable-contract .font-semibold { font-weight: 600; }
+      #printable-contract .text-base { font-size: 9pt; }
+      #printable-contract .grid { display: grid; }
+      #printable-contract .grid-cols-2, #printable-contract .md\\:grid-cols-2 { grid-template-columns: 1fr 1fr; }
+      #printable-contract .grid-cols-1 { grid-template-columns: 1fr; }
+      #printable-contract .gap-x-8 { column-gap: 5mm; }
+      #printable-contract .gap-y-4 { row-gap: 2mm; }
+      #printable-contract .pt-16 { padding-top: 10mm; }
+      #printable-contract .gap-16 { gap: 15mm; }
+      #printable-contract .border-t { border-top: 0.5pt solid #ccc; }
+      #printable-contract .pt-2 { padding-top: 1mm; }
+      #printable-contract .text-xs { font-size: 7pt; }
+      #printable-contract .list-disc { list-style-type: disc; }
+      #printable-contract .list-inside { list-style-position: inside; }
+      #printable-contract .mt-2 { margin-top: 1mm; }
+      #printable-contract .block { display: block; }
+      #printable-contract .mb-1 { margin-bottom: 0.5mm; }
+      #printable-contract svg { max-width: 100% !important; height: auto !important; }
       @page {
         size: A4;
-        margin: 10mm; /* Reduced page margins */
+        margin: 10mm;
       }
-      h1, h2, h3, h4, h5, h6, p, div, ul, li {
-        break-inside: avoid;
+      #printable-contract, #printable-contract * {
+        break-inside: avoid !important;
       }
     `;
 
