@@ -144,7 +144,9 @@ function RentalDetails({ rental }: { rental: Rental }) {
                      <div>
                         <p><strong>Prix/Jour:</strong> {formatCurrency(rental.location.prixParJour, 'MAD')}</p>
                         <p><strong>Montant Total:</strong> {formatCurrency(rental.location.montantAPayer, 'MAD')}</p>
-                        <p><strong>Dépôt de Garantie:</strong> {rental.location.depot ? formatCurrency(rental.location.depot, 'MAD') : 'N/A'}</p>
+                        {rental.statut !== 'terminee' && rental.location.depot && rental.location.depot > 0 && (
+                            <p><strong>Dépôt de Garantie:</strong> {formatCurrency(rental.location.depot, 'MAD')}</p>
+                        )}
                     </div>
                 </div>
             </div>
@@ -168,6 +170,7 @@ function RentalDetails({ rental }: { rental: Rental }) {
                             <p><strong>Date:</strong> {format(safeReceptionDate, "dd/MM/yyyy HH:mm", { locale: fr })}</p>
                             <p><strong>Kilométrage:</strong> {rental.reception.kilometrage?.toLocaleString()} km</p>
                             <p><strong>Niveau Carburant:</strong> {rental.reception.carburantNiveau ? rental.reception.carburantNiveau * 100 + '%' : 'N/A'}</p>
+                            {rental.reception.dommages && rental.reception.dommages.length > 0 && <p><strong>Dommages:</strong> {rental.reception.dommages.join(', ')}</p>}
                             {rental.reception.dommagesNotes && <p><strong>Notes:</strong> {rental.reception.dommagesNotes}</p>}
                           </>
                         ) : <p>Véhicule non retourné.</p>}
@@ -626,3 +629,4 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     </>
   );
 }
+
