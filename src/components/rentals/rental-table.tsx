@@ -117,7 +117,8 @@ const InspectionDetailsView: React.FC<{ inspectionId: string }> = ({ inspectionI
     if (!inspection) {
         return <p>Détails de l'inspection non trouvés.</p>;
     }
-
+    
+    const damageEntries = Object.entries(damagesForDiagram);
     const safeInspectionDate = inspection.timestamp?.toDate ? format(inspection.timestamp.toDate(), "dd/MM/yyyy HH:mm", { locale: fr }) : 'N/A';
 
     return (
@@ -127,9 +128,22 @@ const InspectionDetailsView: React.FC<{ inspectionId: string }> = ({ inspectionI
             <p><strong>Kilométrage:</strong> {inspection.kilometrage.toLocaleString()} km</p>
             <p><strong>Niveau Carburant:</strong> {inspection.carburantNiveau * 100}%</p>
             {inspection.notes && <p><strong>Notes:</strong> {inspection.notes}</p>}
+             {damageEntries.length > 0 && (
+                <div className="mt-2 text-xs">
+                    <strong>Dommages constatés:</strong>
+                    <ul className="list-disc list-inside">
+                        {damageEntries.map(([partId, damageType]) => {
+                           const part = carParts.find(p => p.id === partId);
+                           const damage = damageTypes[damageType as DamageType];
+                           if (!part || !damage) return null;
+                           return ( <li key={partId}>{part.label}: {damage.label}</li> )
+                        })}
+                    </ul>
+                </div>
+            )}
             <div className="mt-2">
                 <strong className="block mb-1 font-semibold">Schéma des dommages:</strong>
-                <CarDamageDiagram damages={damagesForDiagram} onDamagesChange={() => {}} readOnly />
+                <CarDamageDiagram damages={damagesForDiagram} onDamagesChange={() => {}} readOnly showLegend={false} />
             </div>
         </div>
     );
@@ -142,7 +156,8 @@ const OldInspectionDetailsView: React.FC<{
     if (!data) return type === 'retour' ? <p>Véhicule non retourné.</p> : null;
 
     const safeDate = data.dateHeure?.toDate ? format(data.dateHeure.toDate(), "dd/MM/yyyy HH:mm", { locale: fr }) : 'N/A';
-    
+    const damageEntries = Object.entries(data.damages || {});
+
     return (
         <div>
             <h4 className="font-semibold">{type === 'depart' ? 'Livraison (Départ)' : 'Réception (Retour)'}</h4>
@@ -150,9 +165,21 @@ const OldInspectionDetailsView: React.FC<{
             <p><strong>Kilométrage:</strong> {data.kilometrage?.toLocaleString()} km</p>
             <p><strong>Niveau Carburant:</strong> {data.carburantNiveau ? data.carburantNiveau * 100 + '%' : 'N/A'}</p>
             {data.dommagesNotes && <p><strong>Notes:</strong> {data.dommagesNotes}</p>}
+            {damageEntries.length > 0 && (
+                <div className="mt-2 text-xs">
+                    <strong>Dommages constatés:</strong>
+                    <ul className="list-disc list-inside">
+                        {damageEntries.map(([partId, damageType]) => (
+                            <li key={partId}>
+                                {carParts.find(p => p.id === partId)?.label || partId}: {damageTypes[damageType as DamageType].label}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
             <div className="mt-2">
                 <strong className="block mb-1 font-semibold">Schéma des dommages:</strong>
-                <CarDamageDiagram damages={data.dommages || {}} onDamagesChange={() => {}} readOnly />
+                <CarDamageDiagram damages={data.damages || {}} onDamagesChange={() => {}} readOnly showLegend={false} />
             </div>
         </div>
     );

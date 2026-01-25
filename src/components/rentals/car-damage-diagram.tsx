@@ -48,9 +48,10 @@ type CarDamageDiagramProps = {
   damages: { [key in DamagePart]?: DamageType };
   onDamagesChange: (damages: { [key in DamagePart]?: DamageType }) => void;
   readOnly?: boolean;
+  showLegend?: boolean;
 };
 
-const CarDamageDiagram: React.FC<CarDamageDiagramProps> = ({ damages, onDamagesChange, readOnly = false }) => {
+const CarDamageDiagram: React.FC<CarDamageDiagramProps> = ({ damages, onDamagesChange, readOnly = false, showLegend = true }) => {
   const [selectedDamageType, setSelectedDamageType] = React.useState<DamageType | undefined>('rayure');
 
   const handleDamageTypeSelect = (type: DamageType | undefined) => {
@@ -77,7 +78,7 @@ const CarDamageDiagram: React.FC<CarDamageDiagramProps> = ({ damages, onDamagesC
   };
 
   return (
-    <div className="w-full flex flex-col items-center p-4 border rounded-md bg-muted/20">
+    <div className="w-full flex flex-col items-center p-2 border rounded-md bg-muted/20">
       <div className="relative w-full max-w-xs">
           {/* Visual SVG Layer */}
           <svg viewBox="0 0 400 200" className="w-full" >
@@ -140,42 +141,44 @@ const CarDamageDiagram: React.FC<CarDamageDiagramProps> = ({ damages, onDamagesC
           </div>
       </div>
 
-      <div className="flex justify-center gap-2 flex-wrap mt-4 text-xs">
-          {(Object.keys(damageTypes) as DamageType[]).map((type) => {
-              const { label, color } = damageTypes[type];
-              return (
-                <button
-                    type="button"
-                    key={type}
-                    onClick={() => handleDamageTypeSelect(type)}
-                    disabled={readOnly}
-                    className={cn(
-                        "flex items-center gap-1.5 p-1.5 rounded-md border-2 transition-colors disabled:cursor-not-allowed disabled:opacity-60",
-                        selectedDamageType === type 
-                          ? 'border-primary bg-primary/10' 
-                          : 'border-transparent hover:bg-muted'
-                    )}
-                >
-                    <div className={cn("w-3 h-3 rounded-sm border", color.replace('bg-', 'border-'))} />
-                    <span>{label}</span>
-                </button>
-              )
-          })}
-           <button
-                type="button"
-                onClick={() => handleDamageTypeSelect(undefined)}
-                disabled={readOnly}
-                className={cn(
-                    "flex items-center gap-1.5 p-1.5 rounded-md border-2 transition-colors disabled:cursor-not-allowed disabled:opacity-60",
-                    selectedDamageType === undefined 
-                      ? 'border-primary bg-primary/10' 
-                      : 'border-transparent hover:bg-muted'
-                )}
-            >
-                <XCircle className="w-3.5 h-3.5" />
-                <span>Effacer</span>
-            </button>
-      </div>
+      {showLegend && (
+        <div className="flex justify-center gap-2 flex-wrap mt-4 text-xs">
+            {(Object.keys(damageTypes) as DamageType[]).map((type) => {
+                const { label, color } = damageTypes[type];
+                return (
+                  <button
+                      type="button"
+                      key={type}
+                      onClick={() => handleDamageTypeSelect(type)}
+                      disabled={readOnly}
+                      className={cn(
+                          "flex items-center gap-1.5 p-1.5 rounded-md border-2 transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+                          selectedDamageType === type 
+                            ? 'border-primary bg-primary/10' 
+                            : 'border-transparent hover:bg-muted'
+                      )}
+                  >
+                      <div className={cn("w-3 h-3 rounded-sm border", color.replace('bg-', 'border-'))} />
+                      <span>{label}</span>
+                  </button>
+                )
+            })}
+            <button
+                  type="button"
+                  onClick={() => handleDamageTypeSelect(undefined)}
+                  disabled={readOnly}
+                  className={cn(
+                      "flex items-center gap-1.5 p-1.5 rounded-md border-2 transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+                      selectedDamageType === undefined 
+                        ? 'border-primary bg-primary/10' 
+                        : 'border-transparent hover:bg-muted'
+                  )}
+              >
+                  <XCircle className="w-3.5 h-3.5" />
+                  <span>Effacer</span>
+              </button>
+        </div>
+      )}
     </div>
   );
 };
