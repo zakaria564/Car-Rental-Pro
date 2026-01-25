@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import * as React from "react";
@@ -14,7 +13,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { PlusCircle, MoreHorizontal, Printer } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Printer, Pencil, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -200,6 +199,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
   const { firestore } = useFirebase();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [formMode, setFormMode] = React.useState<'new' | 'edit' | 'check-in'>('new');
 
   // State for the modals
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
@@ -388,12 +388,24 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
               </DropdownMenuItem>
               
               {rental.statut === 'en_cours' && (
-                  <DropdownMenuItem onSelect={() => {
-                      setRentalForModal(rental);
-                      setIsSheetOpen(true);
-                  }}>
-                    Réceptionner
-                  </DropdownMenuItem>
+                  <>
+                    <DropdownMenuItem onSelect={() => {
+                        setRentalForModal(rental);
+                        setFormMode('edit');
+                        setIsSheetOpen(true);
+                    }}>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Modifier
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => {
+                        setRentalForModal(rental);
+                        setFormMode('check-in');
+                        setIsSheetOpen(true);
+                    }}>
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Réceptionner
+                    </DropdownMenuItem>
+                  </>
               )}
 
               <DropdownMenuSeparator />
@@ -433,6 +445,14 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       columnFilters,
     },
   });
+  
+  const getSheetTitle = () => {
+    if (formMode === 'new') return "Créer un nouveau contrat";
+    if (formMode === 'edit') return "Modifier le contrat de location";
+    if (formMode === 'check-in') return "Réceptionner le Véhicule";
+    return "";
+  };
+
 
   if (isDashboard) {
     // Simplified rendering for dashboard view
@@ -485,6 +505,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
           />
            <Button className="ml-auto bg-primary hover:bg-primary/90" onClick={() => {
               setRentalForModal(null);
+              setFormMode('new');
               setIsSheetOpen(true);
             }}>
               <PlusCircle className="mr-2 h-4 w-4" /> Ajouter contrat
@@ -534,11 +555,14 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
 
       <Sheet open={isSheetOpen} onOpenChange={(open) => {
           setIsSheetOpen(open);
-          if (!open) setRentalForModal(null);
+          if (!open) {
+            setRentalForModal(null);
+            setFormMode('new');
+          }
       }}>
         <SheetContent className="sm:max-w-[600px] flex flex-col">
             <SheetHeader>
-              <SheetTitle>{rentalForModal ? "Réceptionner le Véhicule" : "Créer un nouveau contrat"}</SheetTitle>
+              <SheetTitle>{getSheetTitle()}</SheetTitle>
               {rentalForModal && (
                 <SheetDescription>
                     {rentalForModal.vehicule.marque} ({rentalForModal.vehicule.immatriculation})
@@ -551,6 +575,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
                   rental={rentalForModal} 
                   clients={clients} 
                   cars={cars} 
+                  mode={formMode}
                   onFinished={() => setIsSheetOpen(false)} />
             </ScrollArea>
         </SheetContent>
@@ -601,10 +626,3 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     </>
   );
 }
-
-    
-
-
-
-
-

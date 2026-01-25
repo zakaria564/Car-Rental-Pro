@@ -94,13 +94,20 @@ function getSafeDate(date: any): Date | undefined {
     return isNaN(parsed.getTime()) ? undefined : parsed;
 }
 
-export default function RentalForm({ rental, clients, cars, onFinished }: { rental: Rental | null, clients: Client[], cars: CarType[], onFinished: () => void }) {
+type RentalFormProps = {
+    rental: Rental | null,
+    clients: Client[],
+    cars: CarType[],
+    onFinished: () => void,
+    mode: 'new' | 'edit' | 'check-in'
+};
+
+export default function RentalForm({ rental, clients, cars, onFinished, mode }: RentalFormProps) {
   const { toast } = useToast();
   const { firestore } = useFirebase();
-  const isUpdate = !!rental;
 
   const rentalFormSchema = React.useMemo(() => {
-    if (isUpdate) {
+    if (mode === 'check-in') {
         return baseSchema.extend({
             kilometrageRetour: z.coerce.number({
                 required_error: "Le kilométrage de retour est requis.",
@@ -127,11 +134,19 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
             path: ["dateRetour"],
         });
     }
-    return baseSchema;
-  }, [isUpdate]);
+    return baseSchema.refine(data => {
+        if (data.dateRange?.from && data.dateRange?.to) {
+            return data.dateRange.to >= data.dateRange.from;
+        }
+        return true;
+    }, {
+        message: "La date de fin ne peut pas être antérieure à la date de début.",
+        path: ["dateRange"],
+    });
+  }, [mode]);
 
 
-  const getInitialValues = React.useCallback((currentCars: CarType[]) => {
+  const getInitialValues = React.useCallback(() => {
     if (rental) {
         const rentalClient = clients.find(c => c.cin === rental.locataire.cin);
         const rentalConducteur2 = rental.conducteur2 ? clients.find(c => c.cin === rental.conducteur2.cin) : null;
@@ -185,7 +200,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
   const form = useForm<z.infer<typeof rentalFormSchema>>({
     resolver: zodResolver(rentalFormSchema),
     mode: "onChange",
-    defaultValues: getInitialValues(cars),
+    defaultValues: getInitialValues(),
   });
   
   const { setValue } = form;
@@ -195,17 +210,17 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
   const dateRetour = form.watch("dateRetour");
 
   React.useEffect(() => {
-    form.reset(getInitialValues(cars));
+    form.reset(getInitialValues());
   }, [cars, form, getInitialValues]);
 
   React.useEffect(() => {
-    if (selectedCarId && !isUpdate) {
+    if (selectedCarId && mode === 'new') {
       const selectedCar = cars.find(c => c.id === selectedCarId);
       if (selectedCar) {
         setValue('kilometrageDepart', selectedCar.kilometrage, { shouldValidate: true });
       }
     }
-  }, [selectedCarId, cars, isUpdate, setValue]);
+  }, [selectedCarId, cars, mode, setValue]);
 
   const availableCars = cars.filter(car => car.disponible || (rental && car.id === rental.vehicule.carId));
 
@@ -214,28 +229,24 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
   }, [selectedCarId, cars]);
 
   const rentalDaysForUI = React.useMemo(() => {
-    const fromDate = dateRange?.from;
-    let toDate = dateRange?.to;
+    const from = (mode === 'check-in' && rental) ? getSafeDate(rental.location.dateDebut) : dateRange?.from;
+    const to = (mode === 'check-in' && rental) ? dateRetour : dateRange?.to;
 
-    if (isUpdate && dateRetour) {
-        toDate = dateRetour;
-    }
-
-    if (fromDate && toDate) {
-        const days = differenceInCalendarDays(toDate, fromDate);
+    if (from && to) {
+        const days = differenceInCalendarDays(to, from);
         if (days < 0) return 0;
-        // Same day rental is 1 day. 23rd to 24th is 1 day (diff is 1).
         return days === 0 ? 1 : days;
     }
     return 0;
-  }, [dateRange, dateRetour, isUpdate]);
+  }, [dateRange, dateRetour, mode, rental]);
 
   const prixTotalForUI = React.useMemo(() => {
-    if (selectedCarForUI) {
-        return rentalDaysForUI * selectedCarForUI.prixParJour;
+    const pricePerDay = rental ? rental.location.prixParJour : selectedCarForUI?.prixParJour;
+    if (pricePerDay) {
+        return rentalDaysForUI * pricePerDay;
     }
     return 0;
-  }, [selectedCarForUI, rentalDaysForUI]);
+  }, [selectedCarForUI, rentalDaysForUI, rental]);
 
   const onError = (errors: any) => {
     console.error("Form validation errors:", errors);
@@ -252,7 +263,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
   async function onSubmit(data: z.infer<typeof rentalFormSchema>) {
     if (!firestore) return;
 
-    if (isUpdate && rental) {
+    if (mode === 'check-in' && rental) {
         const rentalRef = doc(firestore, 'rentals', rental.id);
         const carDocRef = doc(firestore, 'cars', rental.vehicule.carId);
         
@@ -301,7 +312,52 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                 description: "Impossible de terminer la location. L'opération a échoué."
             });
         });
-    } else {
+
+    } else if (mode === 'edit' && rental) {
+        const validatedData = rentalFormSchema.safeParse(data);
+        if (!validatedData.success) {
+            onError(validatedData.error.flatten().fieldErrors);
+            return;
+        }
+        
+        const { dateRange } = validatedData.data;
+        if (!dateRange) {
+            toast({ variant: "destructive", title: "Date de location manquante." });
+            return;
+        }
+
+        const rentalRef = doc(firestore, 'rentals', rental.id);
+
+        const dayDiff = differenceInCalendarDays(dateRange.to, dateRange.from);
+        const finalRentalDays = dayDiff < 0 ? 0 : (dayDiff === 0 ? 1 : dayDiff);
+        const finalAmountToPay = finalRentalDays * rental.location.prixParJour;
+
+        const updatePayload = {
+            'location.dateFin': dateRange.to,
+            'location.nbrJours': finalRentalDays,
+            'location.montantAPayer': finalAmountToPay,
+        };
+
+        setDoc(rentalRef, updatePayload, { merge: true })
+          .then(() => {
+            toast({ title: "Contrat mis à jour", description: `La location a été étendue jusqu'au ${format(dateRange.to, "dd/MM/yyyy")}.` });
+            onFinished();
+          })
+          .catch((serverError) => {
+             const permissionError = new FirestorePermissionError({
+                path: rentalRef.path,
+                operation: 'update',
+                requestResourceData: updatePayload
+            }, serverError as Error);
+            errorEmitter.emit('permission-error', permissionError);
+            toast({
+                variant: 'destructive',
+                title: "Erreur",
+                description: "Impossible de mettre à jour le contrat."
+            });
+          });
+
+    } else { // mode === 'new'
         const validatedData = rentalFormSchema.safeParse(data);
         if (!validatedData.success) {
             onError(validatedData.error.flatten().fieldErrors);
@@ -425,14 +481,18 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
     }
   }
 
-  const displayPricePerDay = isUpdate ? rental.location.prixParJour : (selectedCarForUI?.prixParJour || 0);
-  const displayRentalDays = rentalDaysForUI;
-  const displayTotalPrice = isUpdate ? (rentalDaysForUI * rental.location.prixParJour) : prixTotalForUI;
+  const displayPricePerDay = rental ? rental.location.prixParJour : (selectedCarForUI?.prixParJour || 0);
   
+  const buttonText = {
+      new: 'Créer le contrat',
+      edit: 'Mettre à jour le contrat',
+      'check-in': 'Terminer et Réceptionner le Véhicule'
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-6 mt-4">
-        <Accordion type="multiple" defaultValue={['item-1', 'item-2', ...(rental ? ['item-3'] : [])]} className="w-full">
+        <Accordion type="multiple" defaultValue={['item-1', 'item-2', ...(mode === 'check-in' ? ['item-3'] : [])]} className="w-full">
             <AccordionItem value="item-1">
                 <AccordionTrigger>Détails du contrat</AccordionTrigger>
                 <AccordionContent className="space-y-4 px-1">
@@ -442,7 +502,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Client</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value} disabled={isUpdate}>
+                          <Select onValueChange={field.onChange} value={field.value} disabled={mode !== 'new'}>
                             <FormControl>
                               <SelectTrigger><SelectValue placeholder="Sélectionner un client" /></SelectTrigger>
                             </FormControl>
@@ -463,7 +523,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                            <Select 
                                 onValueChange={field.onChange} 
                                 value={field.value || '_none_'} 
-                                disabled={isUpdate}
+                                disabled={mode !== 'new'}
                             >
                             <FormControl>
                               <SelectTrigger>
@@ -487,7 +547,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Voiture</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value} disabled={isUpdate}>
+                          <Select onValueChange={field.onChange} value={field.value} disabled={mode !== 'new'}>
                             <FormControl>
                               <SelectTrigger><SelectValue placeholder="Sélectionner une voiture disponible" /></SelectTrigger>
                             </FormControl>
@@ -510,7 +570,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                               <FormControl>
                                 <Button
                                   variant={"outline"}
-                                  disabled={isUpdate}
+                                  disabled={mode === 'check-in'}
                                   className={cn("w-full pl-3 text-left font-normal", !field.value?.from && "text-muted-foreground")}
                                 >
                                   {field.value?.from ? (
@@ -538,7 +598,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                                 onSelect={field.onChange}
                                 numberOfMonths={2}
                                 locale={fr}
-                                disabled={isUpdate}
+                                disabled={date => mode === 'new' ? date < new Date(new Date().setHours(0,0,0,0)) : date < field.value.from}
                               />
                             </PopoverContent>
                           </Popover>
@@ -553,7 +613,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                         <FormItem>
                           <FormLabel>Caution (MAD)</FormLabel>
                           <FormControl>
-                            <Input type="number" placeholder="5000" {...field} value={field.value ?? ''} readOnly={isUpdate} />
+                            <Input type="number" placeholder="5000" {...field} value={field.value ?? ''} readOnly={mode !== 'new'} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -572,7 +632,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                         <FormItem>
                           <FormLabel>Kilométrage de départ</FormLabel>
                           <FormControl>
-                            <Input type="number" placeholder="64000" {...field} value={field.value ?? ''} readOnly={isUpdate} />
+                            <Input type="number" placeholder="64000" {...field} value={field.value ?? ''} readOnly={mode !== 'new'} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -590,7 +650,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                                 onValueChange={(values) => field.onChange(values[0])}
                                 max={1}
                                 step={0.125}
-                                disabled={isUpdate}
+                                disabled={mode !== 'new'}
                               />
                           </FormControl>
                           <FormMessage />
@@ -607,7 +667,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                               render={({ field }) => (
                                 <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                                   <FormControl>
-                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isUpdate} />
+                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={mode !== 'new'} />
                                   </FormControl>
                                   <div className="space-y-1 leading-none">
                                     <FormLabel>Roue de secours</FormLabel>
@@ -621,7 +681,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                               render={({ field }) => (
                                 <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                                   <FormControl>
-                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isUpdate} />
+                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={mode !== 'new'} />
                                   </FormControl>
                                   <div className="space-y-1 leading-none">
                                     <FormLabel>Poste Radio</FormLabel>
@@ -635,7 +695,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                               render={({ field }) => (
                                 <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                                   <FormControl>
-                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isUpdate} />
+                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={mode !== 'new'} />
                                   </FormControl>
                                   <div className="space-y-1 leading-none">
                                     <FormLabel>Voiture propre</FormLabel>
@@ -658,7 +718,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                                         <CarDamageDiagram 
                                             damages={field.value || {}} 
                                             onDamagesChange={field.onChange} 
-                                            readOnly={isUpdate}
+                                            readOnly={mode !== 'new'}
                                         />
                                     </FormControl>
                                     <FormMessage />
@@ -674,7 +734,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                         <FormItem>
                           <FormLabel>Autres dommages / Notes (Départ)</FormLabel>
                           <FormControl>
-                            <Textarea placeholder="Décrivez tout autre dommage ou note pertinente ici..." {...field} value={field.value ?? ''} readOnly={isUpdate} />
+                            <Textarea placeholder="Décrivez tout autre dommage ou note pertinente ici..." {...field} value={field.value ?? ''} readOnly={mode !== 'new'} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -683,7 +743,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                 </AccordionContent>
             </AccordionItem>
             
-            {rental && (
+            {mode === 'check-in' && rental && (
               <AccordionItem value="item-3">
                   <AccordionTrigger>Contrat de Réception (Retour)</AccordionTrigger>
                   <AccordionContent className="space-y-4 px-1">
@@ -717,6 +777,7 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
                                     onSelect={field.onChange}
                                     initialFocus
                                     locale={fr}
+                                    disabled={(date) => date < (getSafeDate(rental.location.dateDebut) || new Date())}
                                 />
                                 </PopoverContent>
                             </Popover>
@@ -850,21 +911,15 @@ export default function RentalForm({ rental, clients, cars, onFinished }: { rent
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
                 <div className="flex justify-between"><span>Prix par jour :</span> <span className="font-medium">{formatCurrency(displayPricePerDay, 'MAD')}</span></div>
-                <div className="flex justify-between"><span>Durée de la location :</span> <span className="font-medium">{displayRentalDays} jour(s)</span></div>
-                <div className="flex justify-between font-semibold text-lg"><span>Montant à Payer :</span> <span>{formatCurrency(displayTotalPrice, 'MAD')}</span></div>
+                <div className="flex justify-between"><span>Durée de la location :</span> <span className="font-medium">{rentalDaysForUI} jour(s)</span></div>
+                <div className="flex justify-between font-semibold text-lg"><span>Montant à Payer :</span> <span>{formatCurrency(prixTotalForUI, 'MAD')}</span></div>
             </CardContent>
         </Card>
 
         <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={form.formState.isSubmitting}>
-          {form.formState.isSubmitting ? "Enregistrement..." : (rental ? 'Terminer et Réceptionner le Véhicule' : 'Créer le contrat')}
+          {form.formState.isSubmitting ? "Enregistrement..." : buttonText[mode]}
         </Button>
       </form>
     </Form>
   );
 }
-
-    
-
-    
-
-    
