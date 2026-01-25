@@ -43,6 +43,32 @@ export const damageTypes = {
 
 export type DamageType = keyof typeof damageTypes;
 
+export type Damage = {
+  id: string;
+  partName: string;
+  damageType: DamageType;
+  photoURL?: string;
+  positionX: number;
+  positionY: number;
+};
+
+export type Inspection = {
+  id: string;
+  vehicleId: string;
+  rentalId: string;
+  userId: string;
+  timestamp: any; // Timestamp
+  type: 'depart' | 'retour';
+  notes?: string;
+  kilometrage: number;
+  carburantNiveau: number;
+  roueSecours: boolean;
+  posteRadio: boolean;
+  lavage: boolean;
+  photos?: string[];
+  damages: Damage[]; // This will be populated from the subcollection for UI purposes
+};
+
 export type Rental = {
   id: string;
   locataire: {
@@ -69,7 +95,11 @@ export type Rental = {
     transmission: string;
     photoURL: string;
   };
-  livraison: {
+  livraisonInspectionId?: string;
+  receptionInspectionId?: string;
+
+  // Deprecated but kept for backward compatibility
+  livraison?: {
     dateHeure: any; // Timestamp
     kilometrage: number;
     carburantNiveau: number;
@@ -80,7 +110,7 @@ export type Rental = {
     dommagesNotes?: string;
     photos?: string[];
   };
-  reception: {
+  reception?: {
     dateHeure?: any; // Timestamp
     kilometrage?: number;
     carburantNiveau?: number;
@@ -91,6 +121,7 @@ export type Rental = {
     dommagesNotes?: string;
     photos?: string[];
   };
+
   location: {
     dateDebut: any; // Timestamp
     dateFin: any; // Timestamp
@@ -104,5 +135,3 @@ export type Rental = {
 };
 
 export type Contrat = Rental;
-
-    

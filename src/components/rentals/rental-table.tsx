@@ -36,7 +36,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import type { Rental, Client, Car, DamageType } from "@/lib/definitions";
+import type { Rental, Client, Car, DamageType, Inspection, Damage } from "@/lib/definitions";
 import { damageTypes } from "@/lib/definitions";
 import { formatCurrency, cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -46,17 +46,152 @@ import { Dialog, DialogContent, DialogDescription as DialogDesc, DialogFooter, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import Image from "next/image";
 import { ScrollArea } from "../ui/scroll-area";
-import { doc, deleteDoc, updateDoc, writeBatch } from "firebase/firestore";
+import { doc, deleteDoc, updateDoc, writeBatch, getDoc, collection, getDocs } from "firebase/firestore";
 import { useFirebase } from "@/firebase";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { carParts } from "./car-damage-diagram";
+import { Skeleton } from "../ui/skeleton";
 
 type RentalTableProps = {
   rentals: Rental[];
   clients?: Client[];
   cars?: Car[];
   isDashboard?: boolean;
+};
+
+const InspectionDetailsView: React.FC<{ inspectionId: string }> = ({ inspectionId }) => {
+    const [inspection, setInspection] = React.useState<Inspection | null>(null);
+    const [loading, setLoading] = React.useState(true);
+    const { firestore } = useFirebase();
+
+    React.useEffect(() => {
+        if (!firestore || !inspectionId) return;
+        
+        const fetchInspection = async () => {
+            setLoading(true);
+            try {
+                const inspectionRef = doc(firestore, 'inspections', inspectionId);
+                const inspectionSnap = await getDoc(inspectionRef);
+
+                if (inspectionSnap.exists()) {
+                    const inspectionData = inspectionSnap.data() as Omit<Inspection, 'id' | 'damages'>;
+                    const damagesRef = collection(firestore, `inspections/${inspectionId}/damages`);
+                    const damagesSnap = await getDocs(damagesRef);
+                    const damages = damagesSnap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Damage));
+                    
+                    setInspection({ ...inspectionData, id: inspectionSnap.id, damages });
+                }
+            } catch (error) {
+                console.error("Failed to fetch inspection details:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchInspection();
+    }, [firestore, inspectionId]);
+
+    const formatDamages = (damages: Damage[] | undefined) => {
+      if (!damages || damages.length === 0) {
+          return "Aucun dommage signalé.";
+      }
+      return (
+          <ul className="list-disc pl-5 text-xs">
+              {damages.map((damage) => (
+                  <li key={damage.id}>
+                      {carParts.find(p => p.id === damage.partName)?.label || damage.partName}: <span className="font-semibold">{damageTypes[damage.damageType].label}</span>
+                  </li>
+              ))}
+          </ul>
+      );
+    };
+
+    if (loading) {
+        return (
+            <div>
+                <Skeleton className="h-4 w-24 mb-2" />
+                <Skeleton className="h-4 w-full mb-1" />
+                <Skeleton className="h-4 w-full mb-1" />
+            </div>
+        );
+    }
+
+    if (!inspection) {
+        return <p>Détails de l'inspection non trouvés.</p>;
+    }
+
+    const safeInspectionDate = inspection.timestamp?.toDate ? format(inspection.timestamp.toDate(), "dd/MM/yyyy HH:mm", { locale: fr }) : 'N/A';
+
+    return (
+        <div>
+            <h4 className="font-semibold">{inspection.type === 'depart' ? 'Livraison (Départ)' : 'Réception (Retour)'}</h4>
+            <p><strong>Date:</strong> {safeInspectionDate}</p>
+            <p><strong>Kilométrage:</strong> {inspection.kilometrage.toLocaleString()} km</p>
+            <p><strong>Niveau Carburant:</strong> {inspection.carburantNiveau * 100}%</p>
+            <div><strong className="block mb-1">Dommages:</strong> {formatDamages(inspection.damages)}</div>
+            {inspection.notes && <p><strong>Notes:</strong> {inspection.notes}</p>}
+            {inspection.photos && inspection.photos.length > 0 && (
+                <div className="mt-2">
+                    <strong className="block mb-1 font-semibold">Photos:</strong>
+                    <div className="grid grid-cols-3 gap-2">
+                        {inspection.photos.map((url, i) => (
+                            <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="relative aspect-square">
+                                <Image src={url} alt={`Photo ${inspection.type} ${i+1}`} fill className="object-cover rounded-md" />
+                            </a>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+const OldInspectionDetailsView: React.FC<{
+    data: Rental['livraison'] | Rental['reception'],
+    type: 'depart' | 'retour'
+}> = ({ data, type }) => {
+    if (!data) return type === 'retour' ? <p>Véhicule non retourné.</p> : null;
+
+    const safeDate = data.dateHeure?.toDate ? format(data.dateHeure.toDate(), "dd/MM/yyyy HH:mm", { locale: fr }) : 'N/A';
+    
+    const formatOldDamages = (damagesObject: { [key: string]: DamageType } | undefined) => {
+      if (!damagesObject || Object.keys(damagesObject).length === 0) {
+          return "Aucun dommage signalé.";
+      }
+      return (
+          <ul className="list-disc pl-5 text-xs">
+              {Object.entries(damagesObject).map(([partId, damageType]) => (
+                  <li key={partId}>
+                      {carParts.find(p => p.id === partId)?.label || partId}: <span className="font-semibold">{damageTypes[damageType].label}</span>
+                  </li>
+              ))}
+          </ul>
+      );
+    };
+
+    return (
+        <div>
+            <h4 className="font-semibold">{type === 'depart' ? 'Livraison (Départ)' : 'Réception (Retour)'}</h4>
+            <p><strong>Date:</strong> {safeDate}</p>
+            <p><strong>Kilométrage:</strong> {data.kilometrage?.toLocaleString()} km</p>
+            <p><strong>Niveau Carburant:</strong> {data.carburantNiveau ? data.carburantNiveau * 100 + '%' : 'N/A'}</p>
+            <div><strong className="block mb-1">Dommages:</strong> {formatOldDamages(data.dommages)}</div>
+            {data.dommagesNotes && <p><strong>Notes:</strong> {data.dommagesNotes}</p>}
+            {data.photos && data.photos.length > 0 && (
+                <div className="mt-2">
+                    <strong className="block mb-1 font-semibold">Photos:</strong>
+                    <div className="grid grid-cols-3 gap-2">
+                        {data.photos.map((url, i) => (
+                            <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="relative aspect-square">
+                                <Image src={url} alt={`Photo ${type} ${i+1}`} fill className="object-cover rounded-md" />
+                            </a>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
 };
 
 function RentalDetails({ rental }: { rental: Rental }) {
@@ -68,31 +203,9 @@ function RentalDetails({ rental }: { rental: Rental }) {
         return isNaN(parsed.getTime()) ? undefined : parsed;
     };
 
-    const safeLivraisonDate = getSafeDate(rental.livraison.dateHeure);
-    const safeReceptionDate = getSafeDate(rental.reception?.dateHeure);
     const safeDebutDate = getSafeDate(rental.location.dateDebut);
     const safeFinDate = getSafeDate(rental.location.dateFin);
     const safeMiseEnCirculation = getSafeDate(rental.vehicule.dateMiseEnCirculation);
-
-    const formatDamages = (damagesObject: { [key: string]: DamageType } | undefined) => {
-      if (!damagesObject || Object.keys(damagesObject).length === 0) {
-          return "Aucun dommage signalé.";
-      }
-      const partLabels = carParts.reduce((acc, part) => {
-          acc[part.id] = part.label;
-          return acc;
-      }, {} as {[key: string]: string});
-  
-      return (
-          <ul className="list-disc pl-5 text-xs">
-              {Object.entries(damagesObject).map(([partId, damageType]) => (
-                  <li key={partId}>
-                      {partLabels[partId] || partId}: <span className="font-semibold">{damageTypes[damageType].label}</span>
-                  </li>
-              ))}
-          </ul>
-      );
-    };
 
     return (
       <ScrollArea className="h-[70vh]">
@@ -177,50 +290,17 @@ function RentalDetails({ rental }: { rental: Rental }) {
             <div className="border p-4 rounded-md">
                 <h3 className="font-bold text-base mb-2 underline">ÉTAT DU VÉHICULE</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                    <div>
-                        <h4 className="font-semibold">Livraison (Départ)</h4>
-                        <p><strong>Date:</strong> {safeLivraisonDate ? format(safeLivraisonDate, "dd/MM/yyyy HH:mm", { locale: fr }) : 'N/A'}</p>
-                        <p><strong>Kilométrage:</strong> {rental.livraison.kilometrage.toLocaleString()} km</p>
-                        <p><strong>Niveau Carburant:</strong> {rental.livraison.carburantNiveau * 100}%</p>
-                        <div><strong className="block mb-1">Dommages:</strong> {formatDamages(rental.livraison.dommages)}</div>
-                        {rental.livraison.dommagesNotes && <p><strong>Notes:</strong> {rental.livraison.dommagesNotes}</p>}
-                        {rental.livraison.photos && rental.livraison.photos.length > 0 && (
-                            <div className="mt-2">
-                                <strong className="block mb-1 font-semibold">Photos (Départ):</strong>
-                                <div className="grid grid-cols-3 gap-2">
-                                    {rental.livraison.photos.map((url, i) => (
-                                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="relative aspect-square">
-                                            <Image src={url} alt={`Photo départ ${i+1}`} fill className="object-cover rounded-md" />
-                                        </a>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                    <div>
-                        <h4 className="font-semibold">Réception (Retour)</h4>
-                        {rental.statut === 'terminee' && safeReceptionDate ? (
-                          <>
-                            <p><strong>Date:</strong> {format(safeReceptionDate, "dd/MM/yyyy HH:mm", { locale: fr })}</p>
-                            <p><strong>Kilométrage:</strong> {rental.reception.kilometrage?.toLocaleString()} km</p>
-                            <p><strong>Niveau Carburant:</strong> {rental.reception.carburantNiveau ? rental.reception.carburantNiveau * 100 + '%' : 'N/A'}</p>
-                            <div><strong className="block mb-1">Dommages:</strong> {formatDamages(rental.reception.dommages)}</div>
-                            {rental.reception.dommagesNotes && <p><strong>Notes:</strong> {rental.reception.dommagesNotes}</p>}
-                            {rental.reception.photos && rental.reception.photos.length > 0 && (
-                                <div className="mt-2">
-                                    <strong className="block mb-1 font-semibold">Photos (Retour):</strong>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        {rental.reception.photos.map((url, i) => (
-                                            <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="relative aspect-square">
-                                                <Image src={url} alt={`Photo retour ${i+1}`} fill className="object-cover rounded-md" />
-                                            </a>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                          </>
-                        ) : <p>Véhicule non retourné.</p>}
-                    </div>
+                    {rental.livraisonInspectionId ? (
+                        <InspectionDetailsView inspectionId={rental.livraisonInspectionId} />
+                    ) : (
+                        <OldInspectionDetailsView data={rental.livraison} type="depart" />
+                    )}
+
+                    {rental.receptionInspectionId ? (
+                        <InspectionDetailsView inspectionId={rental.receptionInspectionId} />
+                    ) : (
+                        <OldInspectionDetailsView data={rental.reception} type="retour" />
+                    )}
                 </div>
             </div>
 

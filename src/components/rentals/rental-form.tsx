@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import type { Rental, Car as CarType, Client, DamageType } from "@/lib/definitions";
+import type { Rental, Car as CarType, Client, DamageType, Damage } from "@/lib/definitions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { CalendarIcon } from "lucide-react";
@@ -30,9 +30,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "..
 import { Checkbox } from "../ui/checkbox";
 import { Textarea } from "../ui/textarea";
 import { Slider } from "../ui/slider";
-import CarDamageDiagram from "./car-damage-diagram";
+import CarDamageDiagram, { carParts } from "./car-damage-diagram";
 import { useFirebase } from "@/firebase";
-import { collection, doc, serverTimestamp, setDoc, writeBatch, Timestamp, updateDoc } from "firebase/firestore";
+import { collection, doc, serverTimestamp, setDoc, writeBatch, Timestamp, updateDoc, addDoc } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -109,7 +109,7 @@ type RentalFormProps = {
 
 export default function RentalForm({ rental, clients, cars, onFinished, mode }: RentalFormProps) {
   const { toast } = useToast();
-  const { firestore, storage } = useFirebase();
+  const { firestore, storage, auth } = useFirebase();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const rentalFormSchema = React.useMemo(() => {
@@ -153,7 +153,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
 
 
   const getInitialValues = React.useCallback(() => {
-    if (rental) {
+    if (rental && rental.livraison) { // Check for old data structure
         const rentalClient = clients.find(c => c.cin === rental.locataire.cin);
         const rentalConducteur2 = rental.conducteur2 ? clients.find(c => c.cin === rental.conducteur2.cin) : null;
         return {
@@ -181,6 +181,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             lavageRetour: rental.reception?.lavage ?? true,
         };
     }
+    // New rental or new data structure (to be fetched)
     return {
         clientId: "",
         conducteur2_clientId: "_none_",
@@ -272,18 +273,18 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
   };
 
   async function onSubmit(data: z.infer<typeof rentalFormSchema>) {
-    if (!firestore || !storage) return;
+    if (!firestore || !storage || !auth.currentUser) return;
     
     setIsSubmitting(true);
+    const userId = auth.currentUser.uid;
 
     const uploadPhotos = async (files: File[], rentalId: string, category: 'depart' | 'retour'): Promise<string[]> => {
         if (!files || files.length === 0) return [];
-
         const photoURLs: string[] = [];
         toast({ title: `Envoi de ${files.length} photo(s)...`, description: "Veuillez patienter." });
 
         for (const file of files) {
-            const filePath = `rentals/${rentalId}/${category}/${Date.now()}_${file.name}`;
+            const filePath = `inspections/${rentalId}/${category}/${Date.now()}_${file.name}`;
             const storageRef = ref(storage, filePath);
             try {
                 const snapshot = await uploadBytes(storageRef, file);
@@ -292,35 +293,76 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             } catch (uploadError) {
                 console.error("File upload error:", uploadError);
                 toast({ variant: 'destructive', title: `Erreur d'envoi pour ${file.name}` });
-                // We continue to try uploading other files
             }
         }
         return photoURLs;
     };
+    
+    const handleInspection = async (
+        rentalId: string, 
+        carId: string, 
+        type: 'depart' | 'retour',
+        inspectionData: any
+    ) => {
+        const batch = writeBatch(firestore);
+        const inspectionRef = doc(collection(firestore, 'inspections'));
+        
+        const uploadedPhotoUrls = await uploadPhotos(
+            type === 'depart' ? inspectionData.photosDepart : inspectionData.photosRetour,
+            rentalId,
+            type
+        );
+
+        const inspectionPayload = {
+            vehicleId: carId,
+            rentalId: rentalId,
+            userId: userId,
+            timestamp: serverTimestamp(),
+            type: type,
+            notes: type === 'depart' ? inspectionData.dommagesDepartNotes : inspectionData.dommagesRetourNotes,
+            kilometrage: type === 'depart' ? inspectionData.kilometrageDepart : inspectionData.kilometrageRetour,
+            carburantNiveau: type === 'depart' ? inspectionData.carburantNiveauDepart : inspectionData.carburantNiveauRetour,
+            roueSecours: type === 'depart' ? inspectionData.roueSecours : inspectionData.roueSecoursRetour,
+            posteRadio: type === 'depart' ? inspectionData.posteRadio : inspectionData.posteRadioRetour,
+            lavage: type === 'depart' ? inspectionData.lavage : inspectionData.lavageRetour,
+            photos: uploadedPhotoUrls,
+        };
+        batch.set(inspectionRef, inspectionPayload);
+
+        const damages = type === 'depart' ? inspectionData.dommagesDepart : inspectionData.dommagesRetour;
+        if (damages) {
+            for (const partId of Object.keys(damages)) {
+                const damageType = damages[partId];
+                const partInfo = carParts.find(p => p.id === partId);
+                const damageDocRef = doc(collection(firestore, `inspections/${inspectionRef.id}/damages`));
+                const damagePayload: Omit<Damage, 'id'> = {
+                    partName: partId,
+                    damageType: damageType,
+                    positionX: partInfo?.x || 0,
+                    positionY: partInfo?.y || 0,
+                    // photoURL will be added in a future step
+                };
+                batch.set(damageDocRef, damagePayload);
+            }
+        }
+        
+        await batch.commit();
+        return inspectionRef.id;
+    }
+
 
     try {
         if (mode === 'check-in' && rental) {
+            const receptionInspectionId = await handleInspection(rental.id, rental.vehicule.carId, 'retour', data);
+            
             const rentalRef = doc(firestore, 'rentals', rental.id);
             const carDocRef = doc(firestore, 'cars', rental.vehicule.carId);
             
             const finalRentalDays = rentalDaysForUI;
             const finalAmountToPay = finalRentalDays * rental.location.prixParJour;
 
-            const newPhotoURLs = await uploadPhotos(data.photosRetour || [], rental.id, 'retour');
-            const allPhotos = [...(rental.reception?.photos || []), ...newPhotoURLs];
-
             const updatePayload = {
-                reception: {
-                    dateHeure: data.dateRetour,
-                    kilometrage: data.kilometrageRetour,
-                    carburantNiveau: data.carburantNiveauRetour,
-                    roueSecours: data.roueSecoursRetour,
-                    posteRadio: data.posteRadioRetour,
-                    lavage: data.lavageRetour,
-                    dommages: data.dommagesRetour || {},
-                    dommagesNotes: data.dommagesRetourNotes || "",
-                    photos: allPhotos,
-                },
+                receptionInspectionId: receptionInspectionId,
                 'location.dateFin': data.dateRetour,
                 'location.nbrJours': finalRentalDays,
                 'location.montantAPayer': finalAmountToPay,
@@ -334,7 +376,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             await batch.commit();
             toast({
                 title: "Location terminée",
-                description: `La réception pour ${rental.locataire.nomPrenom} a été enregistrée avec le montant final de ${formatCurrency(finalAmountToPay, 'MAD')}.`,
+                description: `La réception pour ${rental.locataire.nomPrenom} a été enregistrée.`,
             });
             onFinished();
 
@@ -363,13 +405,6 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                 conducteur2_clientId,
                 dateRange,
                 caution,
-                kilometrageDepart,
-                carburantNiveauDepart,
-                roueSecours,
-                posteRadio,
-                lavage,
-                dommagesDepart,
-                dommagesDepartNotes
             } = data;
 
             const selectedCar = cars.find(c => c.id === voitureId);
@@ -393,9 +428,10 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             
             const safeDateMiseEnCirculation = timestampToDate(selectedCar.dateMiseEnCirculation);
             const newRentalRef = doc(collection(firestore, 'rentals'));
-            const photoURLs = await uploadPhotos(data.photosDepart || [], newRentalRef.id, 'depart');
+            
+            const livraisonInspectionId = await handleInspection(newRentalRef.id, selectedCar.id, 'depart', data);
 
-            const rentalPayload = {
+            const rentalPayload: Omit<Rental, 'id'> & {createdAt: any} = {
                 locataire: {
                     cin: selectedClient.cin,
                     nomPrenom: selectedClient.nom,
@@ -422,18 +458,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                     transmission: selectedCar.transmission || 'Manuelle',
                     photoURL: selectedCar.photoURL
                 },
-                livraison: {
-                    dateHeure: serverTimestamp(),
-                    kilometrage: kilometrageDepart,
-                    carburantNiveau: carburantNiveauDepart,
-                    roueSecours: roueSecours,
-                    posteRadio: posteRadio,
-                    lavage: lavage,
-                    dommages: dommagesDepart || {},
-                    dommagesNotes: dommagesDepartNotes || "",
-                    photos: photoURLs,
-                },
-                reception: {},
+                livraisonInspectionId: livraisonInspectionId,
                 location: {
                     dateDebut: dateRange.from,
                     dateFin: dateRange.to,
@@ -464,7 +489,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
         toast({
             variant: "destructive",
             title: "Erreur",
-            description: "Une erreur est survenue lors de l'enregistrement ou de l'envoi des photos."
+            description: "Une erreur est survenue lors de l'enregistrement."
         });
     } finally {
         setIsSubmitting(false);
@@ -743,7 +768,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                               className={mode !== 'new' ? 'cursor-not-allowed' : ''}
                             />
                           </FormControl>
-                          {rental?.livraison.photos && rental.livraison.photos.length > 0 && (
+                          {rental?.livraison?.photos && rental.livraison.photos.length > 0 && (
                             <div className="pt-2">
                                 <ExistingPhotoViewer urls={rental.livraison.photos} />
                             </div>

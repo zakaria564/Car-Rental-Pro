@@ -4,7 +4,7 @@ import RentalTable from "@/components/rentals/rental-table";
 import React from "react";
 import { useFirebase } from "@/firebase";
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
-import type { Rental, Car, Client, DamageType } from "@/lib/definitions";
+import type { Rental, Car, Client } from "@/lib/definitions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
@@ -43,32 +43,7 @@ export default function RentalsPage() {
     
     const rentalsQuery = query(collection(firestore, "rentals"), orderBy("createdAt", "desc"));
     const unsubRentals = onSnapshot(rentalsQuery, (snapshot) => {
-      const rentalsData = snapshot.docs.map(doc => {
-        const data = doc.data();
-        
-        // Convert old damage format to new one for backward compatibility
-        const convertDamages = (damages: any): { [key: string]: DamageType } => {
-            if (!damages) return {};
-            if (Array.isArray(damages)) {
-                // Old format: string[]. Assume 'choc' for all.
-                return damages.reduce((acc, partId) => {
-                    acc[partId] = 'choc';
-                    return acc;
-                }, {} as { [key: string]: DamageType });
-            }
-            // New format: { [key: string]: DamageType }
-            return damages;
-        };
-
-        if (data.livraison) {
-            data.livraison.dommages = convertDamages(data.livraison.dommages);
-        }
-        if (data.reception) {
-            data.reception.dommages = convertDamages(data.reception.dommages);
-        }
-        
-        return { ...data, id: doc.id } as Rental;
-      });
+      const rentalsData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Rental));
       setRentals(rentalsData);
       if (!loadedStatus.rentals) {
         loadedStatus.rentals = true;

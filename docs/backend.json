@@ -128,6 +128,8 @@
             "photos": { "type": "array", "items": { "type": "string", "format": "uri" }, "description": "URLs of photos taken at reception." }
           }
         },
+        "livraisonInspectionId": { "type": "string", "description": "ID of the delivery inspection document." },
+        "receptionInspectionId": { "type": "string", "description": "ID of the reception inspection document." },
         "location": {
           "type": "object",
           "properties": {
@@ -142,7 +144,40 @@
         "statut": { "type": "string", "enum": ["en_cours", "terminee"] },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["locataire", "vehicule", "livraison", "location", "statut"]
+      "required": ["locataire", "vehicule", "location", "statut"]
+    },
+    "inspection": {
+      "title": "Inspection",
+      "description": "Represents a vehicle inspection event (delivery or return).",
+      "type": "object",
+      "properties": {
+        "vehicleId": { "type": "string", "description": "Reference to the vehicle." },
+        "rentalId": { "type": "string", "description": "Reference to the rental contract." },
+        "userId": { "type": "string", "description": "ID of the user who performed the inspection." },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "type": { "type": "string", "enum": ["depart", "retour"] },
+        "notes": { "type": "string" },
+        "kilometrage": { "type": "number" },
+        "carburantNiveau": { "type": "number" },
+        "roueSecours": { "type": "boolean" },
+        "posteRadio": { "type": "boolean" },
+        "lavage": { "type": "boolean" },
+        "photos": { "type": "array", "items": { "type": "string", "format": "uri" }}
+      },
+      "required": ["vehicleId", "rentalId", "userId", "timestamp", "type"]
+    },
+    "damage": {
+      "title": "Damage",
+      "description": "Represents a single point of damage on a vehicle.",
+      "type": "object",
+      "properties": {
+        "partName": { "type": "string", "description": "The name of the damaged part (e.g., 'porte_avg')." },
+        "damageType": { "type": "string", "enum": ["rayure", "rayure_importante", "choc", "a_remplacer"] },
+        "photoURL": { "type": "string", "format": "uri", "description": "URL to a photo of the damage." },
+        "positionX": { "type": "number", "description": "X coordinate on the diagram." },
+        "positionY": { "type": "number", "description": "Y coordinate on the diagram." }
+      },
+      "required": ["partName", "damageType"]
     }
   },
   "auth": {
@@ -160,6 +195,14 @@
     "/rentals/{rentalId}": {
         "schema": { "$ref": "#/entities/rental" },
         "description": "Stores rental contract documents."
+    },
+    "/inspections/{inspectionId}": {
+        "schema": { "$ref": "#/entities/inspection" },
+        "description": "Stores vehicle inspection events."
+    },
+    "/inspections/{inspectionId}/damages/{damageId}": {
+        "schema": { "$ref": "#/entities/damage" },
+        "description": "Stores specific damage points for an inspection."
     }
   }
 }
