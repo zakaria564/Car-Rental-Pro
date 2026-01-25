@@ -362,7 +362,9 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
         const inspectionRef = doc(collection(firestore, 'inspections'));
         
         const photosString = type === 'depart' ? inspectionData.photosDepart : inspectionData.photosRetour;
-        const photoUrls = photosString ? photosString.split('\n').map((url: string) => url.trim()).filter((url: string) => url.length > 0 && (url.startsWith('http://') || url.startsWith('https://'))) : [];
+        
+        const delimiters = /[\n\s,]+/;
+        const photoUrls = photosString ? photosString.split(delimiters).map((url: string) => url.trim()).filter((url: string) => url.length > 0 && (url.startsWith('http://') || url.startsWith('https://'))) : [];
 
         const inspectionPayload = {
             vehicleId: carId,
@@ -833,11 +835,13 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                                   </FormDescription>
                                 </>
                             ) : (
-                                rental?.livraison?.photos && rental.livraison.photos.length > 0 ? (
-                                    <ExistingPhotoViewer urls={rental.livraison.photos} />
-                                ) : (
+                                rental?.livraisonInspectionId || rental?.livraison ? (
+                                    <ExistingPhotoViewer 
+                                        urls={ (rental?.livraison?.photos as string[] | undefined) || []} 
+                                    />
+                                 ) : (
                                     <p className="text-sm text-muted-foreground">Aucune photo enregistrée pour le départ.</p>
-                                )
+                                 )
                             )}
                           <FormMessage />
                         </FormItem>

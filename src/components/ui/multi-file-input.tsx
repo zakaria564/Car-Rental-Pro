@@ -20,13 +20,11 @@ const MultiPhotoFormField = React.forwardRef<
     const { control, getValues, setValue } = useFormContext();
     const { field } = useController({ name, control });
 
-    // This state holds the files with their preview URLs
     const [previews, setPreviews] = React.useState<FileWithPreview[]>(getValues(name) || []);
 
     const inputRef = React.useRef<HTMLInputElement>(null);
 
     React.useEffect(() => {
-      // Clean up preview URLs on unmount
       return () => {
         previews.forEach(file => URL.revokeObjectURL(file.preview));
       };
@@ -37,11 +35,10 @@ const MultiPhotoFormField = React.forwardRef<
             const newFiles = Array.from(e.target.files).map(file => Object.assign(file, {
                 preview: URL.createObjectURL(file)
             }));
-            const updatedFiles = [...previews, ...newFiles];
+            const updatedFiles = [...(previews || []), ...newFiles];
             setPreviews(updatedFiles);
-            setValue(name, updatedFiles, { shouldValidate: true });
+            setValue(name, updatedFiles, { shouldValidate: true, shouldDirty: true });
         }
-        // Reset the input value to allow selecting the same file again
         if (e.target) {
             e.target.value = "";
         }
@@ -51,7 +48,7 @@ const MultiPhotoFormField = React.forwardRef<
         const updatedFiles = previews.filter((_, index) => index !== indexToRemove);
         URL.revokeObjectURL(previews[indexToRemove].preview); // Clean up
         setPreviews(updatedFiles);
-        setValue(name, updatedFiles, { shouldValidate: true });
+        setValue(name, updatedFiles, { shouldValidate: true, shouldDirty: true });
     };
 
     return (
@@ -76,7 +73,7 @@ const MultiPhotoFormField = React.forwardRef<
                     {...props}
                 />
             </div>
-            {previews.length > 0 && (
+            {previews && previews.length > 0 && (
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
                     {previews.map((file, index) => (
                         <div key={file.name + index} className="relative group aspect-square">
@@ -102,8 +99,10 @@ const MultiPhotoFormField = React.forwardRef<
 });
 MultiPhotoFormField.displayName = "MultiPhotoFormField";
 
-const ExistingPhotoViewer = ({ urls }: { urls: string[] }) => {
-    if (!urls || urls.length === 0) return null;
+const ExistingPhotoViewer = ({ urls }: { urls: string[] | undefined }) => {
+    if (!urls || urls.length === 0) return (
+         <p className="text-sm text-muted-foreground">Aucune photo enregistrée.</p>
+    );
     return (
         <div className="space-y-2">
             <p className="text-sm font-medium text-muted-foreground">Photos existantes :</p>
@@ -120,3 +119,5 @@ const ExistingPhotoViewer = ({ urls }: { urls: string[] }) => {
 
 
 export { MultiPhotoFormField, ExistingPhotoViewer };
+
+    
