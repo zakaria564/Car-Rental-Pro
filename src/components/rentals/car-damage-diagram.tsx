@@ -19,6 +19,17 @@ export const carParts = [
     { id: 'coffre', label: 'Coffre', x: 285, y: 60, w: 70, h: 80 },
     { id: 'parechoc_ar', label: 'Pare-choc Arrière', x: 355, y: 70, w: 25, h: 60 },
 
+    // --- Bottom Side (Left side of the car - Gauche) ---
+    { id: 'phare_avg', label: 'Phare Avant Gauche', x: 20, y: 120, w: 20, h: 25 },
+    { id: 'aile_avg', label: 'Aile Avant Gauche', x: 40, y: 145, w: 55, h: 15 },
+    { id: 'retro_g', label: 'Rétroviseur Gauche', x: 100, y: 145, w: 25, h: 25 },
+    { id: 'porte_avg', label: 'Porte Avant Gauche', x: 100, y: 145, w: 85, h: 15 },
+    { id: 'porte_arg', label: 'Porte Arrière Gauche', x: 185, y: 145, w: 100, h: 15 },
+    { id: 'aile_arg', label: 'Aile Arrière Gauche', x: 285, y: 145, w: 70, h: 15 },
+    { id: 'phare_arg', label: 'Phare Arrière Gauche', x: 355, y: 120, w: 20, h: 25 },
+    { id: 'roue_avg', label: 'Roue Avant Gauche', x: 70, y: 160, w: 40, h: 25 },
+    { id: 'roue_arg', label: 'Roue Arrière Gauche', x: 290, y: 160, w: 40, h: 25 },
+
     // --- Top Side (Right side of the car - Droite) ---
     { id: 'phare_avd', label: 'Phare Avant Droit', x: 20, y: 55, w: 20, h: 25 },
     { id: 'aile_avd', label: 'Aile Avant Droite', x: 40, y: 40, w: 55, h: 15 },
@@ -30,16 +41,6 @@ export const carParts = [
     { id: 'roue_avd', label: 'Roue Avant Droite', x: 70, y: 15, w: 40, h: 25 },
     { id: 'roue_ard', label: 'Roue Arrière Droite', x: 290, y: 15, w: 40, h: 25 },
     
-    // --- Bottom Side (Left side of the car - Gauche) ---
-    { id: 'phare_avg', label: 'Phare Avant Gauche', x: 20, y: 120, w: 20, h: 25 },
-    { id: 'aile_avg', label: 'Aile Avant Gauche', x: 40, y: 145, w: 55, h: 15 },
-    { id: 'retro_g', label: 'Rétroviseur Gauche', x: 100, y: 145, w: 25, h: 25 },
-    { id: 'porte_avg', label: 'Porte Avant Gauche', x: 100, y: 145, w: 85, h: 15 },
-    { id: 'porte_arg', label: 'Porte Arrière Gauche', x: 185, y: 145, w: 100, h: 15 },
-    { id: 'aile_arg', label: 'Aile Arrière Gauche', x: 285, y: 145, w: 70, h: 15 },
-    { id: 'phare_arg', label: 'Phare Arrière Gauche', x: 355, y: 120, w: 20, h: 25 },
-    { id: 'roue_avg', label: 'Roue Avant Gauche', x: 70, y: 160, w: 40, h: 25 },
-    { id: 'roue_arg', label: 'Roue Arrière Gauche', x: 290, y: 160, w: 40, h: 25 },
 ] as const;
 
 export type DamagePart = typeof carParts[number]['id'];
@@ -124,13 +125,12 @@ const CarDamageDiagram: React.FC<CarDamageDiagramProps> = ({ damages, onDamagesC
                               y={part.y}
                               width={part.w}
                               height={part.h}
-                              onClick={() => handlePartClick(part.id)}
+                              onClick={readOnly ? undefined : () => handlePartClick(part.id)}
                               className={cn(
-                                  "transition-colors",
-                                  readOnly ? "cursor-not-allowed" : "cursor-pointer",
-                                  damages[part.id] 
-                                      ? damageTypes[damages[part.id]!].color 
-                                      : "fill-transparent stroke-transparent hover:fill-primary/20"
+                                "transition-colors",
+                                damages[part.id] ? damageTypes[damages[part.id]!].color : "fill-transparent",
+                                !readOnly && "cursor-pointer",
+                                !readOnly && !damages[part.id] && "hover:fill-primary/20",
                               )}
                           >
                             <title>{part.label}{damages[part.id] ? `: ${damageTypes[damages[part.id]!].label}` : ''}</title>

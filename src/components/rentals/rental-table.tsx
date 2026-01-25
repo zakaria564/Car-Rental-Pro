@@ -143,7 +143,9 @@ const InspectionDetailsView: React.FC<{ inspectionId: string }> = ({ inspectionI
             )}
             <div className="mt-2">
                 <strong className="block mb-1 font-semibold">Schéma des dommages:</strong>
-                <CarDamageDiagram damages={damagesForDiagram} onDamagesChange={() => {}} readOnly showLegend={false} />
+                <div className="printable-diagram-wrapper">
+                    <CarDamageDiagram damages={damagesForDiagram} onDamagesChange={() => {}} readOnly showLegend={false} />
+                </div>
             </div>
         </div>
     );
@@ -179,7 +181,9 @@ const OldInspectionDetailsView: React.FC<{
             )}
             <div className="mt-2">
                 <strong className="block mb-1 font-semibold">Schéma des dommages:</strong>
-                <CarDamageDiagram damages={data.damages || {}} onDamagesChange={() => {}} readOnly showLegend={false} />
+                <div className="printable-diagram-wrapper">
+                    <CarDamageDiagram damages={data.damages || {}} onDamagesChange={() => {}} readOnly showLegend={false} />
+                </div>
             </div>
         </div>
     );
@@ -388,6 +392,8 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       #printable-contract .mt-2 { margin-top: 1mm; }
       #printable-contract .block { display: block; }
       #printable-contract .mb-1 { margin-bottom: 0.5mm; }
+      #printable-contract .printable-diagram-wrapper { padding: 2mm 0; }
+      #printable-contract .printable-diagram-wrapper > div { max-width: 180px !important; margin: 0 auto; }
       #printable-contract svg { max-width: 100% !important; height: auto !important; }
       @page {
         size: A4;
