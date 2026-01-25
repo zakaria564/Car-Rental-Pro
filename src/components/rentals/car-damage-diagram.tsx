@@ -4,8 +4,10 @@ import { cn } from '@/lib/utils';
 import { damageTypes, type DamageType } from '@/lib/definitions';
 import React from 'react';
 
-// A more professional and detailed car diagram.
+// A professional and detailed car diagram.
 // This is a top-down view. Front is at the top.
+// Per your instruction, this represents a left-hand drive car (volant à gauche),
+// so the left side of the diagram is the driver's side.
 export const carParts = [
     // --- Center Line ---
     { id: 'parechoc_av', label: 'Pare-choc Avant', x: 25, y: 5, w: 50, h: 5 },
@@ -16,7 +18,7 @@ export const carParts = [
     { id: 'coffre', label: 'Coffre', x: 30, y: 85, w: 40, h: 10 },
     { id: 'parechoc_ar', label: 'Pare-choc Arrière', x: 25, y: 95, w: 50, h: 5 },
 
-    // --- Left Side ---
+    // --- Left Side (Driver's side) ---
     { id: 'phare_avg', label: 'Phare Avant Gauche', x: 25, y: 5, w: 15, h: 5 },
     { id: 'aile_avg', label: 'Aile Avant Gauche', x: 10, y: 10, w: 20, h: 20 },
     { id: 'retro_g', label: 'Rétroviseur Gauche', x: 22, y: 32, w: 6, h: 5 },
@@ -27,7 +29,7 @@ export const carParts = [
     { id: 'roue_avg', label: 'Roue Avant Gauche', x: 5, y: 15, w: 10, h: 15 },
     { id: 'roue_arg', label: 'Roue Arrière Gauche', x: 5, y: 75, w: 10, h: 15 },
 
-    // --- Right Side ---
+    // --- Right Side (Passenger side) ---
     { id: 'phare_avd', label: 'Phare Avant Droit', x: 60, y: 5, w: 15, h: 5 },
     { id: 'aile_avd', label: 'Aile Avant Droite', x: 70, y: 10, w: 20, h: 20 },
     { id: 'retro_d', label: 'Rétroviseur Droit', x: 72, y: 32, w: 6, h: 5 },
@@ -71,7 +73,7 @@ const CarDamageDiagram: React.FC<CarDamageDiagramProps> = ({ damages, onDamagesC
   return (
     <div className="w-full flex flex-col items-center p-4 border rounded-md bg-muted/20">
       <svg viewBox="0 0 100 110" className="w-full max-w-xs" >
-        {/* Professional Car Outline - Redrawn from scratch */}
+        {/* Car Bodywork Outline (Carrosserie) */}
         <g stroke="hsl(var(--muted-foreground))" strokeWidth="0.5" fill="hsl(var(--card))">
             {/* Main body shape */}
             <path d="M 20 10 C 10 10, 10 20, 10 30 L 10 80 C 10 90, 10 100, 20 100 L 80 100 C 90 100, 90 90, 90 80 L 90 30 C 90 20, 90 10, 80 10 Z" />
@@ -83,11 +85,12 @@ const CarDamageDiagram: React.FC<CarDamageDiagramProps> = ({ damages, onDamagesC
             <path d="M 90 75 C 95 75, 95 85, 90 85" fill="none" />
 
             {/* Cabin */}
-            <path d="M 28 30 L 28 75 L 72 75 L 72 30 Z" />
+            <rect x="28" y="30" width="44" height="45" rx="2" />
 
             {/* Windows */}
-            <path d="M 30 32 L 30 50 L 70 50 L 70 32 Z" strokeWidth="0.2" fill="hsl(var(--muted))" />
-            <path d="M 30 55 L 30 73 L 70 73 L 70 55 Z" strokeWidth="0.2" fill="hsl(var(--muted))" />
+            <path d="M 30 32 L 30 48 L 70 48 L 70 32 Z" strokeWidth="0.2" fill="hsl(var(--muted))" />
+            <line x1="50" y1="32" x2="50" y2="48" stroke="hsl(var(--muted-foreground))" strokeWidth="0.2" /> {/* B-pillar */}
+            <path d="M 30 52 L 30 73 L 70 73 L 70 52 Z" strokeWidth="0.2" fill="hsl(var(--muted))" />
 
             {/* Hood & Trunk Lines */}
             <line x1="30" y1="10" x2="30" y2="30" />
@@ -104,10 +107,9 @@ const CarDamageDiagram: React.FC<CarDamageDiagramProps> = ({ damages, onDamagesC
             <rect x="60" y="6" width="15" height="4" rx="1" fill="hsl(var(--muted))" />
             <rect x="25" y="100" width="15" height="4" rx="1" fill="hsl(var(--muted))" />
             <rect x="60" y="100" width="15" height="4" rx="1" fill="hsl(var(--muted))" />
-
         </g>
         
-        {/* Interactive Squares Overlay */}
+        {/* Interactive Overlay */}
         <g>
             {carParts.map((part) => (
                 <rect
