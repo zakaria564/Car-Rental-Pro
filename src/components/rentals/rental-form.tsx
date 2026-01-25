@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Rental, Car as CarType, Client, DamageType, Damage, Inspection } from "@/lib/definitions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Plus, Trash2 } from "lucide-react";
 import { Calendar } from "../ui/calendar";
 import { cn, formatCurrency } from "@/lib/utils";
 import { format, differenceInCalendarDays, startOfDay } from "date-fns";
@@ -35,7 +35,6 @@ import { useFirebase } from "@/firebase";
 import { collection, doc, serverTimestamp, setDoc, writeBatch, Timestamp, updateDoc, getDoc, getDocs } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
-import { ExistingPhotoViewer } from "../ui/multi-file-input";
 import { Skeleton } from "../ui/skeleton";
 
 const damageTypeEnum = z.enum(['rayure', 'rayure_importante', 'choc', 'a_remplacer']);
@@ -59,7 +58,7 @@ const baseSchema = z.object({
   lavage: z.boolean().default(false),
   dommagesDepartNotes: z.string().optional(),
   dommagesDepart: z.record(z.string(), damageTypeEnum).optional(),
-  photosDepart: z.string().optional(),
+  photosDepart: z.array(z.object({ url: z.string().url("Veuillez entrer une URL valide.").or(z.literal('')) })).optional(),
   
   // Champs de retour
   kilometrageRetour: z.preprocess(
@@ -72,7 +71,7 @@ const baseSchema = z.object({
   lavageRetour: z.boolean().default(true).optional(),
   dommagesRetourNotes: z.string().optional(),
   dommagesRetour: z.record(z.string(), damageTypeEnum).optional(),
-  photosRetour: z.string().optional(),
+  photosRetour: z.array(z.object({ url: z.string().url("Veuillez entrer une URL valide.").or(z.literal('')) })).optional(),
   dateRetour: z.date().optional(),
 });
 
@@ -111,7 +110,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
   const { toast } = useToast();
   const { firestore, auth } = useFirebase();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [isLoadingDefaults, setIsLoadingDefaults] = React.useState(false);
+  const [isLoadingDefaults, setIsLoadingDefaults] = React.useState(mode !== 'new');
 
   const rentalFormSchema = React.useMemo(() => {
     if (mode === 'check-in') {
@@ -163,11 +162,11 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
       dommagesDepart: {},
       dommagesRetour: {},
       dommagesDepartNotes: "",
-      photosDepart: "",
+      photosDepart: [],
       kilometrageRetour: undefined,
       carburantNiveauRetour: 0.5,
       dommagesRetourNotes: "",
-      photosRetour: "",
+      photosRetour: [],
       roueSecours: true,
       posteRadio: true,
       lavage: true,
@@ -185,12 +184,23 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
     defaultValues: initialValues,
   });
   
+  const { control } = form;
+
+  const { fields: departFields, append: appendDepart, remove: removeDepart } = useFieldArray({
+    control, name: "photosDepart",
+  });
+  const { fields: retourFields, append: appendRetour, remove: removeRetour } = useFieldArray({
+    control, name: "photosRetour",
+  });
+
+
   React.useEffect(() => {
     const loadRentalData = async () => {
         if (!rental || !firestore) return;
-        setIsLoadingDefaults(true);
+        if (!isLoadingDefaults) setIsLoadingDefaults(true);
 
         const fetchInspection = async (inspectionId: string) => {
+            if (!inspectionId) return null;
             const inspectionRef = doc(firestore, 'inspections', inspectionId);
             const inspectionSnap = await getDoc(inspectionRef);
             if (!inspectionSnap.exists()) return null;
@@ -211,8 +221,8 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
         const rentalClient = clients.find(c => c.cin === rental.locataire.cin);
         const rentalConducteur2 = rental.conducteur2 ? clients.find(c => c.cin === rental.conducteur2.cin) : null;
         
-        let livraisonData: any = rental.livraison; // backward compatibility
-        let receptionData: any = rental.reception; // backward compatibility
+        let livraisonData: any;
+        let receptionData: any;
 
         if (rental.livraisonInspectionId) {
             const insp = await fetchInspection(rental.livraisonInspectionId);
@@ -228,7 +238,10 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                    photos: insp.photos || []
                }
             }
+        } else if (rental.livraison) {
+            livraisonData = rental.livraison; // backward compatibility
         }
+
         if (mode === 'check-in' && rental.receptionInspectionId) {
              const insp = await fetchInspection(rental.receptionInspectionId);
              if (insp) {
@@ -244,6 +257,8 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                    photos: insp.photos || []
                 }
              }
+        } else if (mode === 'check-in' && rental.reception) {
+            receptionData = rental.reception; // backward compatibility
         }
 
         const defaults = {
@@ -260,7 +275,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             lavage: livraisonData?.lavage,
             dommagesDepartNotes: livraisonData?.dommagesNotes || "",
             dommagesDepart: livraisonData?.damages || {},
-            photosDepart: (livraisonData?.photos || []).join('\n'),
+            photosDepart: (livraisonData?.photos || []).map((p: string) => ({url: p})),
 
             kilometrageRetour: receptionData?.kilometrage,
             carburantNiveauRetour: receptionData?.carburantNiveau,
@@ -269,7 +284,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             lavageRetour: receptionData?.lavage ?? true,
             dommagesRetourNotes: receptionData?.dommagesNotes || "",
             dommagesRetour: receptionData?.damages || {},
-            photosRetour: (receptionData?.photos || []).join('\n'),
+            photosRetour: (receptionData?.photos || []).map((p: string) => ({url: p})),
             dateRetour: receptionData?.dateHeure ? getSafeDate(receptionData.dateHeure) : new Date(),
         };
         
@@ -283,7 +298,8 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
     } else {
          form.reset(newRentalInitialValues);
     }
-  }, [rental, mode, firestore, clients, form]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rental, mode, firestore, clients]);
   
   const { setValue } = form;
   const selectedClientId = form.watch("clientId");
@@ -329,7 +345,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
     if (Object.keys(errors).length > 0) {
       console.error("Form validation errors:", errors);
       const firstErrorKey = Object.keys(errors)[0];
-      const firstErrorMessage = errors[firstErrorKey]?.message;
+      const firstErrorMessage = errors[firstErrorKey]?.message || (Array.isArray(errors[firstErrorKey]) ? errors[firstErrorKey][0].url.message : "Erreur de validation");
       
       toast({
           variant: "destructive",
@@ -361,10 +377,8 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
     ) => {
         const inspectionRef = doc(collection(firestore, 'inspections'));
         
-        const photosString = type === 'depart' ? inspectionData.photosDepart : inspectionData.photosRetour;
-        
-        const delimiters = /[\n\s,]+/;
-        const photoUrls = photosString ? photosString.split(delimiters).map((url: string) => url.trim()).filter((url: string) => url.length > 0 && (url.startsWith('http://') || url.startsWith('https://'))) : [];
+        const photosArray = type === 'depart' ? inspectionData.photosDepart : inspectionData.photosRetour;
+        const photoUrls = photosArray ? photosArray.map((item: {url:string}) => item.url.trim()).filter((url: string) => url) : [];
 
         const inspectionPayload = {
             vehicleId: carId,
@@ -814,39 +828,56 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                         </FormItem>
                       )}
                     />
-                    <FormField
-                      control={form.control}
-                      name="photosDepart"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Photos du véhicule (Départ)</FormLabel>
-                            {mode === 'new' ? (
-                                <>
-                                  <FormControl>
-                                    <Textarea
-                                        placeholder="Collez chaque URL de photo sur une nouvelle ligne..."
-                                        className="min-h-24"
-                                        {...field}
-                                        value={field.value ?? ''}
-                                    />
-                                  </FormControl>
-                                  <FormDescription>
-                                    Ajoutez les URLs des photos hébergées en ligne (une par ligne).
-                                  </FormDescription>
-                                </>
-                            ) : (
-                                rental?.livraisonInspectionId || rental?.livraison ? (
-                                    <ExistingPhotoViewer 
-                                        urls={ (rental?.livraison?.photos as string[] | undefined) || []} 
-                                    />
-                                 ) : (
-                                    <p className="text-sm text-muted-foreground">Aucune photo enregistrée pour le départ.</p>
-                                 )
+                    <FormItem>
+                        <FormLabel>Photos du véhicule (Départ)</FormLabel>
+                        <div className="space-y-2">
+                            {departFields.map((item, index) => (
+                                <FormField
+                                    key={item.id}
+                                    control={control}
+                                    name={`photosDepart.${index}.url`}
+                                    render={({ field }) => (
+                                    <FormItem className="flex items-center gap-2 space-y-0">
+                                        <FormControl>
+                                        <Input
+                                            {...field}
+                                            placeholder="https://exemple.com/photo.jpg"
+                                            readOnly={mode !== 'new'}
+                                            className="h-9"
+                                        />
+                                        </FormControl>
+                                        {mode === 'new' && (
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-9 w-9 shrink-0 text-destructive"
+                                            onClick={() => removeDepart(index)}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                        )}
+                                        <FormMessage className="ml-2" />
+                                    </FormItem>
+                                    )}
+                                />
+                            ))}
+                            {mode === 'new' && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="w-full"
+                                    onClick={() => appendDepart({ url: '' })}
+                                >
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Ajouter une URL de photo
+                                </Button>
                             )}
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                        </div>
+                        {mode !== 'new' && departFields.length === 0 && (
+                            <p className="text-sm text-muted-foreground pt-2">Aucune photo enregistrée pour le départ.</p>
+                        )}
+                    </FormItem>
                 </AccordionContent>
             </AccordionItem>
             
@@ -1007,32 +1038,48 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                           </FormItem>
                         )}
                       />
-                      <FormField
-                        control={form.control}
-                        name="photosRetour"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Photos du véhicule (Retour)</FormLabel>
-                              <FormControl>
-                                <Textarea
-                                  placeholder="Collez chaque URL de photo sur une nouvelle ligne..."
-                                  className="min-h-24"
-                                  {...field}
-                                  value={field.value ?? ''}
+                    <FormItem>
+                        <FormLabel>Photos du véhicule (Retour)</FormLabel>
+                        <div className="space-y-2">
+                             {retourFields.map((item, index) => (
+                                <FormField
+                                    key={item.id}
+                                    control={control}
+                                    name={`photosRetour.${index}.url`}
+                                    render={({ field }) => (
+                                    <FormItem className="flex items-center gap-2 space-y-0">
+                                        <FormControl>
+                                        <Input
+                                            {...field}
+                                            placeholder="https://exemple.com/photo.jpg"
+                                            className="h-9"
+                                        />
+                                        </FormControl>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-9 w-9 shrink-0 text-destructive"
+                                            onClick={() => removeRetour(index)}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                        <FormMessage className="ml-2" />
+                                    </FormItem>
+                                    )}
                                 />
-                              </FormControl>
-                               <FormDescription>
-                                Ajoutez les URLs des photos hébergées en ligne (une par ligne).
-                              </FormDescription>
-                             {rental?.reception?.photos && rental.reception.photos.length > 0 && (
-                                <div className="pt-2">
-                                    <ExistingPhotoViewer urls={rental.reception.photos} />
-                                </div>
-                            )}
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                        />
+                            ))}
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full"
+                                onClick={() => appendRetour({ url: '' })}
+                            >
+                                <Plus className="mr-2 h-4 w-4" />
+                                Ajouter une URL de photo
+                            </Button>
+                        </div>
+                    </FormItem>
                   </AccordionContent>
               </AccordionItem>
             )}
@@ -1056,5 +1103,3 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
     </Form>
   );
 }
-
-    

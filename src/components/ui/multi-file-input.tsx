@@ -99,25 +99,7 @@ const MultiPhotoFormField = React.forwardRef<
 });
 MultiPhotoFormField.displayName = "MultiPhotoFormField";
 
-const ExistingPhotoViewer = ({ urls }: { urls: string[] | undefined }) => {
-    if (!urls || urls.length === 0) return (
-         <p className="text-sm text-muted-foreground">Aucune photo enregistrée.</p>
-    );
-    return (
-        <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">Photos existantes :</p>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
-                {urls.map((url, index) => (
-                    <a key={url + index} href={url} target="_blank" rel="noopener noreferrer" className="relative group aspect-square">
-                        <Image src={url} alt={`Photo existante ${index + 1}`} fill className="object-cover rounded-md" />
-                    </a>
-                ))}
-            </div>
-        </div>
-    );
-};
 
-
-export { MultiPhotoFormField, ExistingPhotoViewer };
+export { MultiPhotoFormField };
 
     
