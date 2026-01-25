@@ -5,9 +5,9 @@ import { damageTypes, type DamageType } from '@/lib/definitions';
 import React from 'react';
 
 // New, more professional layout for the car diagram.
-// Top-down view: front is top, rear is bottom, left is left, right is right.
+// Top-down view: front is at the bottom, rear is at the top.
 export const carParts = [
-    // --- Center Line ---
+    // --- Center Line --- (Front is bottom, Rear is top)
     { id: 'parechoc_av', label: 'Pare-choc Avant', x: 22, y: 86, w: 56, h: 7 },
     { id: 'capot', label: 'Capot', x: 31, y: 71, w: 38, h: 15 },
     { id: 'parebrise', label: 'Pare-brise', x: 30, y: 58, w: 40, h: 12 },
@@ -73,12 +73,12 @@ const CarDamageDiagram: React.FC<CarDamageDiagramProps> = ({ damages, onDamagesC
     <div className="w-full flex flex-col items-center p-4 border rounded-md bg-muted/20">
       <svg viewBox="0 0 100 100" className="w-full max-w-xs" >
         {/* Professional Car Outline */}
-        <g stroke="hsl(var(--muted-foreground))" strokeWidth="1" fill="hsl(var(--muted))">
+        <g stroke="hsl(var(--muted-foreground))" strokeWidth="1" fill="hsl(var(--card))">
             {/* Main Body */}
-            <path d="M 22,93 C 18,93 15,90 15,85 L 15,15 C 15,10 18,7 22,7 L 78,7 C 82,7 85,10 85,15 L 85,85 C 85,90 82,93 78,93 Z" />
+            <path d="M 22,93 C 18,93 15,90 15,85 L 15,15 C 15,10 18,7 22,7 L 78,7 C 82,7 85,10 85,15 L 85,85 C 85,90 82,93 78,93 Z" stroke="none" fill="hsl(var(--muted))" />
 
             {/* Cabin */}
-            <path d="M 25,78 L 30,70 L 70,70 L 75,78 L 75,22 L 70,14 L 30,14 L 25,22 Z" fill="hsl(var(--card))" />
+            <path d="M 25,78 L 30,70 L 70,70 L 75,78 L 75,22 L 70,14 L 30,14 L 25,22 Z" />
             
             {/* Window separators */}
             <line x1="50" y1="78" x2="50" y2="14" strokeWidth="0.5" />
@@ -89,8 +89,8 @@ const CarDamageDiagram: React.FC<CarDamageDiagramProps> = ({ damages, onDamagesC
             <line x1="30" y1="14" x2="70" y2="14" />
             
             {/* Side mirrors */}
-            <path d="M 25,60 L 20,63 L 20,57 Z" />
-            <path d="M 75,60 L 80,63 L 80,57 Z" />
+            <path d="M 25,60 L 20,63 L 20,57 Z" fill="hsl(var(--muted))"/>
+            <path d="M 75,60 L 80,63 L 80,57 Z" fill="hsl(var(--muted))"/>
         </g>
         
         {/* Interactive Squares Overlay */}
