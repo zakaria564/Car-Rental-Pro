@@ -314,18 +314,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
         });
 
     } else if (mode === 'edit' && rental) {
-        const validatedData = rentalFormSchema.safeParse(data);
-        if (!validatedData.success) {
-            onError(validatedData.error.flatten().fieldErrors);
-            return;
-        }
-        
-        const { dateRange } = validatedData.data;
-        if (!dateRange) {
-            toast({ variant: "destructive", title: "Date de location manquante." });
-            return;
-        }
-
+        const { dateRange } = data;
         const rentalRef = doc(firestore, 'rentals', rental.id);
 
         const dayDiff = differenceInCalendarDays(dateRange.to, dateRange.from);
@@ -358,12 +347,6 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
           });
 
     } else { // mode === 'new'
-        const validatedData = rentalFormSchema.safeParse(data);
-        if (!validatedData.success) {
-            onError(validatedData.error.flatten().fieldErrors);
-            return;
-        }
-
         const {
             voitureId,
             clientId,
@@ -377,7 +360,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             lavage,
             dommagesDepart,
             dommagesDepartNotes
-        } = validatedData.data;
+        } = data;
 
         const selectedCar = cars.find(c => c.id === voitureId);
         const selectedClient = clients.find(c => c.id === clientId);
@@ -385,11 +368,11 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             ? clients.find(c => c.id === conducteur2_clientId) 
             : null;
 
-        if (!selectedCar || !selectedClient || !dateRange) {
+        if (!selectedCar || !selectedClient) {
             toast({
                 variant: "destructive",
                 title: "Données invalides",
-                description: "Client, voiture ou dates invalides. Veuillez réessayer.",
+                description: "Client ou voiture invalides. Veuillez réessayer.",
             });
             return;
         }
