@@ -19,7 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Rental, Car as CarType, Client, DamageType, Damage, Inspection } from "@/lib/definitions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { CalendarIcon, Plus, Trash2 } from "lucide-react";
+import { CalendarIcon, Plus, Trash2, ExternalLink } from "lucide-react";
 import { Calendar } from "../ui/calendar";
 import { cn, formatCurrency } from "@/lib/utils";
 import { format, differenceInCalendarDays, startOfDay } from "date-fns";
@@ -837,27 +837,41 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                                     control={control}
                                     name={`photosDepart.${index}.url`}
                                     render={({ field }) => (
-                                    <FormItem className="flex items-center gap-2 space-y-0">
-                                        <FormControl>
-                                        <Input
-                                            {...field}
-                                            placeholder="https://exemple.com/photo.jpg"
-                                            readOnly={mode !== 'new'}
-                                            className="h-9"
-                                        />
-                                        </FormControl>
-                                        {mode === 'new' && (
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-9 w-9 shrink-0 text-destructive"
-                                            onClick={() => removeDepart(index)}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                        )}
-                                        <FormMessage className="ml-2" />
+                                    <FormItem>
+                                        <div className="flex items-center gap-1">
+                                            <FormControl>
+                                            <Input
+                                                {...field}
+                                                placeholder="https://exemple.com/photo.jpg"
+                                                readOnly={mode !== 'new'}
+                                                className="h-9"
+                                            />
+                                            </FormControl>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="icon"
+                                                title="Aperçu de l'image"
+                                                className="h-9 w-9 shrink-0"
+                                                disabled={!field.value}
+                                                onClick={() => field.value && window.open(field.value, '_blank', 'noopener,noreferrer')}
+                                            >
+                                                <ExternalLink className="h-4 w-4" />
+                                            </Button>
+                                            {mode === 'new' && (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                title="Supprimer l'URL"
+                                                className="h-9 w-9 shrink-0 text-destructive"
+                                                onClick={() => removeDepart(index)}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                            )}
+                                        </div>
+                                        <FormMessage />
                                     </FormItem>
                                     )}
                                 />
@@ -1047,24 +1061,38 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                                     control={control}
                                     name={`photosRetour.${index}.url`}
                                     render={({ field }) => (
-                                    <FormItem className="flex items-center gap-2 space-y-0">
-                                        <FormControl>
-                                        <Input
-                                            {...field}
-                                            placeholder="https://exemple.com/photo.jpg"
-                                            className="h-9"
-                                        />
-                                        </FormControl>
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-9 w-9 shrink-0 text-destructive"
-                                            onClick={() => removeRetour(index)}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                        <FormMessage className="ml-2" />
+                                    <FormItem>
+                                        <div className="flex items-center gap-1">
+                                            <FormControl>
+                                            <Input
+                                                {...field}
+                                                placeholder="https://exemple.com/photo.jpg"
+                                                className="h-9"
+                                            />
+                                            </FormControl>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="icon"
+                                                title="Aperçu de l'image"
+                                                className="h-9 w-9 shrink-0"
+                                                disabled={!field.value}
+                                                onClick={() => field.value && window.open(field.value, '_blank', 'noopener,noreferrer')}
+                                            >
+                                                <ExternalLink className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                title="Supprimer l'URL"
+                                                className="h-9 w-9 shrink-0 text-destructive"
+                                                onClick={() => removeRetour(index)}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                        <FormMessage />
                                     </FormItem>
                                     )}
                                 />
