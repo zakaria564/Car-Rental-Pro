@@ -3,6 +3,7 @@
 import { cn } from '@/lib/utils';
 import { damageTypes, type DamageType } from '@/lib/definitions';
 import React from 'react';
+import { XCircle } from 'lucide-react';
 
 // A professional and detailed car diagram.
 // This is a top-down view. Front is at the top.
@@ -50,20 +51,32 @@ type CarDamageDiagramProps = {
 };
 
 const CarDamageDiagram: React.FC<CarDamageDiagramProps> = ({ damages, onDamagesChange, readOnly = false }) => {
+  const [selectedDamageType, setSelectedDamageType] = React.useState<DamageType | undefined>('rayure');
+
+  const handleDamageTypeSelect = (type: DamageType | undefined) => {
+    // If the same type is clicked again, we can interpret it as a toggle to 'erase' mode.
+    if (selectedDamageType === type) {
+        setSelectedDamageType(undefined);
+    } else {
+        setSelectedDamageType(type);
+    }
+  };
+
   const handlePartClick = (partId: DamagePart) => {
     if (readOnly) return;
 
-    const damageCycle: (DamageType | undefined)[] = ['rayure', 'rayure_importante', 'choc', 'a_remplacer', undefined];
-    
-    const currentDamage = damages[partId];
-    const currentIndex = currentDamage ? damageCycle.indexOf(currentDamage) : -1;
-    const nextIndex = (currentIndex + 1) % damageCycle.length;
-    const nextDamage = damageCycle[nextIndex];
-    
     const newDamages = { ...damages };
-    if (nextDamage) {
-        newDamages[partId] = nextDamage;
+    
+    if (selectedDamageType) {
+        // If the part already has the selected damage, remove it.
+        // Otherwise, set it. This makes clicking a part a toggle for the selected damage.
+        if (newDamages[partId] === selectedDamageType) {
+            delete newDamages[partId];
+        } else {
+            newDamages[partId] = selectedDamageType;
+        }
     } else {
+        // If no damage type is selected (erase mode), just remove any existing damage.
         delete newDamages[partId];
     }
     
@@ -133,12 +146,40 @@ const CarDamageDiagram: React.FC<CarDamageDiagramProps> = ({ damages, onDamagesC
         </g>
       </svg>
       <div className="flex justify-center gap-2 flex-wrap mt-4 text-xs">
-          {Object.values(damageTypes).map(({ label, color }) => (
-              <div key={label} className="flex items-center gap-1.5">
-                  <div className={cn("w-3 h-3 rounded-sm border", color)} />
-                  <span>{label}</span>
-              </div>
-          ))}
+          {(Object.keys(damageTypes) as DamageType[]).map((type) => {
+              const { label, color } = damageTypes[type];
+              return (
+                <button
+                    type="button"
+                    key={type}
+                    onClick={() => !readOnly && handleDamageTypeSelect(type)}
+                    disabled={readOnly}
+                    className={cn(
+                        "flex items-center gap-1.5 p-1.5 rounded-md border-2 transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+                        selectedDamageType === type 
+                          ? 'border-primary bg-primary/10' 
+                          : 'border-transparent hover:bg-muted'
+                    )}
+                >
+                    <div className={cn("w-3 h-3 rounded-sm border", color)} />
+                    <span>{label}</span>
+                </button>
+              )
+          })}
+           <button
+                type="button"
+                onClick={() => !readOnly && handleDamageTypeSelect(undefined)}
+                disabled={readOnly}
+                className={cn(
+                    "flex items-center gap-1.5 p-1.5 rounded-md border-2 transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+                    selectedDamageType === undefined 
+                      ? 'border-primary bg-primary/10' 
+                      : 'border-transparent hover:bg-muted'
+                )}
+            >
+                <XCircle className="w-3.5 h-3.5" />
+                <span>Effacer</span>
+            </button>
       </div>
     </div>
   );
