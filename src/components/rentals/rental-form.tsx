@@ -283,7 +283,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             posteRadioRetour: receptionData?.posteRadio ?? true,
             lavageRetour: receptionData?.lavage ?? true,
             dommagesRetourNotes: receptionData?.dommagesNotes || "",
-            dommagesRetour: receptionData?.damages || {},
+            dommagesRetour: receptionData?.damages || (mode === 'check-in' ? livraisonData?.damages : {}) || {},
             photosRetour: (receptionData?.photos || []).map((p: string) => ({url: p})),
             dateRetour: receptionData?.dateHeure ? getSafeDate(receptionData.dateHeure) : new Date(),
         };
