@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from "react";
@@ -204,7 +205,8 @@ function RentalDetails({ rental }: { rental: Rental }) {
 
     return (
       <ScrollArea className="h-[70vh]">
-        <div className="space-y-6 text-sm p-2" id="printable-contract">
+        <div className="text-sm p-2" id="printable-contract">
+          <div className="contract-body space-y-6">
             {/* Header */}
             <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold tracking-wider">CONTRAT DE LOCATION DE VÉHICULE</h2>
@@ -298,9 +300,9 @@ function RentalDetails({ rental }: { rental: Rental }) {
                     )}
                 </div>
             </div>
-
+          </div>
             {/* Signatures */}
-            <div className="pt-16">
+            <div className="pt-16 signatures-section">
                 <div className="grid grid-cols-2 gap-16">
                     <div className="text-center">
                         <p className="border-t pt-2">Signature du Loueur</p>
@@ -348,21 +350,39 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     }
 
     const styles = `
+      @page {
+        size: A4;
+        margin: 10mm;
+      }
+      html, body {
+        margin: 0;
+        padding: 0;
+        background: white;
+      }
       body {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         font-family: Arial, sans-serif;
-        background-color: white;
       }
       .no-print { display: none !important; }
+      
       #printable-contract {
+        display: flex;
+        flex-direction: column;
+        height: calc(297mm - 22mm); /* A4 height with tolerance for margins */
         font-size: 8pt;
         line-height: 1.3;
       }
+      #printable-contract .contract-body {
+        flex-grow: 1;
+      }
+      #printable-contract .contract-body > div {
+        margin-bottom: 3mm;
+      }
+
       #printable-contract p { margin: 0.5mm 0; }
       #printable-contract h2, #printable-contract h3, #printable-contract h4 { margin: 1mm 0; padding: 0; font-weight: bold; }
       #printable-contract strong { font-weight: bold; }
-      #printable-contract .space-y-6 > :not([hidden]) ~ :not([hidden]) { margin-top: 3mm; }
       #printable-contract .text-sm { font-size: 8pt; line-height: 1.2; }
       #printable-contract .p-4 { padding: 2mm; }
       #printable-contract .text-center { text-align: center; }
@@ -382,7 +402,12 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       #printable-contract .grid-cols-1 { grid-template-columns: 1fr; }
       #printable-contract .gap-x-8 { column-gap: 5mm; }
       #printable-contract .gap-y-4 { row-gap: 2mm; }
-      #printable-contract .pt-16 { padding-top: 10mm; }
+      
+      #printable-contract .signatures-section {
+        margin-top: auto; /* Pushes to the bottom of the flex container */
+        padding-top: 10mm;
+      }
+      
       #printable-contract .gap-16 { gap: 15mm; }
       #printable-contract .border-t { border-top: 0.5pt solid #ccc; }
       #printable-contract .pt-2 { padding-top: 1mm; }
@@ -392,13 +417,10 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       #printable-contract .mt-2 { margin-top: 1mm; }
       #printable-contract .block { display: block; }
       #printable-contract .mb-1 { margin-bottom: 0.5mm; }
-      #printable-contract .printable-diagram-wrapper { padding: 2mm 0; }
-      #printable-contract .printable-diagram-wrapper > div { max-width: 180px !important; margin: 0 auto; }
-      #printable-contract svg { max-width: 100% !important; height: auto !important; }
-      @page {
-        size: A4;
-        margin: 10mm;
-      }
+      #printable-contract .printable-diagram-wrapper { padding: 2mm 0; text-align: center; }
+      #printable-contract .printable-diagram-wrapper > div { max-width: 180px !important; margin: 0 auto; display: inline-block; }
+      #printable-contract svg { max-width: 100% !important; height: auto !important; cursor: default !important; }
+      
       #printable-contract, #printable-contract * {
         break-inside: avoid !important;
       }
@@ -766,3 +788,4 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
 }
 
     
+
