@@ -35,6 +35,8 @@ import { useFirebase } from "@/firebase";
 import { collection, doc, serverTimestamp, setDoc, writeBatch, Timestamp, updateDoc } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { MultiPhotoFormField, ExistingPhotoViewer } from "../ui/multi-file-input";
 
 const damageTypeEnum = z.enum(['rayure', 'rayure_importante', 'choc', 'a_remplacer']);
 
@@ -57,6 +59,7 @@ const baseSchema = z.object({
   lavage: z.boolean().default(false),
   dommagesDepartNotes: z.string().optional(),
   dommagesDepart: z.record(z.string(), damageTypeEnum).optional(),
+  photosDepart: z.any().optional(),
   
   // Champs de retour
   kilometrageRetour: z.preprocess(
@@ -69,6 +72,7 @@ const baseSchema = z.object({
   lavageRetour: z.boolean().default(true).optional(),
   dommagesRetourNotes: z.string().optional(),
   dommagesRetour: z.record(z.string(), damageTypeEnum).optional(),
+  photosRetour: z.any().optional(),
   dateRetour: z.date().optional(),
 });
 
@@ -105,7 +109,8 @@ type RentalFormProps = {
 
 export default function RentalForm({ rental, clients, cars, onFinished, mode }: RentalFormProps) {
   const { toast } = useToast();
-  const { firestore } = useFirebase();
+  const { firestore, storage } = useFirebase();
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const rentalFormSchema = React.useMemo(() => {
     if (mode === 'check-in') {
@@ -164,10 +169,12 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             lavage: rental.livraison.lavage,
             dommagesDepartNotes: rental.livraison.dommagesNotes || "",
             dommagesDepart: rental.livraison.dommages,
+            photosDepart: [],
             kilometrageRetour: rental.reception?.kilometrage,
             carburantNiveauRetour: rental.reception?.carburantNiveau,
             dommagesRetourNotes: rental.reception?.dommagesNotes || "",
             dommagesRetour: rental.reception?.dommages,
+            photosRetour: [],
             dateRetour: rental.reception?.dateHeure ? getSafeDate(rental.reception.dateHeure) : new Date(),
             roueSecoursRetour: rental.reception?.roueSecours ?? true,
             posteRadioRetour: rental.reception?.posteRadio ?? true,
@@ -185,9 +192,11 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
         dommagesDepart: {},
         dommagesRetour: {},
         dommagesDepartNotes: "",
+        photosDepart: [],
         kilometrageRetour: undefined,
         carburantNiveauRetour: 0.5,
         dommagesRetourNotes: "",
+        photosRetour: [],
         roueSecours: true,
         posteRadio: true,
         lavage: true,
@@ -249,218 +258,216 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
   }, [selectedCarForUI, rentalDaysForUI, rental]);
 
   const onError = (errors: any) => {
-    console.error("Form validation errors:", errors);
-    const firstErrorKey = Object.keys(errors)[0];
-    const firstErrorMessage = errors[firstErrorKey]?.message;
-    
-    toast({
-        variant: "destructive",
-        title: "Erreur de validation",
-        description: firstErrorMessage || "Veuillez corriger les erreurs en surbrillance.",
-    });
+    if (Object.keys(errors).length > 0) {
+      console.error("Form validation errors:", errors);
+      const firstErrorKey = Object.keys(errors)[0];
+      const firstErrorMessage = errors[firstErrorKey]?.message;
+      
+      toast({
+          variant: "destructive",
+          title: "Erreur de validation",
+          description: firstErrorMessage || "Veuillez corriger les erreurs en surbrillance.",
+      });
+    }
   };
 
   async function onSubmit(data: z.infer<typeof rentalFormSchema>) {
-    if (!firestore) return;
+    if (!firestore || !storage) return;
     
-    if (mode === 'check-in' && rental) {
-        const rentalRef = doc(firestore, 'rentals', rental.id);
-        const carDocRef = doc(firestore, 'cars', rental.vehicule.carId);
-        
-        const finalRentalDays = rentalDaysForUI;
-        const finalAmountToPay = finalRentalDays * rental.location.prixParJour;
+    setIsSubmitting(true);
 
-        const updatePayload = {
-            reception: {
-                dateHeure: data.dateRetour,
-                kilometrage: data.kilometrageRetour,
-                carburantNiveau: data.carburantNiveauRetour,
-                roueSecours: data.roueSecoursRetour,
-                posteRadio: data.posteRadioRetour,
-                lavage: data.lavageRetour,
-                dommages: data.dommagesRetour || {},
-                dommagesRetourNotes: data.dommagesRetourNotes || "",
-            },
-            'location.dateFin': data.dateRetour,
-            'location.nbrJours': finalRentalDays,
-            'location.montantAPayer': finalAmountToPay,
-            statut: 'terminee' as 'terminee',
-        };
+    const uploadPhotos = async (files: File[], rentalId: string, category: 'depart' | 'retour'): Promise<string[]> => {
+        if (!files || files.length === 0) return [];
 
-        const batch = writeBatch(firestore);
-        batch.update(rentalRef, updatePayload);
-        batch.update(carDocRef, { disponible: true, kilometrage: data.kilometrageRetour });
+        const photoURLs: string[] = [];
+        toast({ title: `Envoi de ${files.length} photo(s)...`, description: "Veuillez patienter." });
 
-        batch.commit()
-          .then(() => {
+        for (const file of files) {
+            const filePath = `rentals/${rentalId}/${category}/${Date.now()}_${file.name}`;
+            const storageRef = ref(storage, filePath);
+            try {
+                const snapshot = await uploadBytes(storageRef, file);
+                const downloadURL = await getDownloadURL(snapshot.ref);
+                photoURLs.push(downloadURL);
+            } catch (uploadError) {
+                console.error("File upload error:", uploadError);
+                toast({ variant: 'destructive', title: `Erreur d'envoi pour ${file.name}` });
+                // We continue to try uploading other files
+            }
+        }
+        return photoURLs;
+    };
+
+    try {
+        if (mode === 'check-in' && rental) {
+            const rentalRef = doc(firestore, 'rentals', rental.id);
+            const carDocRef = doc(firestore, 'cars', rental.vehicule.carId);
+            
+            const finalRentalDays = rentalDaysForUI;
+            const finalAmountToPay = finalRentalDays * rental.location.prixParJour;
+
+            const newPhotoURLs = await uploadPhotos(data.photosRetour || [], rental.id, 'retour');
+            const allPhotos = [...(rental.reception?.photos || []), ...newPhotoURLs];
+
+            const updatePayload = {
+                reception: {
+                    dateHeure: data.dateRetour,
+                    kilometrage: data.kilometrageRetour,
+                    carburantNiveau: data.carburantNiveauRetour,
+                    roueSecours: data.roueSecoursRetour,
+                    posteRadio: data.posteRadioRetour,
+                    lavage: data.lavageRetour,
+                    dommages: data.dommagesRetour || {},
+                    dommagesNotes: data.dommagesRetourNotes || "",
+                    photos: allPhotos,
+                },
+                'location.dateFin': data.dateRetour,
+                'location.nbrJours': finalRentalDays,
+                'location.montantAPayer': finalAmountToPay,
+                statut: 'terminee' as 'terminee',
+            };
+
+            const batch = writeBatch(firestore);
+            batch.update(rentalRef, updatePayload);
+            batch.update(carDocRef, { disponible: true, kilometrage: data.kilometrageRetour });
+
+            await batch.commit();
             toast({
                 title: "Location terminée",
                 description: `La réception pour ${rental.locataire.nomPrenom} a été enregistrée avec le montant final de ${formatCurrency(finalAmountToPay, 'MAD')}.`,
             });
             onFinished();
-          })
-          .catch((serverError) => {
-            const permissionError = new FirestorePermissionError({
-                path: `batch write for ${rentalRef.path} and ${carDocRef.path}`,
-                operation: 'update',
-                requestResourceData: updatePayload
-            }, serverError as Error);
-            errorEmitter.emit('permission-error', permissionError);
-            toast({
-                variant: 'destructive',
-                title: "Erreur",
-                description: "Impossible de terminer la location. L'opération a échoué."
-            });
-        });
 
-    } else if (mode === 'edit' && rental) {
-        const { dateRange } = data;
-        const rentalRef = doc(firestore, 'rentals', rental.id);
+        } else if (mode === 'edit' && rental) {
+            const { dateRange } = data;
+            const rentalRef = doc(firestore, 'rentals', rental.id);
 
-        const dayDiff = differenceInCalendarDays(startOfDay(dateRange.to), startOfDay(dateRange.from));
-        const finalRentalDays = dayDiff < 1 ? 1 : dayDiff;
-        const finalAmountToPay = finalRentalDays * rental.location.prixParJour;
+            const dayDiff = differenceInCalendarDays(startOfDay(dateRange.to), startOfDay(dateRange.from));
+            const finalRentalDays = dayDiff < 1 ? 1 : dayDiff;
+            const finalAmountToPay = finalRentalDays * rental.location.prixParJour;
 
-        const updatePayload = {
-            'location.dateFin': dateRange.to,
-            'location.nbrJours': finalRentalDays,
-            'location.montantAPayer': finalAmountToPay,
-        };
+            const updatePayload = {
+                'location.dateFin': dateRange.to,
+                'location.nbrJours': finalRentalDays,
+                'location.montantAPayer': finalAmountToPay,
+            };
 
-        updateDoc(rentalRef, updatePayload)
-          .then(() => {
+            await updateDoc(rentalRef, updatePayload);
             toast({ title: "Contrat mis à jour", description: `La location a été étendue jusqu'au ${format(dateRange.to, "dd/MM/yyyy")}.` });
             onFinished();
-          })
-          .catch((serverError) => {
-             const permissionError = new FirestorePermissionError({
-                path: rentalRef.path,
-                operation: 'update',
-                requestResourceData: updatePayload
-            }, serverError as Error);
-            errorEmitter.emit('permission-error', permissionError);
-            toast({
-                variant: 'destructive',
-                title: "Erreur",
-                description: "Impossible de mettre à jour le contrat."
-            });
-          });
 
-    } else { // mode === 'new'
-        const {
-            voitureId,
-            clientId,
-            conducteur2_clientId,
-            dateRange,
-            caution,
-            kilometrageDepart,
-            carburantNiveauDepart,
-            roueSecours,
-            posteRadio,
-            lavage,
-            dommagesDepart,
-            dommagesDepartNotes
-        } = data;
+        } else { // mode === 'new'
+            const {
+                voitureId,
+                clientId,
+                conducteur2_clientId,
+                dateRange,
+                caution,
+                kilometrageDepart,
+                carburantNiveauDepart,
+                roueSecours,
+                posteRadio,
+                lavage,
+                dommagesDepart,
+                dommagesDepartNotes
+            } = data;
 
-        const selectedCar = cars.find(c => c.id === voitureId);
-        const selectedClient = clients.find(c => c.id === clientId);
-        const selectedConducteur2 = (conducteur2_clientId && conducteur2_clientId !== '_none_') 
-            ? clients.find(c => c.id === conducteur2_clientId) 
-            : null;
+            const selectedCar = cars.find(c => c.id === voitureId);
+            const selectedClient = clients.find(c => c.id === clientId);
+            const selectedConducteur2 = (conducteur2_clientId && conducteur2_clientId !== '_none_') 
+                ? clients.find(c => c.id === conducteur2_clientId) 
+                : null;
 
-        if (!selectedCar || !selectedClient) {
-            toast({
-                variant: "destructive",
-                title: "Données invalides",
-                description: "Client ou voiture invalides. Veuillez réessayer.",
-            });
-            return;
-        }
-        
-        const dayDiff = differenceInCalendarDays(startOfDay(dateRange.to), startOfDay(dateRange.from));
-        const rentalDays = dayDiff < 1 ? 1 : dayDiff;
-        const totalAmount = rentalDays * selectedCar.prixParJour;
-        
-        const safeDateMiseEnCirculation = timestampToDate(selectedCar.dateMiseEnCirculation);
+            if (!selectedCar || !selectedClient) {
+                toast({
+                    variant: "destructive",
+                    title: "Données invalides",
+                    description: "Client ou voiture invalides. Veuillez réessayer.",
+                });
+                return;
+            }
+            
+            const dayDiff = differenceInCalendarDays(startOfDay(dateRange.to), startOfDay(dateRange.from));
+            const rentalDays = dayDiff < 1 ? 1 : dayDiff;
+            const totalAmount = rentalDays * selectedCar.prixParJour;
+            
+            const safeDateMiseEnCirculation = timestampToDate(selectedCar.dateMiseEnCirculation);
+            const newRentalRef = doc(collection(firestore, 'rentals'));
+            const photoURLs = await uploadPhotos(data.photosDepart || [], newRentalRef.id, 'depart');
 
-        const rentalPayload = {
-            locataire: {
-                cin: selectedClient.cin,
-                nomPrenom: selectedClient.nom,
-                permisNo: selectedClient.permisNo || 'N/A',
-                telephone: selectedClient.telephone,
-            },
-            ...(selectedConducteur2 && {
-                conducteur2: {
-                    nomPrenom: selectedConducteur2.nom,
-                    cin: selectedConducteur2.cin,
-                    permisNo: selectedConducteur2.permisNo || 'N/A',
-                    telephone: selectedConducteur2.telephone,
-                }
-            }),
-            vehicule: {
-                carId: selectedCar.id,
-                immatriculation: selectedCar.immat,
-                marque: `${selectedCar.marque} ${selectedCar.modele}`,
-                dateMiseEnCirculation: safeDateMiseEnCirculation,
-                couleur: selectedCar.couleur || "Inconnue",
-                nbrPlaces: selectedCar.nbrPlaces || 5,
-                puissance: selectedCar.puissance || 7,
-                carburantType: selectedCar.carburantType || 'Essence',
-                transmission: selectedCar.transmission || 'Manuelle',
-                photoURL: selectedCar.photoURL
-            },
-            livraison: {
-                dateHeure: serverTimestamp(),
-                kilometrage: kilometrageDepart,
-                carburantNiveau: carburantNiveauDepart,
-                roueSecours: roueSecours,
-                posteRadio: posteRadio,
-                lavage: lavage,
-                dommages: dommagesDepart || {},
-                dommagesNotes: dommagesDepartNotes || "",
-            },
-            reception: {},
-            location: {
-                dateDebut: dateRange.from,
-                dateFin: dateRange.to,
-                prixParJour: selectedCar.prixParJour,
-                nbrJours: rentalDays,
-                depot: caution || 0,
-                montantAPayer: totalAmount,
-            },
-            statut: 'en_cours' as 'en_cours',
-            createdAt: serverTimestamp(),
-        };
-        
-        const newRentalRef = doc(collection(firestore, 'rentals'));
-        const carDocRef = doc(firestore, 'cars', selectedCar.id);
-        const batch = writeBatch(firestore);
+            const rentalPayload = {
+                locataire: {
+                    cin: selectedClient.cin,
+                    nomPrenom: selectedClient.nom,
+                    permisNo: selectedClient.permisNo || 'N/A',
+                    telephone: selectedClient.telephone,
+                },
+                ...(selectedConducteur2 && {
+                    conducteur2: {
+                        nomPrenom: selectedConducteur2.nom,
+                        cin: selectedConducteur2.cin,
+                        permisNo: selectedConducteur2.permisNo || 'N/A',
+                        telephone: selectedConducteur2.telephone,
+                    }
+                }),
+                vehicule: {
+                    carId: selectedCar.id,
+                    immatriculation: selectedCar.immat,
+                    marque: `${selectedCar.marque} ${selectedCar.modele}`,
+                    dateMiseEnCirculation: safeDateMiseEnCirculation,
+                    couleur: selectedCar.couleur || "Inconnue",
+                    nbrPlaces: selectedCar.nbrPlaces || 5,
+                    puissance: selectedCar.puissance || 7,
+                    carburantType: selectedCar.carburantType || 'Essence',
+                    transmission: selectedCar.transmission || 'Manuelle',
+                    photoURL: selectedCar.photoURL
+                },
+                livraison: {
+                    dateHeure: serverTimestamp(),
+                    kilometrage: kilometrageDepart,
+                    carburantNiveau: carburantNiveauDepart,
+                    roueSecours: roueSecours,
+                    posteRadio: posteRadio,
+                    lavage: lavage,
+                    dommages: dommagesDepart || {},
+                    dommagesNotes: dommagesDepartNotes || "",
+                    photos: photoURLs,
+                },
+                reception: {},
+                location: {
+                    dateDebut: dateRange.from,
+                    dateFin: dateRange.to,
+                    prixParJour: selectedCar.prixParJour,
+                    nbrJours: rentalDays,
+                    depot: caution || 0,
+                    montantAPayer: totalAmount,
+                },
+                statut: 'en_cours' as 'en_cours',
+                createdAt: serverTimestamp(),
+            };
+            
+            const carDocRef = doc(firestore, 'cars', selectedCar.id);
+            const batch = writeBatch(firestore);
 
-        batch.set(newRentalRef, rentalPayload);
-        batch.update(carDocRef, { disponible: false });
+            batch.set(newRentalRef, rentalPayload);
+            batch.update(carDocRef, { disponible: false });
 
-        batch.commit()
-          .then(() => {
+            await batch.commit();
             toast({
                 title: "Contrat créé",
                 description: `Le contrat pour ${selectedClient.nom} a été créé avec succès.`,
             });
             onFinished();
-          })
-          .catch((serverError: any) => {
-            const permissionError = new FirestorePermissionError({
-                path: `batch write for ${newRentalRef.path} and ${carDocRef.path}`,
-                operation: 'create',
-                requestResourceData: rentalPayload
-            }, serverError);
-            errorEmitter.emit('permission-error', permissionError);
-            toast({
-                variant: "destructive",
-                title: "Erreur lors de la création",
-                description: "Une erreur est survenue. Vérifiez vos permissions et réessayez.",
-            });
+        }
+    } catch (error) {
+        console.error("Submission error:", error);
+        toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: "Une erreur est survenue lors de l'enregistrement ou de l'envoi des photos."
         });
+    } finally {
+        setIsSubmitting(false);
     }
   }
 
@@ -723,6 +730,28 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                         </FormItem>
                       )}
                     />
+                    <FormField
+                      control={form.control}
+                      name="photosDepart"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Photos du véhicule (Départ)</FormLabel>
+                          <FormControl>
+                            <MultiPhotoFormField
+                              name={field.name}
+                              disabled={mode !== 'new'}
+                              className={mode !== 'new' ? 'cursor-not-allowed' : ''}
+                            />
+                          </FormControl>
+                          {rental?.livraison.photos && rental.livraison.photos.length > 0 && (
+                            <div className="pt-2">
+                                <ExistingPhotoViewer urls={rental.livraison.photos} />
+                            </div>
+                          )}
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                 </AccordionContent>
             </AccordionItem>
             
@@ -883,6 +912,24 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                           </FormItem>
                         )}
                       />
+                      <FormField
+                        control={form.control}
+                        name="photosRetour"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Photos du véhicule (Retour)</FormLabel>
+                            <FormControl>
+                              <MultiPhotoFormField name={field.name} />
+                            </FormControl>
+                             {rental?.reception?.photos && rental.reception.photos.length > 0 && (
+                                <div className="pt-2">
+                                    <ExistingPhotoViewer urls={rental.reception.photos} />
+                                </div>
+                            )}
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                        />
                   </AccordionContent>
               </AccordionItem>
             )}
@@ -899,8 +946,8 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             </CardContent>
         </Card>
 
-        <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={form.formState.isSubmitting}>
-          {form.formState.isSubmitting ? "Enregistrement..." : buttonText[mode]}
+        <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isSubmitting}>
+          {isSubmitting ? "Enregistrement..." : buttonText[mode]}
         </Button>
       </form>
     </Form>

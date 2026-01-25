@@ -103,7 +103,8 @@
                 "enum": ["rayure", "rayure_importante", "choc", "a_remplacer"]
               }
             },
-            "dommagesNotes": { "type": "string" }
+            "dommagesNotes": { "type": "string" },
+            "photos": { "type": "array", "items": { "type": "string", "format": "uri" }, "description": "URLs of photos taken at delivery." }
           }
         },
         "reception": {
@@ -123,7 +124,8 @@
                 "enum": ["rayure", "rayure_importante", "choc", "a_remplacer"]
               }
             },
-            "dommagesNotes": { "type": "string" }
+            "dommagesNotes": { "type": "string" },
+            "photos": { "type": "array", "items": { "type": "string", "format": "uri" }, "description": "URLs of photos taken at reception." }
           }
         },
         "location": {

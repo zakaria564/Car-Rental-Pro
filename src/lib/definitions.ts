@@ -78,6 +78,7 @@ export type Rental = {
     lavage: boolean;
     dommages: { [key: string]: DamageType };
     dommagesNotes?: string;
+    photos?: string[];
   };
   reception: {
     dateHeure?: any; // Timestamp
@@ -88,6 +89,7 @@ export type Rental = {
     lavage?: boolean;
     dommages?: { [key: string]: DamageType };
     dommagesNotes?: string;
+    photos?: string[];
   };
   location: {
     dateDebut: any; // Timestamp

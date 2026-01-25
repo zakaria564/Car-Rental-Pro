@@ -176,7 +176,7 @@ function RentalDetails({ rental }: { rental: Rental }) {
             {/* Delivery / Return state */}
             <div className="border p-4 rounded-md">
                 <h3 className="font-bold text-base mb-2 underline">ÉTAT DU VÉHICULE</h3>
-                <div className="grid grid-cols-2 gap-x-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                     <div>
                         <h4 className="font-semibold">Livraison (Départ)</h4>
                         <p><strong>Date:</strong> {safeLivraisonDate ? format(safeLivraisonDate, "dd/MM/yyyy HH:mm", { locale: fr }) : 'N/A'}</p>
@@ -184,6 +184,18 @@ function RentalDetails({ rental }: { rental: Rental }) {
                         <p><strong>Niveau Carburant:</strong> {rental.livraison.carburantNiveau * 100}%</p>
                         <div><strong className="block mb-1">Dommages:</strong> {formatDamages(rental.livraison.dommages)}</div>
                         {rental.livraison.dommagesNotes && <p><strong>Notes:</strong> {rental.livraison.dommagesNotes}</p>}
+                        {rental.livraison.photos && rental.livraison.photos.length > 0 && (
+                            <div className="mt-2">
+                                <strong className="block mb-1 font-semibold">Photos (Départ):</strong>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {rental.livraison.photos.map((url, i) => (
+                                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="relative aspect-square">
+                                            <Image src={url} alt={`Photo départ ${i+1}`} fill className="object-cover rounded-md" />
+                                        </a>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                     <div>
                         <h4 className="font-semibold">Réception (Retour)</h4>
@@ -194,6 +206,18 @@ function RentalDetails({ rental }: { rental: Rental }) {
                             <p><strong>Niveau Carburant:</strong> {rental.reception.carburantNiveau ? rental.reception.carburantNiveau * 100 + '%' : 'N/A'}</p>
                             <div><strong className="block mb-1">Dommages:</strong> {formatDamages(rental.reception.dommages)}</div>
                             {rental.reception.dommagesNotes && <p><strong>Notes:</strong> {rental.reception.dommagesNotes}</p>}
+                            {rental.reception.photos && rental.reception.photos.length > 0 && (
+                                <div className="mt-2">
+                                    <strong className="block mb-1 font-semibold">Photos (Retour):</strong>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {rental.reception.photos.map((url, i) => (
+                                            <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="relative aspect-square">
+                                                <Image src={url} alt={`Photo retour ${i+1}`} fill className="object-cover rounded-md" />
+                                            </a>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                           </>
                         ) : <p>Véhicule non retourné.</p>}
                     </div>
