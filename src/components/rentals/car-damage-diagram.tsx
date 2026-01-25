@@ -1,3 +1,4 @@
+
 "use client";
 
 import { cn } from '@/lib/utils';
@@ -5,41 +6,41 @@ import { damageTypes, type DamageType } from '@/lib/definitions';
 import React from 'react';
 import { XCircle } from 'lucide-react';
 
-// A professional and detailed car diagram.
-// This is a top-down view. Front is at the top.
-// Per your instruction, this represents a left-hand drive car (volant à gauche),
-// so the left side of the diagram is the driver's side.
+// A more professional and detailed car diagram structure.
+// This is a top-down view. Front is at the top. Left is left.
+// Coordinates are for a 200x400 viewBox.
+
 export const carParts = [
     // --- Center Line ---
-    { id: 'parechoc_av', label: 'Pare-choc Avant', x: 25, y: 5, w: 50, h: 5 },
-    { id: 'capot', label: 'Capot', x: 30, y: 10, w: 40, h: 20 },
-    { id: 'parebrise', label: 'Pare-brise', x: 28, y: 30, w: 44, h: 15 },
-    { id: 'toit', label: 'Toit', x: 28, y: 45, w: 44, h: 30 },
-    { id: 'lunette_ar', label: 'Lunette Arrière', x: 28, y: 75, w: 44, h: 10 },
-    { id: 'coffre', label: 'Coffre', x: 30, y: 85, w: 40, h: 10 },
-    { id: 'parechoc_ar', label: 'Pare-choc Arrière', x: 25, y: 95, w: 50, h: 5 },
+    { id: 'parechoc_av', label: 'Pare-choc Avant', x: 70, y: 15, w: 60, h: 20 },
+    { id: 'capot', label: 'Capot', x: 60, y: 35, w: 80, h: 55 },
+    { id: 'parebrise', label: 'Pare-brise', x: 55, y: 95, w: 90, h: 60 },
+    { id: 'toit', label: 'Toit', x: 55, y: 155, w: 90, h: 100 },
+    { id: 'lunette_ar', label: 'Lunette Arrière', x: 55, y: 255, w: 90, h: 30 },
+    { id: 'coffre', label: 'Coffre', x: 60, y: 285, w: 80, h: 70 },
+    { id: 'parechoc_ar', label: 'Pare-choc Arrière', x: 70, y: 355, w: 60, h: 25 },
 
-    // --- Left Side (Driver's side) ---
-    { id: 'phare_avg', label: 'Phare Avant Gauche', x: 25, y: 5, w: 15, h: 5 },
-    { id: 'aile_avg', label: 'Aile Avant Gauche', x: 10, y: 10, w: 20, h: 20 },
-    { id: 'retro_g', label: 'Rétroviseur Gauche', x: 22, y: 32, w: 6, h: 5 },
-    { id: 'porte_avg', label: 'Porte Avant Gauche', x: 10, y: 30, w: 18, h: 25 },
-    { id: 'porte_arg', label: 'Porte Arrière Gauche', x: 10, y: 55, w: 18, h: 25 },
-    { id: 'aile_arg', label: 'Aile Arrière Gauche', x: 10, y: 80, w: 20, h: 15 },
-    { id: 'phare_arg', label: 'Phare Arrière Gauche', x: 25, y: 95, w: 15, h: 5 },
-    { id: 'roue_avg', label: 'Roue Avant Gauche', x: 5, y: 15, w: 10, h: 15 },
-    { id: 'roue_arg', label: 'Roue Arrière Gauche', x: 5, y: 75, w: 10, h: 15 },
-
-    // --- Right Side (Passenger side) ---
-    { id: 'phare_avd', label: 'Phare Avant Droit', x: 60, y: 5, w: 15, h: 5 },
-    { id: 'aile_avd', label: 'Aile Avant Droite', x: 70, y: 10, w: 20, h: 20 },
-    { id: 'retro_d', label: 'Rétroviseur Droit', x: 72, y: 32, w: 6, h: 5 },
-    { id: 'porte_avd', label: 'Porte Avant Droite', x: 72, y: 30, w: 18, h: 25 },
-    { id: 'porte_ard', label: 'Porte Arrière Droite', x: 72, y: 55, w: 18, h: 25 },
-    { id: 'aile_ard', label: 'Aile Arrière Droite', x: 70, y: 80, w: 20, h: 15 },
-    { id: 'phare_ard', label: 'Phare Arrière Droit', x: 60, y: 95, w: 15, h: 5 },
-    { id: 'roue_avd', label: 'Roue Avant Droite', x: 85, y: 15, w: 10, h: 15 },
-    { id: 'roue_ard', label: 'Roue Arrière Droite', x: 85, y: 75, w: 10, h: 15 },
+    // --- Left Side (Gauche) ---
+    { id: 'phare_avg', label: 'Phare Avant Gauche', x: 55, y: 20, w: 25, h: 20 },
+    { id: 'aile_avg', label: 'Aile Avant Gauche', x: 40, y: 40, w: 15, h: 55 },
+    { id: 'retro_g', label: 'Rétroviseur Gauche', x: 30, y: 100, w: 25, h: 25 },
+    { id: 'porte_avg', label: 'Porte Avant Gauche', x: 40, y: 100, w: 15, h: 85 },
+    { id: 'porte_arg', label: 'Porte Arrière Gauche', x: 40, y: 185, w: 15, h: 100 },
+    { id: 'aile_arg', label: 'Aile Arrière Gauche', x: 40, y: 285, w: 15, h: 70 },
+    { id: 'phare_arg', label: 'Phare Arrière Gauche', x: 55, y: 355, w: 25, h: 20 },
+    { id: 'roue_avg', label: 'Roue Avant Gauche', x: 15, y: 70, w: 25, h: 40 },
+    { id: 'roue_arg', label: 'Roue Arrière Gauche', x: 15, y: 290, w: 25, h: 40 },
+    
+    // --- Right Side (Droite) ---
+    { id: 'phare_avd', label: 'Phare Avant Droit', x: 120, y: 20, w: 25, h: 20 },
+    { id: 'aile_avd', label: 'Aile Avant Droite', x: 145, y: 40, w: 15, h: 55 },
+    { id: 'retro_d', label: 'Rétroviseur Droit', x: 145, y: 100, w: 25, h: 25 },
+    { id: 'porte_avd', label: 'Porte Avant Droite', x: 145, y: 100, w: 15, h: 85 },
+    { id: 'porte_ard', label: 'Porte Arrière Droite', x: 145, y: 185, w: 15, h: 100 },
+    { id: 'aile_ard', label: 'Aile Arrière Droite', x: 145, y: 285, w: 15, h: 70 },
+    { id: 'phare_ard', label: 'Phare Arrière Droit', x: 120, y: 355, w: 25, h: 20 },
+    { id: 'roue_avd', label: 'Roue Avant Droite', x: 160, y: 70, w: 25, h: 40 },
+    { id: 'roue_ard', label: 'Roue Arrière Droite', x: 160, y: 290, w: 25, h: 40 },
 ] as const;
 
 export type DamagePart = typeof carParts[number]['id'];
@@ -54,12 +55,8 @@ const CarDamageDiagram: React.FC<CarDamageDiagramProps> = ({ damages, onDamagesC
   const [selectedDamageType, setSelectedDamageType] = React.useState<DamageType | undefined>('rayure');
 
   const handleDamageTypeSelect = (type: DamageType | undefined) => {
-    // If the same type is clicked again, we can interpret it as a toggle to 'erase' mode.
-    if (selectedDamageType === type) {
-        setSelectedDamageType(undefined);
-    } else {
-        setSelectedDamageType(type);
-    }
+    if (readOnly) return;
+    setSelectedDamageType(type);
   };
 
   const handlePartClick = (partId: DamagePart) => {
@@ -68,15 +65,12 @@ const CarDamageDiagram: React.FC<CarDamageDiagramProps> = ({ damages, onDamagesC
     const newDamages = { ...damages };
     
     if (selectedDamageType) {
-        // If the part already has the selected damage, remove it.
-        // Otherwise, set it. This makes clicking a part a toggle for the selected damage.
         if (newDamages[partId] === selectedDamageType) {
             delete newDamages[partId];
         } else {
             newDamages[partId] = selectedDamageType;
         }
-    } else {
-        // If no damage type is selected (erase mode), just remove any existing damage.
+    } else { // Erase mode
         delete newDamages[partId];
     }
     
@@ -85,66 +79,65 @@ const CarDamageDiagram: React.FC<CarDamageDiagramProps> = ({ damages, onDamagesC
 
   return (
     <div className="w-full flex flex-col items-center p-4 border rounded-md bg-muted/20">
-      <svg viewBox="0 0 100 110" className="w-full max-w-xs" >
-        {/* Car Bodywork Outline (Carrosserie) */}
-        <g stroke="hsl(var(--muted-foreground))" strokeWidth="0.5" fill="hsl(var(--card))">
-            {/* Main body shape */}
-            <path d="M 20 10 C 10 10, 10 20, 10 30 L 10 80 C 10 90, 10 100, 20 100 L 80 100 C 90 100, 90 90, 90 80 L 90 30 C 90 20, 90 10, 80 10 Z" />
-            
-            {/* Wheels arches */}
-            <path d="M 10 15 C 5 15, 5 25, 10 25" fill="none" />
-            <path d="M 10 75 C 5 75, 5 85, 10 85" fill="none" />
-            <path d="M 90 15 C 95 15, 95 25, 90 25" fill="none" />
-            <path d="M 90 75 C 95 75, 95 85, 90 85" fill="none" />
+      <div className="relative w-full max-w-xs">
+          {/* Visual SVG Layer */}
+          <svg viewBox="0 0 200 400" className="w-full" >
+              <g transform="translate(0, 10)">
+                  {/* Car body */}
+                  <path
+                      d="M 85,10 C 70,10 60,20 55,30 L 40,70 C 35,80 35,90 40,100 L 40,290 C 35,300 35,310 40,320 L 55,360 C 60,370 70,380 85,380 L 115,380 C 130,380 140,370 145,360 L 160,320 C 165,310 165,300 160,290 L 160,100 C 165,90 165,80 160,70 L 145,30 C 140,20 130,10 115,10 Z"
+                      stroke="hsl(var(--muted-foreground))"
+                      strokeWidth="1.5"
+                      fill="hsl(var(--card))"
+                  />
+                  {/* Cabin/Windows */}
+                  <path 
+                      d="M 55,95 L 55,285 L 145,285 L 145,95 Z"
+                      stroke="hsl(var(--muted-foreground))"
+                      strokeWidth="1"
+                      fill="hsl(var(--muted))"
+                  />
+                  <line x1="55" y1="180" x2="145" y2="180" stroke="hsl(var(--muted-foreground))" strokeWidth="1" />
+                  <line x1="99.5" y1="95" x2="99.5" y2="285" stroke="hsl(var(--muted-foreground))" strokeWidth="1" />
 
-            {/* Cabin */}
-            <rect x="28" y="30" width="44" height="45" rx="2" />
+                  {/* Hood/Trunk lines */}
+                  <line x1="60" y1="90" x2="140" y2="90" stroke="hsl(var(--muted-foreground))" strokeWidth="0.5" />
+                  <line x1="60" y1="285" x2="140" y2="285" stroke="hsl(var(--muted-foreground))" strokeWidth="0.5" />
+                  
+                  {/* Side mirrors */}
+                  <path d="M 35,105 L 40,100 L 40,120 L 35,125 Z" stroke="hsl(var(--muted-foreground))" fill="hsl(var(--card))" strokeWidth="1"/>
+                  <path d="M 165,105 L 160,100 L 160,120 L 165,125 Z" stroke="hsl(var(--muted-foreground))" fill="hsl(var(--card))" strokeWidth="1"/>
+              </g>
+          </svg>
 
-            {/* Windows */}
-            <path d="M 30 32 L 30 48 L 70 48 L 70 32 Z" strokeWidth="0.2" fill="hsl(var(--muted))" />
-            <line x1="50" y1="32" x2="50" y2="48" stroke="hsl(var(--muted-foreground))" strokeWidth="0.2" /> {/* B-pillar */}
-            <path d="M 30 52 L 30 73 L 70 73 L 70 52 Z" strokeWidth="0.2" fill="hsl(var(--muted))" />
+          {/* Interactive SVG Layer */}
+          <div className="absolute top-0 left-0 w-full h-full">
+              <svg viewBox="0 0 200 400" className="w-full h-full">
+                  <g>
+                      {carParts.map((part) => (
+                          <rect
+                              key={part.id}
+                              x={part.x}
+                              y={part.y}
+                              width={part.w}
+                              height={part.h}
+                              onClick={() => handlePartClick(part.id)}
+                              className={cn(
+                                  "transition-colors",
+                                  readOnly ? "cursor-not-allowed" : "cursor-pointer",
+                                  damages[part.id] 
+                                      ? damageTypes[damages[part.id]!].color 
+                                      : "fill-transparent stroke-transparent hover:fill-primary/20"
+                              )}
+                          >
+                            <title>{part.label}{damages[part.id] ? `: ${damageTypes[damages[part.id]!].label}` : ''}</title>
+                          </rect>
+                      ))}
+                  </g>
+              </svg>
+          </div>
+      </div>
 
-            {/* Hood & Trunk Lines */}
-            <line x1="30" y1="10" x2="30" y2="30" />
-            <line x1="70" y1="10" x2="70" y2="30" />
-            <line x1="30" y1="75" x2="30" y2="100" />
-            <line x1="70" y1="75" x2="70" y2="100" />
-
-            {/* Side Mirrors */}
-            <path d="M 23 32 L 20 35 L 23 38 Z" />
-            <path d="M 77 32 L 80 35 L 77 38 Z" />
-
-             {/* Lights */}
-            <rect x="25" y="6" width="15" height="4" rx="1" fill="hsl(var(--muted))" />
-            <rect x="60" y="6" width="15" height="4" rx="1" fill="hsl(var(--muted))" />
-            <rect x="25" y="100" width="15" height="4" rx="1" fill="hsl(var(--muted))" />
-            <rect x="60" y="100" width="15" height="4" rx="1" fill="hsl(var(--muted))" />
-        </g>
-        
-        {/* Interactive Overlay */}
-        <g>
-            {carParts.map((part) => (
-                <rect
-                    key={part.id}
-                    x={part.x}
-                    y={part.y}
-                    width={part.w}
-                    height={part.h}
-                    onClick={() => handlePartClick(part.id)}
-                    className={cn(
-                        "transition-colors",
-                        readOnly ? "cursor-not-allowed" : "cursor-pointer",
-                        damages[part.id] 
-                            ? damageTypes[damages[part.id]!].color 
-                            : "fill-transparent stroke-transparent hover:fill-accent/30"
-                    )}
-                >
-                  <title>{part.label}{damages[part.id] ? `: ${damageTypes[damages[part.id]!].label}` : ''}</title>
-                </rect>
-            ))}
-        </g>
-      </svg>
       <div className="flex justify-center gap-2 flex-wrap mt-4 text-xs">
           {(Object.keys(damageTypes) as DamageType[]).map((type) => {
               const { label, color } = damageTypes[type];
@@ -152,7 +145,7 @@ const CarDamageDiagram: React.FC<CarDamageDiagramProps> = ({ damages, onDamagesC
                 <button
                     type="button"
                     key={type}
-                    onClick={() => !readOnly && handleDamageTypeSelect(type)}
+                    onClick={() => handleDamageTypeSelect(type)}
                     disabled={readOnly}
                     className={cn(
                         "flex items-center gap-1.5 p-1.5 rounded-md border-2 transition-colors disabled:cursor-not-allowed disabled:opacity-60",
@@ -161,14 +154,14 @@ const CarDamageDiagram: React.FC<CarDamageDiagramProps> = ({ damages, onDamagesC
                           : 'border-transparent hover:bg-muted'
                     )}
                 >
-                    <div className={cn("w-3 h-3 rounded-sm border", color)} />
+                    <div className={cn("w-3 h-3 rounded-sm border", color.replace('bg-', 'border-'))} />
                     <span>{label}</span>
                 </button>
               )
           })}
            <button
                 type="button"
-                onClick={() => !readOnly && handleDamageTypeSelect(undefined)}
+                onClick={() => handleDamageTypeSelect(undefined)}
                 disabled={readOnly}
                 className={cn(
                     "flex items-center gap-1.5 p-1.5 rounded-md border-2 transition-colors disabled:cursor-not-allowed disabled:opacity-60",
