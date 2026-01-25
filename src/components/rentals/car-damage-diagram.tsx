@@ -1,4 +1,3 @@
-
 "use client";
 
 import { cn } from '@/lib/utils';
@@ -79,7 +78,7 @@ const CarDamageDiagram: React.FC<CarDamageDiagramProps> = ({ damages, onDamagesC
 
   return (
     <div className="w-full flex flex-col items-center p-4 border rounded-md bg-muted/20">
-      <div className="relative w-full max-w-xs">
+      <div className="relative w-full max-w-56">
           {/* Visual SVG Layer */}
           <svg viewBox="0 0 200 400" className="w-full" >
               <g transform="translate(0, 10)">
