@@ -50,7 +50,7 @@ import { doc, deleteDoc, updateDoc, writeBatch, getDoc, collection, getDocs } fr
 import { useFirebase } from "@/firebase";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
-import { carParts } from "./car-damage-diagram";
+import CarDamageDiagram, { carParts } from "./car-damage-diagram";
 import { Skeleton } from "../ui/skeleton";
 
 type RentalTableProps = {
@@ -91,21 +91,17 @@ const InspectionDetailsView: React.FC<{ inspectionId: string }> = ({ inspectionI
 
         fetchInspection();
     }, [firestore, inspectionId]);
+    
+    const damagesForDiagram = React.useMemo(() => {
+        if (!inspection?.damages) return {};
+        return inspection.damages.reduce((acc, damage) => {
+            if (damage.partName) {
+                acc[damage.partName] = damage.damageType;
+            }
+            return acc;
+        }, {} as { [key: string]: DamageType });
+    }, [inspection?.damages]);
 
-    const formatDamages = (damages: Damage[] | undefined) => {
-      if (!damages || damages.length === 0) {
-          return "Aucun dommage signalé.";
-      }
-      return (
-          <ul className="list-disc pl-5 text-xs">
-              {damages.map((damage) => (
-                  <li key={damage.id}>
-                      {carParts.find(p => p.id === damage.partName)?.label || damage.partName}: <span className="font-semibold">{damageTypes[damage.damageType].label}</span>
-                  </li>
-              ))}
-          </ul>
-      );
-    };
 
     if (loading) {
         return (
@@ -113,6 +109,7 @@ const InspectionDetailsView: React.FC<{ inspectionId: string }> = ({ inspectionI
                 <Skeleton className="h-4 w-24 mb-2" />
                 <Skeleton className="h-4 w-full mb-1" />
                 <Skeleton className="h-4 w-full mb-1" />
+                <Skeleton className="h-40 w-full mt-2" />
             </div>
         );
     }
@@ -129,20 +126,11 @@ const InspectionDetailsView: React.FC<{ inspectionId: string }> = ({ inspectionI
             <p><strong>Date:</strong> {safeInspectionDate}</p>
             <p><strong>Kilométrage:</strong> {inspection.kilometrage.toLocaleString()} km</p>
             <p><strong>Niveau Carburant:</strong> {inspection.carburantNiveau * 100}%</p>
-            <div><strong className="block mb-1">Dommages:</strong> {formatDamages(inspection.damages)}</div>
             {inspection.notes && <p><strong>Notes:</strong> {inspection.notes}</p>}
-            {inspection.photos && inspection.photos.length > 0 && (
-                <div className="mt-2">
-                    <strong className="block mb-1 font-semibold">Photos:</strong>
-                    <div className="grid grid-cols-3 gap-2">
-                        {inspection.photos.map((url, i) => (
-                            <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="relative aspect-square">
-                                <Image src={url} alt={`Photo ${inspection.type} ${i+1}`} fill className="object-cover rounded-md" />
-                            </a>
-                        ))}
-                    </div>
-                </div>
-            )}
+            <div className="mt-2">
+                <strong className="block mb-1 font-semibold">Schéma des dommages:</strong>
+                <CarDamageDiagram damages={damagesForDiagram} onDamagesChange={() => {}} readOnly />
+            </div>
         </div>
     );
 };
@@ -155,41 +143,17 @@ const OldInspectionDetailsView: React.FC<{
 
     const safeDate = data.dateHeure?.toDate ? format(data.dateHeure.toDate(), "dd/MM/yyyy HH:mm", { locale: fr }) : 'N/A';
     
-    const formatOldDamages = (damagesObject: { [key: string]: DamageType } | undefined) => {
-      if (!damagesObject || Object.keys(damagesObject).length === 0) {
-          return "Aucun dommage signalé.";
-      }
-      return (
-          <ul className="list-disc pl-5 text-xs">
-              {Object.entries(damagesObject).map(([partId, damageType]) => (
-                  <li key={partId}>
-                      {carParts.find(p => p.id === partId)?.label || partId}: <span className="font-semibold">{damageTypes[damageType].label}</span>
-                  </li>
-              ))}
-          </ul>
-      );
-    };
-
     return (
         <div>
             <h4 className="font-semibold">{type === 'depart' ? 'Livraison (Départ)' : 'Réception (Retour)'}</h4>
             <p><strong>Date:</strong> {safeDate}</p>
             <p><strong>Kilométrage:</strong> {data.kilometrage?.toLocaleString()} km</p>
             <p><strong>Niveau Carburant:</strong> {data.carburantNiveau ? data.carburantNiveau * 100 + '%' : 'N/A'}</p>
-            <div><strong className="block mb-1">Dommages:</strong> {formatOldDamages(data.dommages)}</div>
             {data.dommagesNotes && <p><strong>Notes:</strong> {data.dommagesNotes}</p>}
-            {data.photos && data.photos.length > 0 && (
-                <div className="mt-2">
-                    <strong className="block mb-1 font-semibold">Photos:</strong>
-                    <div className="grid grid-cols-3 gap-2">
-                        {data.photos.map((url, i) => (
-                            <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="relative aspect-square">
-                                <Image src={url} alt={`Photo ${type} ${i+1}`} fill className="object-cover rounded-md" />
-                            </a>
-                        ))}
-                    </div>
-                </div>
-            )}
+            <div className="mt-2">
+                <strong className="block mb-1 font-semibold">Schéma des dommages:</strong>
+                <CarDamageDiagram damages={data.dommages || {}} onDamagesChange={() => {}} readOnly />
+            </div>
         </div>
     );
 };
@@ -755,3 +719,5 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     </>
   );
 }
+
+    
