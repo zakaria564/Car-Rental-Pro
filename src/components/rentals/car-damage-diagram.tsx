@@ -19,27 +19,27 @@ export const carParts = [
     { id: 'coffre', label: 'Coffre', x: 285, y: 60, w: 70, h: 80 },
     { id: 'parechoc_ar', label: 'Pare-choc Arrière', x: 355, y: 70, w: 25, h: 60 },
 
-    // --- Top Side (Left side of the car - Gauche) ---
-    { id: 'phare_avg', label: 'Phare Avant Gauche', x: 20, y: 55, w: 20, h: 25 },
-    { id: 'aile_avg', label: 'Aile Avant Gauche', x: 40, y: 40, w: 55, h: 15 },
-    { id: 'retro_g', label: 'Rétroviseur Gauche', x: 100, y: 30, w: 25, h: 25 },
-    { id: 'porte_avg', label: 'Porte Avant Gauche', x: 100, y: 40, w: 85, h: 15 },
-    { id: 'porte_arg', label: 'Porte Arrière Gauche', x: 185, y: 40, w: 100, h: 15 },
-    { id: 'aile_arg', label: 'Aile Arrière Gauche', x: 285, y: 40, w: 70, h: 15 },
-    { id: 'phare_arg', label: 'Phare Arrière Gauche', x: 355, y: 55, w: 20, h: 25 },
-    { id: 'roue_avg', label: 'Roue Avant Gauche', x: 70, y: 15, w: 40, h: 25 },
-    { id: 'roue_arg', label: 'Roue Arrière Gauche', x: 290, y: 15, w: 40, h: 25 },
+    // --- Top Side (Right side of the car - Droite) ---
+    { id: 'phare_avd', label: 'Phare Avant Droit', x: 20, y: 55, w: 20, h: 25 },
+    { id: 'aile_avd', label: 'Aile Avant Droite', x: 40, y: 40, w: 55, h: 15 },
+    { id: 'retro_d', label: 'Rétroviseur Droit', x: 100, y: 30, w: 25, h: 25 },
+    { id: 'porte_avd', label: 'Porte Avant Droite', x: 100, y: 40, w: 85, h: 15 },
+    { id: 'porte_ard', label: 'Porte Arrière Droite', x: 185, y: 40, w: 100, h: 15 },
+    { id: 'aile_ard', label: 'Aile Arrière Droite', x: 285, y: 40, w: 70, h: 15 },
+    { id: 'phare_ard', label: 'Phare Arrière Droit', x: 355, y: 55, w: 20, h: 25 },
+    { id: 'roue_avd', label: 'Roue Avant Droite', x: 70, y: 15, w: 40, h: 25 },
+    { id: 'roue_ard', label: 'Roue Arrière Droite', x: 290, y: 15, w: 40, h: 25 },
     
-    // --- Bottom Side (Right side of the car - Droite) ---
-    { id: 'phare_avd', label: 'Phare Avant Droit', x: 20, y: 120, w: 20, h: 25 },
-    { id: 'aile_avd', label: 'Aile Avant Droite', x: 40, y: 145, w: 55, h: 15 },
-    { id: 'retro_d', label: 'Rétroviseur Droit', x: 100, y: 145, w: 25, h: 25 },
-    { id: 'porte_avd', label: 'Porte Avant Droite', x: 100, y: 145, w: 85, h: 15 },
-    { id: 'porte_ard', label: 'Porte Arrière Droite', x: 185, y: 145, w: 100, h: 15 },
-    { id: 'aile_ard', label: 'Aile Arrière Droite', x: 285, y: 145, w: 70, h: 15 },
-    { id: 'phare_ard', label: 'Phare Arrière Droit', x: 355, y: 120, w: 20, h: 25 },
-    { id: 'roue_avd', label: 'Roue Avant Droite', x: 70, y: 160, w: 40, h: 25 },
-    { id: 'roue_ard', label: 'Roue Arrière Droite', x: 290, y: 160, w: 40, h: 25 },
+    // --- Bottom Side (Left side of the car - Gauche) ---
+    { id: 'phare_avg', label: 'Phare Avant Gauche', x: 20, y: 120, w: 20, h: 25 },
+    { id: 'aile_avg', label: 'Aile Avant Gauche', x: 40, y: 145, w: 55, h: 15 },
+    { id: 'retro_g', label: 'Rétroviseur Gauche', x: 100, y: 145, w: 25, h: 25 },
+    { id: 'porte_avg', label: 'Porte Avant Gauche', x: 100, y: 145, w: 85, h: 15 },
+    { id: 'porte_arg', label: 'Porte Arrière Gauche', x: 185, y: 145, w: 100, h: 15 },
+    { id: 'aile_arg', label: 'Aile Arrière Gauche', x: 285, y: 145, w: 70, h: 15 },
+    { id: 'phare_arg', label: 'Phare Arrière Gauche', x: 355, y: 120, w: 20, h: 25 },
+    { id: 'roue_avg', label: 'Roue Avant Gauche', x: 70, y: 160, w: 40, h: 25 },
+    { id: 'roue_arg', label: 'Roue Arrière Gauche', x: 290, y: 160, w: 40, h: 25 },
 ] as const;
 
 export type DamagePart = typeof carParts[number]['id'];
@@ -78,7 +78,7 @@ const CarDamageDiagram: React.FC<CarDamageDiagramProps> = ({ damages, onDamagesC
 
   return (
     <div className="w-full flex flex-col items-center p-4 border rounded-md bg-muted/20">
-      <div className="relative w-full max-w-sm">
+      <div className="relative w-full max-w-xs">
           {/* Visual SVG Layer */}
           <svg viewBox="0 0 400 200" className="w-full" >
               <g>
@@ -96,6 +96,9 @@ const CarDamageDiagram: React.FC<CarDamageDiagramProps> = ({ damages, onDamagesC
                       strokeWidth="1"
                       fill="hsl(var(--muted))"
                   />
+                  {/* Steering wheel (left-hand drive) */}
+                  <circle cx="115" cy="125" r="8" fill="none" stroke="hsl(var(--muted-foreground))" strokeWidth="1" strokeDasharray="2 2" />
+
                   <line x1="180" y1="55" x2="180" y2="145" stroke="hsl(var(--muted-foreground))" strokeWidth="1" />
                   <line x1="95" y1="99.5" x2="285" y2="99.5" stroke="hsl(var(--muted-foreground))" strokeWidth="1" />
 
@@ -178,5 +181,3 @@ const CarDamageDiagram: React.FC<CarDamageDiagramProps> = ({ damages, onDamagesC
 };
 
 export default CarDamageDiagram;
-
-    
