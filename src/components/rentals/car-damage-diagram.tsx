@@ -12,18 +12,18 @@ export const carParts = [
     { id: 'parechoc_av_2', label: 'Pare-choc Avant', x: 35, y: 88, w: 10, h: 4 },
     { id: 'capot_1', label: 'Capot', x: 55, y: 82, w: 10, h: 5 },
     { id: 'capot_2', label: 'Capot', x: 35, y: 82, w: 10, h: 5 },
-    { id: 'phare_avg', label: 'Phare Avant Gauche', x: 27, y: 88, w: 5, h: 4 },
-    { id: 'phare_avd', label: 'Phare Avant Droit', x: 68, y: 88, w: 5, h: 4 },
+    { id: 'phare_avg', label: 'Phare Avant Gauche', x: 68, y: 88, w: 5, h: 4 },
+    { id: 'phare_avd', label: 'Phare Avant Droit', x: 27, y: 88, w: 5, h: 4 },
     { id: 'parebrise', label: 'Pare-brise', x: 45, y: 70, w: 10, h: 8 },
     
-    // Right Side (of the car, which is on the left of the diagram)
+    // Right Side (of the car, on the LEFT of the diagram)
     { id: 'aile_avd_1', label: 'Aile Avant Droite', x: 22, y: 75, w: 4, h: 10 },
     { id: 'retro_d', label: 'Rétroviseur Droit', x: 17, y: 65, w: 4, h: 4 },
     { id: 'porte_avd_1', label: 'Porte Avant Droite', x: 22, y: 55, w: 4, h: 10 },
     { id: 'porte_ard_1', label: 'Porte Arrière Droite', x: 22, y: 35, w: 4, h: 10 },
     { id: 'aile_ard_1', label: 'Aile Arrière Droite', x: 22, y: 15, w: 4, h: 10 },
 
-    // Left Side (of the car, which is on the right of the diagram)
+    // Left Side (of the car, on the RIGHT of the diagram)
     { id: 'aile_avg_1', label: 'Aile Avant Gauche', x: 74, y: 75, w: 4, h: 10 },
     { id: 'retro_g', label: 'Rétroviseur Gauche', x: 79, y: 65, w: 4, h: 4 },
     { id: 'porte_avg_1', label: 'Porte Avant Gauche', x: 74, y: 55, w: 4, h: 10 },
@@ -36,8 +36,8 @@ export const carParts = [
     { id: 'coffre_2', label: 'Coffre', x: 35, y: 20, w: 10, h: 5 },
     { id: 'parechoc_ar_1', label: 'Pare-choc Arrière', x: 55, y: 3, w: 10, h: 4 },
     { id: 'parechoc_ar_2', label: 'Pare-choc Arrière', x: 35, y: 3, w: 10, h: 4 },
-    { id: 'phare_arg', label: 'Phare Arrière Gauche', x: 27, y: 4, w: 5, h: 4 },
-    { id: 'phare_ard', label: 'Phare Arrière Droit', x: 68, y: 4, w: 5, h: 4 },
+    { id: 'phare_arg', label: 'Phare Arrière Gauche', x: 68, y: 4, w: 5, h: 4 },
+    { id: 'phare_ard', label: 'Phare Arrière Droit', x: 27, y: 4, w: 5, h: 4 },
 
     // Top
     { id: 'toit_1', label: 'Toit', x: 45, y: 45, w: 10, h: 10 },
