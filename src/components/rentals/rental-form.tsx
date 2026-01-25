@@ -35,8 +35,7 @@ import { useFirebase } from "@/firebase";
 import { collection, doc, serverTimestamp, setDoc, writeBatch, Timestamp, updateDoc, addDoc } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { MultiPhotoFormField, ExistingPhotoViewer } from "../ui/multi-file-input";
+import { ExistingPhotoViewer } from "../ui/multi-file-input";
 
 const damageTypeEnum = z.enum(['rayure', 'rayure_importante', 'choc', 'a_remplacer']);
 
@@ -59,7 +58,7 @@ const baseSchema = z.object({
   lavage: z.boolean().default(false),
   dommagesDepartNotes: z.string().optional(),
   dommagesDepart: z.record(z.string(), damageTypeEnum).optional(),
-  photosDepart: z.array(z.instanceof(File)).optional(),
+  photosDepart: z.string().optional(),
   
   // Champs de retour
   kilometrageRetour: z.preprocess(
@@ -72,7 +71,7 @@ const baseSchema = z.object({
   lavageRetour: z.boolean().default(true).optional(),
   dommagesRetourNotes: z.string().optional(),
   dommagesRetour: z.record(z.string(), damageTypeEnum).optional(),
-  photosRetour: z.array(z.instanceof(File)).optional(),
+  photosRetour: z.string().optional(),
   dateRetour: z.date().optional(),
 });
 
@@ -109,7 +108,7 @@ type RentalFormProps = {
 
 export default function RentalForm({ rental, clients, cars, onFinished, mode }: RentalFormProps) {
   const { toast } = useToast();
-  const { firestore, storage, auth } = useFirebase();
+  const { firestore, auth } = useFirebase();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const rentalFormSchema = React.useMemo(() => {
@@ -156,6 +155,10 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
     if (rental && rental.livraison) { // Check for old data structure
         const rentalClient = clients.find(c => c.cin === rental.locataire.cin);
         const rentalConducteur2 = rental.conducteur2 ? clients.find(c => c.cin === rental.conducteur2.cin) : null;
+        
+        // This is complex because we need to fetch inspection data. 
+        // For simplicity in the form, we will just prepare the fields.
+        // The display of existing photos is handled in the read-only view.
         return {
             clientId: rentalClient?.id ?? "",
             conducteur2_clientId: rentalConducteur2?.id ?? '_none_',
@@ -169,19 +172,19 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             lavage: rental.livraison.lavage,
             dommagesDepartNotes: rental.livraison.dommagesNotes || "",
             dommagesDepart: rental.livraison.dommages,
-            photosDepart: [],
+            photosDepart: rental.livraison.photos?.join('\n') ?? '',
             kilometrageRetour: rental.reception?.kilometrage,
             carburantNiveauRetour: rental.reception?.carburantNiveau,
             dommagesRetourNotes: rental.reception?.dommagesNotes || "",
             dommagesRetour: rental.reception?.dommages,
-            photosRetour: [],
+            photosRetour: rental.reception?.photos?.join('\n') ?? '',
             dateRetour: rental.reception?.dateHeure ? getSafeDate(rental.reception.dateHeure) : new Date(),
             roueSecoursRetour: rental.reception?.roueSecours ?? true,
             posteRadioRetour: rental.reception?.posteRadio ?? true,
             lavageRetour: rental.reception?.lavage ?? true,
         };
     }
-    // New rental or new data structure (to be fetched)
+    // New rental
     return {
         clientId: "",
         conducteur2_clientId: "_none_",
@@ -193,11 +196,11 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
         dommagesDepart: {},
         dommagesRetour: {},
         dommagesDepartNotes: "",
-        photosDepart: [],
+        photosDepart: "",
         kilometrageRetour: undefined,
         carburantNiveauRetour: 0.5,
         dommagesRetourNotes: "",
-        photosRetour: [],
+        photosRetour: "",
         roueSecours: true,
         posteRadio: true,
         lavage: true,
@@ -273,7 +276,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
   };
 
   async function onSubmit(data: z.infer<typeof rentalFormSchema>) {
-    if (!firestore || !storage || !auth.currentUser) {
+    if (!firestore || !auth.currentUser) {
         toast({
             variant: "destructive",
             title: "Erreur d'authentification",
@@ -284,34 +287,6 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
     
     setIsSubmitting(true);
     const userId = auth.currentUser.uid;
-
-    const uploadPhotos = async (files: File[], rentalId: string, category: 'depart' | 'retour'): Promise<string[]> => {
-        if (!files || files.length === 0) return [];
-        const photoURLs: string[] = [];
-        toast({ title: `Envoi de ${files.length} photo(s)...`, description: "Veuillez patienter." });
-
-        const uploadPromises = files.map(async (file) => {
-            const filePath = `inspections/${rentalId}/${category}/${Date.now()}_${file.name}`;
-            const storageRef = ref(storage, filePath);
-            const snapshot = await uploadBytes(storageRef, file);
-            return getDownloadURL(snapshot.ref);
-        });
-
-        try {
-            const urls = await Promise.all(uploadPromises);
-            photoURLs.push(...urls);
-        } catch (uploadError: any) {
-            console.error("File upload error:", uploadError);
-            const permissionError = new FirestorePermissionError({
-                path: `inspections/${rentalId}/${category}`,
-                operation: 'create', // Representing file upload
-            }, uploadError);
-            errorEmitter.emit('permission-error', permissionError);
-            throw new Error(`Erreur d'envoi d'une photo. Vérifiez vos permissions.`);
-        }
-        
-        return photoURLs;
-    };
     
     const handleInspection = async (
         rentalId: string, 
@@ -322,11 +297,8 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
     ) => {
         const inspectionRef = doc(collection(firestore, 'inspections'));
         
-        const uploadedPhotoUrls = await uploadPhotos(
-            type === 'depart' ? inspectionData.photosDepart : inspectionData.photosRetour,
-            rentalId,
-            type
-        );
+        const photosString = type === 'depart' ? inspectionData.photosDepart : inspectionData.photosRetour;
+        const photoUrls = photosString ? photosString.split('\n').map((url: string) => url.trim()).filter((url: string) => url.length > 0 && (url.startsWith('http://') || url.startsWith('https://'))) : [];
 
         const inspectionPayload = {
             vehicleId: carId,
@@ -340,7 +312,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             roueSecours: type === 'depart' ? inspectionData.roueSecours : inspectionData.roueSecoursRetour,
             posteRadio: type === 'depart' ? inspectionData.posteRadio : inspectionData.posteRadioRetour,
             lavage: type === 'depart' ? inspectionData.lavage : inspectionData.lavageRetour,
-            photos: uploadedPhotoUrls,
+            photos: photoUrls,
         };
         batch.set(inspectionRef, inspectionPayload);
 
@@ -770,18 +742,27 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Photos du véhicule (Départ)</FormLabel>
-                          <FormControl>
-                            <MultiPhotoFormField
-                              name={field.name}
-                              disabled={mode !== 'new'}
-                              className={mode !== 'new' ? 'cursor-not-allowed' : ''}
-                            />
-                          </FormControl>
-                          {rental?.livraison?.photos && rental.livraison.photos.length > 0 && (
-                            <div className="pt-2">
-                                <ExistingPhotoViewer urls={rental.livraison.photos} />
-                            </div>
-                          )}
+                            {mode === 'new' ? (
+                                <>
+                                  <FormControl>
+                                    <Textarea
+                                        placeholder="Collez chaque URL de photo sur une nouvelle ligne..."
+                                        className="min-h-24"
+                                        {...field}
+                                        value={field.value ?? ''}
+                                    />
+                                  </FormControl>
+                                  <FormDescription>
+                                    Ajoutez les URLs des photos hébergées en ligne (une par ligne).
+                                  </FormDescription>
+                                </>
+                            ) : (
+                                rental?.livraison?.photos && rental.livraison.photos.length > 0 ? (
+                                    <ExistingPhotoViewer urls={rental.livraison.photos} />
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">Aucune photo enregistrée pour le départ.</p>
+                                )
+                            )}
                           <FormMessage />
                         </FormItem>
                       )}
@@ -952,9 +933,17 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Photos du véhicule (Retour)</FormLabel>
-                            <FormControl>
-                              <MultiPhotoFormField name={field.name} />
-                            </FormControl>
+                              <FormControl>
+                                <Textarea
+                                  placeholder="Collez chaque URL de photo sur une nouvelle ligne..."
+                                  className="min-h-24"
+                                  {...field}
+                                  value={field.value ?? ''}
+                                />
+                              </FormControl>
+                               <FormDescription>
+                                Ajoutez les URLs des photos hébergées en ligne (une par ligne).
+                              </FormDescription>
                              {rental?.reception?.photos && rental.reception.photos.length > 0 && (
                                 <div className="pt-2">
                                     <ExistingPhotoViewer urls={rental.reception.photos} />
