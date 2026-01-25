@@ -65,6 +65,12 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'lematin.ma',
+        port: '',
+        pathname: '/**',
+      },
     ],
   },
 };
