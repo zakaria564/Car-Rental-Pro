@@ -347,7 +347,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     const styles = `
       @page {
         size: A4;
-        margin: 8mm;
+        margin: 10mm;
       }
       html, body {
         margin: 0;
@@ -364,76 +364,64 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       #printable-contract {
         display: flex;
         flex-direction: column;
-        height: calc(297mm - 16mm); /* A4 height minus margins */
-        font-size: 8pt;
-        line-height: 1.3;
+        height: calc(297mm - 20mm); /* A4 height minus margins */
+        font-size: 9pt;
+        line-height: 1.4;
       }
        #printable-contract .contract-body {
         flex-grow: 1;
       }
        #printable-contract .signatures-section {
         margin-top: auto;
-        padding-top: 5mm;
+        padding-top: 10mm;
       }
       
       .print-section {
         break-inside: avoid;
         border: 0.5pt solid #ccc !important;
-        padding: 2mm !important;
-        border-radius: 3px;
-        margin-bottom: 2mm;
+        padding: 3mm !important;
+        border-radius: 4px;
+        margin-bottom: 4mm;
       }
       
+      /* Replicate the dialog's column layout for printing */
       #printable-contract .md\\:grid {
         display: grid !important;
         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
         column-gap: 1.5rem !important;
       }
       
-      #printable-contract .md\\:mt-0 {
-        margin-top: 0 !important;
+      /* Hide the damage diagrams as requested */
+      .printable-diagram-wrapper {
+          display: none !important;
+      }
+      
+      /* Position signatures at the bottom, side-by-side */
+      #printable-contract .signatures-section .grid {
+         display: grid !important;
+         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+         gap: 20mm !important;
       }
 
-      #printable-contract p { margin: 0.3mm 0; }
-      #printable-contract h2, #printable-contract h3, #printable-contract h4 { margin: 0 0 1mm 0; padding: 0; font-weight: bold; }
-      #printable-contract strong { font-weight: bold; }
-      #printable-contract .text-sm { font-size: 8pt; line-height: 1.3; }
-      #printable-contract .text-center { text-align: center; }
-      #printable-contract .mb-4 { margin-bottom: 3mm; }
+      /* General styling clean-up for print */
+      #printable-contract .flex.justify-between { display: flex; justify-content: space-between; }
+      #printable-contract h2, #printable-contract h3, #printable-contract h4 { margin: 0 0 2mm 0; padding: 0; font-weight: bold; }
+      #printable-contract p { margin: 0.5mm 0; }
       #printable-contract .text-2xl { font-size: 14pt; }
-      #printable-contract .tracking-wider { letter-spacing: 0.05em; }
-      #printable-contract .text-muted-foreground { color: #555; }
-      
-      #printable-contract .mb-2 { margin-bottom: 1mm; }
+      #printable-contract .text-base { font-size: 10pt; }
       #printable-contract .underline { text-decoration: underline; }
+      #printable-contract .mb-2 { margin-bottom: 2mm; }
+      #printable-contract .mb-4 { margin-bottom: 4mm; }
+      #printable-contract .text-center { text-align: center; }
       #printable-contract .font-semibold { font-weight: 600; }
-      #printable-contract .text-base { font-size: 9pt; }
-      
-      #printable-contract .signatures-section .grid {
-         grid-template-columns: repeat(2, minmax(0, 1fr));
-         gap: 20mm;
-      }
+      #printable-contract .text-muted-foreground { color: #555; }
       #printable-contract .border-t { border-top: 0.5pt solid #ccc; }
       #printable-contract .pt-2 { padding-top: 2mm; }
       #printable-contract .text-xs { font-size: 7pt; }
       #printable-contract .list-disc { list-style-type: disc; }
       #printable-contract .list-inside { list-style-position: inside; }
       #printable-contract .mt-2 { margin-top: 2mm; }
-      #printable-contract .block { display: block; }
-      #printable-contract .mb-1 { margin-bottom: 1mm; }
-      
-      .printable-diagram-wrapper {
-          display: none !important;
-      }
-
-      #printable-contract *, #printable-contract *::before, #printable-contract *::after {
-        break-inside: avoid !important;
-      }
-
-      .flex.justify-between {
-        display: flex;
-        justify-content: space-between;
-      }
+      #printable-contract .md\\:mt-0 { margin-top: 0 !important; }
     `;
 
     printWindow.document.write('<html><head><title>Contrat de Location</title>');
