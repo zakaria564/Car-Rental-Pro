@@ -214,57 +214,47 @@ function RentalDetails({ rental }: { rental: Rental }) {
             </div>
             
             <div className="space-y-4">
-                {/* Parties */}
                 <div className="border p-3 rounded-md">
                     <h3 className="font-bold text-base underline mb-2">LES PARTIES</h3>
-                    <div className="print-grid-2-col">
-                        <div>
+                    <div className="print-grid-2-col md:grid md:grid-cols-2 md:gap-4">
+                        <div className="space-y-2">
                             <h4 className="font-semibold">Le Loueur :</h4>
                             <p>Location Auto Pro</p>
                             <p>Agdal, Rabat, Maroc</p>
                             <p>Tél: +212 537 00 00 00</p>
                         </div>
-                        <div>
+                        <div className="space-y-2">
                             <h4 className="font-semibold">Le Locataire (Conducteur Principal) :</h4>
-                            <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-                                <p><strong>Nom:</strong> {rental.locataire.nomPrenom}</p>
-                                <p><strong>CIN/Passeport:</strong> {rental.locataire.cin}</p>
-                                <p><strong>Permis N°:</strong> {rental.locataire.permisNo}</p>
-                                <p><strong>Téléphone:</strong> {rental.locataire.telephone}</p>
-                            </div>
+                            <p><strong>Nom:</strong> {rental.locataire.nomPrenom}</p>
+                            <p><strong>CIN/Passeport:</strong> {rental.locataire.cin}</p>
+                            <p><strong>Permis N°:</strong> {rental.locataire.permisNo}</p>
+                            <p><strong>Téléphone:</strong> {rental.locataire.telephone}</p>
                             {rental.conducteur2 && (
                             <div className="mt-2">
                                 <h4 className="font-semibold">Deuxième Conducteur :</h4>
-                                 <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-                                    <p><strong>Nom:</strong> {rental.conducteur2.nomPrenom}</p>
-                                    <p><strong>CIN/Passeport:</strong> {rental.conducteur2.cin}</p>
-                                    <p><strong>Permis N°:</strong> {rental.conducteur2.permisNo}</p>
-                                </div>
+                                <p><strong>Nom:</strong> {rental.conducteur2.nomPrenom}</p>
+                                <p><strong>CIN/Passeport:</strong> {rental.conducteur2.cin}</p>
+                                <p><strong>Permis N°:</strong> {rental.conducteur2.permisNo}</p>
                             </div>
                             )}
                         </div>
                     </div>
                 </div>
 
-                {/* Vehicle & Conditions */}
                 <div className="border p-3 rounded-md">
                     <h3 className="font-bold text-base underline mb-2">DÉTAILS DE LA LOCATION</h3>
-                    <div className="print-grid-2-col">
-                        <div>
+                     <div className="print-grid-2-col md:grid md:grid-cols-2 md:gap-4">
+                        <div className="space-y-2">
                             <h4 className="font-semibold">Véhicule Loué :</h4>
-                            <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-                                <p><strong>Marque/Modèle:</strong> {rental.vehicule.marque}</p>
-                                <p><strong>Immatriculation:</strong> {rental.vehicule.immatriculation}</p>
-                                <p><strong>Carburant:</strong> {rental.vehicule.carburantType}</p>
-                                <p><strong>Transmission:</strong> {rental.vehicule.transmission}</p>
-                            </div>
+                            <p><strong>Marque/Modèle:</strong> {rental.vehicule.marque}</p>
+                            <p><strong>Immatriculation:</strong> {rental.vehicule.immatriculation}</p>
+                            <p><strong>Carburant:</strong> {rental.vehicule.carburantType}</p>
+                            <p><strong>Transmission:</strong> {rental.vehicule.transmission}</p>
                         </div>
-                        <div>
+                        <div className="space-y-2">
                             <h4 className="font-semibold">Période & Coût :</h4>
-                            <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-                               <p><strong>Début:</strong> {safeDebutDate ? format(safeDebutDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</p>
-                               <p><strong>Fin Prévue:</strong> {safeFinDate ? format(safeFinDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</p>
-                            </div>
+                            <p><strong>Début:</strong> {safeDebutDate ? format(safeDebutDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</p>
+                            <p><strong>Fin Prévue:</strong> {safeFinDate ? format(safeFinDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</p>
                             <p><strong>Durée:</strong> {rental.location.nbrJours} jour(s)</p>
                             <p><strong>Dépôt de Caution:</strong> {formatCurrency(rental.location.depot || 0, 'MAD')}</p>
                             <p className="font-bold"><strong>Prix Total:</strong> {formatCurrency(rental.location.montantAPayer, 'MAD')}</p>
@@ -272,10 +262,9 @@ function RentalDetails({ rental }: { rental: Rental }) {
                     </div>
                 </div>
 
-                {/* Delivery / Return state */}
                 <div className="border p-3 rounded-md">
                     <h3 className="font-bold text-base mb-2 underline">ÉTAT DU VÉHICULE</h3>
-                    <div className="print-grid-2-col">
+                    <div className="print-grid-2-col md:grid md:grid-cols-2 md:gap-4">
                         {rental.livraisonInspectionId ? (
                             <InspectionDetailsView inspectionId={rental.livraisonInspectionId} />
                         ) : (
@@ -788,6 +777,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
 }
 
     
+
 
 
 
