@@ -223,14 +223,14 @@ function RentalDetails({ rental }: { rental: Rental }) {
             <div className="space-y-4">
                 <div className="border p-3 rounded-md print-section">
                     <h3 className="font-bold text-base underline mb-2">LES PARTIES</h3>
-                    <div className="print-cols-container">
+                    <div className="md:grid md:grid-cols-2 md:gap-x-6">
                         <div className="space-y-1">
                             <h4 className="font-semibold">Le Loueur :</h4>
                             <p>Location Auto Pro</p>
                             <p>Agdal, Rabat, Maroc</p>
                             <p>Tél: +212 537 00 00 00</p>
                         </div>
-                        <div className="space-y-1 mt-4 print:mt-0">
+                        <div className="space-y-1">
                             <h4 className="font-semibold">Le Locataire (Conducteur Principal) :</h4>
                             <div className="flex justify-between"><span><strong>Nom:</strong></span> <span>{rental.locataire.nomPrenom}</span></div>
                             <div className="flex justify-between"><span><strong>CIN/Passeport:</strong></span> <span>{rental.locataire.cin}</span></div>
@@ -252,7 +252,7 @@ function RentalDetails({ rental }: { rental: Rental }) {
 
                 <div className="border p-3 rounded-md print-section">
                     <h3 className="font-bold text-base underline mb-2">DÉTAILS DE LA LOCATION</h3>
-                    <div className="print-cols-container">
+                     <div className="md:grid md:grid-cols-2 md:gap-x-6">
                         <div className="space-y-1">
                             <h4 className="font-semibold">Véhicule Loué :</h4>
                             <div className="flex justify-between"><span><strong>Marque/Modèle:</strong></span> <span>{rental.vehicule.marque}</span></div>
@@ -260,7 +260,7 @@ function RentalDetails({ rental }: { rental: Rental }) {
                             <div className="flex justify-between"><span><strong>Carburant:</strong></span> <span>{rental.vehicule.carburantType}</span></div>
                             <div className="flex justify-between"><span><strong>Transmission:</strong></span> <span>{rental.vehicule.transmission}</span></div>
                         </div>
-                        <div className="space-y-1 mt-4 print:mt-0">
+                        <div className="space-y-1">
                             <h4 className="font-semibold">Période & Coût :</h4>
                             <div className="flex justify-between"><span><strong>Début:</strong></span> <span>{safeDebutDate ? format(safeDebutDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</span></div>
                             <div className="flex justify-between"><span><strong>Fin Prévue:</strong></span> <span>{safeFinDate ? format(safeFinDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</span></div>
@@ -275,7 +275,7 @@ function RentalDetails({ rental }: { rental: Rental }) {
 
                 <div className="border p-3 rounded-md print-section">
                     <h3 className="font-bold text-base mb-2 underline">ÉTAT DU VÉHICULE</h3>
-                    <div className="print-cols-container">
+                    <div className="md:grid md:grid-cols-2 md:gap-x-6">
                         <div>
                             {rental.livraisonInspectionId ? (
                                 <InspectionDetailsView inspectionId={rental.livraisonInspectionId} />
@@ -284,7 +284,7 @@ function RentalDetails({ rental }: { rental: Rental }) {
                             )}
                         </div>
 
-                        <div className="mt-4 print:mt-0">
+                        <div className="mt-4 md:mt-0">
                             {rental.receptionInspectionId ? (
                                 <InspectionDetailsView inspectionId={rental.receptionInspectionId} />
                             ) : (
@@ -376,16 +376,22 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
         padding-top: 5mm;
       }
       
-      .print\\:mt-0 { margin-top: 0 !important; }
       .print-section {
         break-inside: avoid;
       }
-      .print-cols-container {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 0 2rem;
-      }
 
+      .md\\:grid {
+        display: grid !important;
+      }
+      .md\\:grid-cols-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      }
+      .md\\:gap-x-6 {
+        column-gap: 1.5rem !important;
+      }
+      .md\\:mt-0 {
+        margin-top: 0 !important;
+      }
 
       #printable-contract .border {
         border-width: 0.5pt !important;
@@ -796,6 +802,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
 }
 
     
+
 
 
 
