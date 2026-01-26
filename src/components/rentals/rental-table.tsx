@@ -145,7 +145,7 @@ const InspectionDetailsView: React.FC<{ inspectionId: string }> = ({ inspectionI
                     </ul>
                 </div>
             )}
-            <div className="mt-2 printable-diagram-wrapper print:hidden">
+            <div className="mt-2 print:hidden">
                 <strong className="block mb-1 font-semibold">Schéma des dommages:</strong>
                 <CarDamageDiagram damages={damagesForDiagram} onDamagesChange={() => {}} readOnly showLegend={false} />
             </div>
@@ -185,7 +185,7 @@ const OldInspectionDetailsView: React.FC<{
                     </ul>
                 </div>
             )}
-            <div className="mt-2 printable-diagram-wrapper print:hidden">
+            <div className="mt-2 print:hidden">
                 <strong className="block mb-1 font-semibold">Schéma des dommages:</strong>
                 <CarDamageDiagram damages={data.damages || {}} onDamagesChange={() => {}} readOnly showLegend={false} />
             </div>
@@ -210,7 +210,7 @@ function RentalDetails({ rental }: { rental: Rental }) {
         <div className="text-sm p-2" id="printable-contract">
           <div className="contract-body flex flex-col h-full">
             {/* Header */}
-            <div className="text-center mb-4 print:text-center">
+            <div className="text-center mb-4">
                 <h2 className="text-2xl font-bold tracking-wider">CONTRAT DE LOCATION DE VÉHICULE</h2>
                 <p className="text-muted-foreground">Contrat N°: {rental.id?.substring(0, 8).toUpperCase()}</p>
             </div>
@@ -218,7 +218,7 @@ function RentalDetails({ rental }: { rental: Rental }) {
             <div className="space-y-4 flex-grow">
                  <div className="border p-3 rounded-md">
                     <h3 className="font-bold text-base underline mb-2">LES PARTIES</h3>
-                    <div className="space-y-2 md:space-y-0 print:grid print:grid-cols-2 print:gap-x-4">
+                     <div className="md:grid md:grid-cols-2 md:gap-x-4">
                          <div className="space-y-1">
                             <h4 className="font-semibold">Le Loueur :</h4>
                             <p>Location Auto Pro</p>
@@ -233,7 +233,7 @@ function RentalDetails({ rental }: { rental: Rental }) {
                             <div className="flex justify-between"><span><strong>Téléphone:</strong></span> <span>{rental.locataire.telephone}</span></div>
                         </div>
                         {rental.conducteur2 && (
-                        <div className="mt-2 pt-2 border-t md:border-t-0 md:pt-0">
+                        <div className="mt-2 pt-2 border-t md:border-t-0 md:pt-0 md:col-span-2">
                             <h4 className="font-semibold">Deuxième Conducteur :</h4>
                             <div className="space-y-1">
                                 <div className="flex justify-between"><span><strong>Nom:</strong></span> <span>{rental.conducteur2.nomPrenom}</span></div>
@@ -247,7 +247,7 @@ function RentalDetails({ rental }: { rental: Rental }) {
 
                  <div className="border p-3 rounded-md">
                     <h3 className="font-bold text-base underline mb-2">DÉTAILS DE LA LOCATION</h3>
-                    <div className="space-y-2 md:space-y-0 print:grid print:grid-cols-2 print:gap-x-4">
+                    <div className="md:grid md:grid-cols-2 md:gap-x-4">
                          <div className="space-y-1">
                             <h4 className="font-semibold">Véhicule Loué :</h4>
                             <div className="flex justify-between"><span><strong>Marque/Modèle:</strong></span> <span>{rental.vehicule.marque}</span></div>
@@ -256,7 +256,7 @@ function RentalDetails({ rental }: { rental: Rental }) {
                             <div className="flex justify-between"><span><strong>Transmission:</strong></span> <span>{rental.vehicule.transmission}</span></div>
                         </div>
                          <div className="space-y-1">
-                            <h4 className="font-semibold">Période & Coût :</h4>
+                            <h4 className="font-semibold">Période &amp; Coût :</h4>
                             <div className="flex justify-between"><span><strong>Début:</strong></span> <span>{safeDebutDate ? format(safeDebutDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</span></div>
                             <div className="flex justify-between"><span><strong>Fin Prévue:</strong></span> <span>{safeFinDate ? format(safeFinDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</span></div>
                             <div className="flex justify-between"><span><strong>Durée:</strong></span> <span>{rental.location.nbrJours} jour(s)</span></div>
@@ -270,7 +270,7 @@ function RentalDetails({ rental }: { rental: Rental }) {
 
                 <div className="border p-3 rounded-md">
                     <h3 className="font-bold text-base mb-2 underline">ÉTAT DU VÉHICULE</h3>
-                    <div className="space-y-3 md:space-y-0 print:grid print:grid-cols-2 print:gap-x-4">
+                    <div className="md:grid md:grid-cols-2 md:gap-x-4">
                         <div>
                             {rental.livraisonInspectionId ? (
                                 <InspectionDetailsView inspectionId={rental.livraisonInspectionId} />
@@ -290,14 +290,14 @@ function RentalDetails({ rental }: { rental: Rental }) {
             </div>
 
             {/* Signatures */}
-            <div className="signatures-section mt-auto pt-8 print:grid print:grid-cols-2 print:gap-16">
-                <div className="text-center mt-8 md:mt-0">
-                    <p className="border-t pt-2 print:pt-1 print:border-gray-400">Signature du Loueur</p>
-                    <p className="text-xs text-muted-foreground print:text-[8pt]">(Précédée de la mention "Lu et approuvé")</p>
+            <div className="signatures-section mt-auto pt-8 flex justify-between">
+                <div className="text-center w-2/5">
+                    <p className="border-t pt-2 border-gray-400">Signature du Loueur</p>
+                    <p className="text-xs text-muted-foreground">(Précédée de la mention "Lu et approuvé")</p>
                 </div>
-                 <div className="text-center mt-8 md:mt-0">
-                    <p className="border-t pt-2 print:pt-1 print:border-gray-400">Signature du Locataire</p>
-                    <p className="text-xs text-muted-foreground print:text-[8pt]">(Précédée de la mention "Lu et approuvé")</p>
+                 <div className="text-center w-2/5">
+                    <p className="border-t pt-2 border-gray-400">Signature du Locataire</p>
+                    <p className="text-xs text-muted-foreground">(Précédée de la mention "Lu et approuvé")</p>
                 </div>
             </div>
           </div>
@@ -336,31 +336,23 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       return;
     }
 
+    // Using Tailwind's print modifier classes in the JSX is a cleaner approach
+    // than injecting a style block here. I've added `print:hidden` to the
+    // diagram wrapper. Let's add a few more for structure.
     const styles = `
       @page {
         size: A4;
         margin: 15mm;
       }
       body {
-        background: white !important;
-        font-family: Arial, sans-serif;
-        font-size: 9pt;
-        line-height: 1.3;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
-      }
-      .no-print { display: none !important; }
-      .contract-body {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
       }
     `;
 
     printWindow.document.write('<html><head><title>Contrat de Location</title>');
-    printWindow.document.write('<style>');
-    printWindow.document.write(styles);
-    printWindow.document.write('</style>');
+    printWindow.document.write(`<style>${styles}</style>`);
+    // This will pick up the Tailwind classes from the main document.
     printWindow.document.write('</head><body>');
     printWindow.document.write(printContent.innerHTML);
     printWindow.document.write('</body></html>');
