@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import * as React from "react";
@@ -146,7 +145,7 @@ const InspectionDetailsView: React.FC<{ inspectionId: string }> = ({ inspectionI
                     </ul>
                 </div>
             )}
-            <div className="mt-2 printable-diagram-wrapper">
+            <div className="mt-2 printable-diagram-wrapper print:hidden">
                 <strong className="block mb-1 font-semibold">Schéma des dommages:</strong>
                 <CarDamageDiagram damages={damagesForDiagram} onDamagesChange={() => {}} readOnly showLegend={false} />
             </div>
@@ -186,7 +185,7 @@ const OldInspectionDetailsView: React.FC<{
                     </ul>
                 </div>
             )}
-            <div className="mt-2 printable-diagram-wrapper">
+            <div className="mt-2 printable-diagram-wrapper print:hidden">
                 <strong className="block mb-1 font-semibold">Schéma des dommages:</strong>
                 <CarDamageDiagram damages={data.damages || {}} onDamagesChange={() => {}} readOnly showLegend={false} />
             </div>
@@ -209,72 +208,69 @@ function RentalDetails({ rental }: { rental: Rental }) {
     return (
       <ScrollArea className="h-[70vh]">
         <div className="text-sm p-2" id="printable-contract">
-          <div className="contract-body">
+          <div className="contract-body flex flex-col h-full">
             {/* Header */}
-            <div className="text-center mb-4">
+            <div className="text-center mb-4 print:text-center">
                 <h2 className="text-2xl font-bold tracking-wider">CONTRAT DE LOCATION DE VÉHICULE</h2>
                 <p className="text-muted-foreground">Contrat N°: {rental.id?.substring(0, 8).toUpperCase()}</p>
             </div>
             
-            <div className="space-y-4 print:grid print:grid-cols-2 print:gap-x-4">
-                 {/* Left column */}
-                <div className="space-y-4">
-                    <div className="border p-3 rounded-md">
-                        <h3 className="font-bold text-base underline mb-2">LES PARTIES</h3>
-                        <div className="space-y-2">
-                             <div className="space-y-1">
-                                <h4 className="font-semibold">Le Loueur :</h4>
-                                <p>Location Auto Pro</p>
-                                <p>Agdal, Rabat, Maroc</p>
-                                <p>Tél: +212 537 00 00 00</p>
-                            </div>
-                            <div className="space-y-1">
-                                <h4 className="font-semibold">Le Locataire (Conducteur Principal) :</h4>
-                                <div className="flex justify-between"><span><strong>Nom:</strong></span> <span>{rental.locataire.nomPrenom}</span></div>
-                                <div className="flex justify-between"><span><strong>CIN/Passeport:</strong></span> <span>{rental.locataire.cin}</span></div>
-                                <div className="flex justify-between"><span><strong>Permis N°:</strong></span> <span>{rental.locataire.permisNo}</span></div>
-                                <div className="flex justify-between"><span><strong>Téléphone:</strong></span> <span>{rental.locataire.telephone}</span></div>
-                            </div>
-                            {rental.conducteur2 && (
-                            <div className="mt-2">
-                                <h4 className="font-semibold">Deuxième Conducteur :</h4>
-                                <div className="space-y-1">
-                                    <div className="flex justify-between"><span><strong>Nom:</strong></span> <span>{rental.conducteur2.nomPrenom}</span></div>
-                                    <div className="flex justify-between"><span><strong>CIN/Passeport:</strong></span> <span>{rental.conducteur2.cin}</span></div>
-                                    <div className="flex justify-between"><span><strong>Permis N°:</strong></span> <span>{rental.conducteur2.permisNo}</span></div>
-                                </div>
-                            </div>
-                            )}
+            <div className="space-y-4 flex-grow">
+                 <div className="border p-3 rounded-md">
+                    <h3 className="font-bold text-base underline mb-2">LES PARTIES</h3>
+                    <div className="space-y-2 md:space-y-0 print:grid print:grid-cols-2 print:gap-x-4">
+                         <div className="space-y-1">
+                            <h4 className="font-semibold">Le Loueur :</h4>
+                            <p>Location Auto Pro</p>
+                            <p>Agdal, Rabat, Maroc</p>
+                            <p>Tél: +212 537 00 00 00</p>
                         </div>
+                        <div className="space-y-1">
+                            <h4 className="font-semibold">Le Locataire (Conducteur Principal) :</h4>
+                            <div className="flex justify-between"><span><strong>Nom:</strong></span> <span>{rental.locataire.nomPrenom}</span></div>
+                            <div className="flex justify-between"><span><strong>CIN/Passeport:</strong></span> <span>{rental.locataire.cin}</span></div>
+                            <div className="flex justify-between"><span><strong>Permis N°:</strong></span> <span>{rental.locataire.permisNo}</span></div>
+                            <div className="flex justify-between"><span><strong>Téléphone:</strong></span> <span>{rental.locataire.telephone}</span></div>
+                        </div>
+                        {rental.conducteur2 && (
+                        <div className="mt-2 pt-2 border-t md:border-t-0 md:pt-0">
+                            <h4 className="font-semibold">Deuxième Conducteur :</h4>
+                            <div className="space-y-1">
+                                <div className="flex justify-between"><span><strong>Nom:</strong></span> <span>{rental.conducteur2.nomPrenom}</span></div>
+                                <div className="flex justify-between"><span><strong>CIN/Passeport:</strong></span> <span>{rental.conducteur2.cin}</span></div>
+                                <div className="flex justify-between"><span><strong>Permis N°:</strong></span> <span>{rental.conducteur2.permisNo}</span></div>
+                            </div>
+                        </div>
+                        )}
                     </div>
-                     <div className="border p-3 rounded-md">
-                        <h3 className="font-bold text-base underline mb-2">DÉTAILS DE LA LOCATION</h3>
-                        <div className="space-y-2">
-                             <div className="space-y-1">
-                                <h4 className="font-semibold">Véhicule Loué :</h4>
-                                <div className="flex justify-between"><span><strong>Marque/Modèle:</strong></span> <span>{rental.vehicule.marque}</span></div>
-                                <div className="flex justify-between"><span><strong>Immatriculation:</strong></span> <span>{rental.vehicule.immatriculation}</span></div>
-                                <div className="flex justify-between"><span><strong>Carburant:</strong></span> <span>{rental.vehicule.carburantType}</span></div>
-                                <div className="flex justify-between"><span><strong>Transmission:</strong></span> <span>{rental.vehicule.transmission}</span></div>
-                            </div>
-                             <div className="space-y-1">
-                                <h4 className="font-semibold">Période & Coût :</h4>
-                                <div className="flex justify-between"><span><strong>Début:</strong></span> <span>{safeDebutDate ? format(safeDebutDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</span></div>
-                                <div className="flex justify-between"><span><strong>Fin Prévue:</strong></span> <span>{safeFinDate ? format(safeFinDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</span></div>
-                                <div className="flex justify-between"><span><strong>Durée:</strong></span> <span>{rental.location.nbrJours} jour(s)</span></div>
-                                {rental.statut !== 'terminee' && (
-                                    <div className="flex justify-between"><span><strong>Dépôt de Caution:</strong></span> <span>{formatCurrency(rental.location.depot || 0, 'MAD')}</span></div>
-                                )}
-                                <div className="flex justify-between font-bold text-base mt-2 pt-2 border-t"><span>Prix Total:</span> <span>{formatCurrency(rental.location.montantAPayer, 'MAD')}</span></div>
-                            </div>
+                </div>
+
+                 <div className="border p-3 rounded-md">
+                    <h3 className="font-bold text-base underline mb-2">DÉTAILS DE LA LOCATION</h3>
+                    <div className="space-y-2 md:space-y-0 print:grid print:grid-cols-2 print:gap-x-4">
+                         <div className="space-y-1">
+                            <h4 className="font-semibold">Véhicule Loué :</h4>
+                            <div className="flex justify-between"><span><strong>Marque/Modèle:</strong></span> <span>{rental.vehicule.marque}</span></div>
+                            <div className="flex justify-between"><span><strong>Immatriculation:</strong></span> <span>{rental.vehicule.immatriculation}</span></div>
+                            <div className="flex justify-between"><span><strong>Carburant:</strong></span> <span>{rental.vehicule.carburantType}</span></div>
+                            <div className="flex justify-between"><span><strong>Transmission:</strong></span> <span>{rental.vehicule.transmission}</span></div>
+                        </div>
+                         <div className="space-y-1">
+                            <h4 className="font-semibold">Période & Coût :</h4>
+                            <div className="flex justify-between"><span><strong>Début:</strong></span> <span>{safeDebutDate ? format(safeDebutDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</span></div>
+                            <div className="flex justify-between"><span><strong>Fin Prévue:</strong></span> <span>{safeFinDate ? format(safeFinDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</span></div>
+                            <div className="flex justify-between"><span><strong>Durée:</strong></span> <span>{rental.location.nbrJours} jour(s)</span></div>
+                            {rental.statut !== 'terminee' && (
+                                <div className="flex justify-between"><span><strong>Dépôt de Caution:</strong></span> <span>{formatCurrency(rental.location.depot || 0, 'MAD')}</span></div>
+                            )}
+                            <div className="flex justify-between font-bold text-base mt-2 pt-2 border-t"><span>Prix Total:</span> <span>{formatCurrency(rental.location.montantAPayer, 'MAD')}</span></div>
                         </div>
                     </div>
                 </div>
 
-                {/* Right column */}
                 <div className="border p-3 rounded-md">
                     <h3 className="font-bold text-base mb-2 underline">ÉTAT DU VÉHICULE</h3>
-                     <div className="space-y-3">
+                    <div className="space-y-3 md:space-y-0 print:grid print:grid-cols-2 print:gap-x-4">
                         <div>
                             {rental.livraisonInspectionId ? (
                                 <InspectionDetailsView inspectionId={rental.livraisonInspectionId} />
@@ -282,8 +278,7 @@ function RentalDetails({ rental }: { rental: Rental }) {
                                 <OldInspectionDetailsView data={rental.livraison} type="depart" />
                             )}
                         </div>
-
-                        <div className="mt-4 md:mt-0 print:mt-2">
+                        <div className="mt-4 md:mt-0">
                             {rental.receptionInspectionId ? (
                                 <InspectionDetailsView inspectionId={rental.receptionInspectionId} />
                             ) : (
@@ -294,20 +289,18 @@ function RentalDetails({ rental }: { rental: Rental }) {
                 </div>
             </div>
 
-          </div>
             {/* Signatures */}
-            <div className="signatures-section mt-8 print:mt-4">
-                <div className="grid grid-cols-2 gap-16 print:gap-8">
-                    <div className="text-center">
-                        <p className="border-t pt-2 print:pt-1 print:border-gray-400">Signature du Loueur</p>
-                        <p className="text-xs text-muted-foreground print:text-[8pt]">(Précédée de la mention "Lu et approuvé")</p>
-                    </div>
-                     <div className="text-center">
-                        <p className="border-t pt-2 print:pt-1 print:border-gray-400">Signature du Locataire</p>
-                        <p className="text-xs text-muted-foreground print:text-[8pt]">(Précédée de la mention "Lu et approuvé")</p>
-                    </div>
+            <div className="signatures-section mt-auto pt-8 print:grid print:grid-cols-2 print:gap-16">
+                <div className="text-center mt-8 md:mt-0">
+                    <p className="border-t pt-2 print:pt-1 print:border-gray-400">Signature du Loueur</p>
+                    <p className="text-xs text-muted-foreground print:text-[8pt]">(Précédée de la mention "Lu et approuvé")</p>
+                </div>
+                 <div className="text-center mt-8 md:mt-0">
+                    <p className="border-t pt-2 print:pt-1 print:border-gray-400">Signature du Locataire</p>
+                    <p className="text-xs text-muted-foreground print:text-[8pt]">(Précédée de la mention "Lu et approuvé")</p>
                 </div>
             </div>
+          </div>
         </div>
       </ScrollArea>
     );
@@ -346,30 +339,21 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     const styles = `
       @page {
         size: A4;
-        margin: 10mm;
+        margin: 15mm;
       }
       body {
         background: white !important;
         font-family: Arial, sans-serif;
-        font-size: 8.5pt;
-        line-height: 1.2;
+        font-size: 9pt;
+        line-height: 1.3;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
       .no-print { display: none !important; }
-      .printable-diagram-wrapper { display: none !important; }
-      
-      #printable-contract {
+      .contract-body {
         display: flex;
         flex-direction: column;
-        height: 99%;
-      }
-      #printable-contract .contract-body {
-        flex-grow: 1;
-      }
-      #printable-contract .signatures-section {
-        margin-top: auto;
-        padding-top: 5mm;
+        height: 100%;
       }
     `;
 
@@ -737,21 +721,3 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
 }
 
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-
-
