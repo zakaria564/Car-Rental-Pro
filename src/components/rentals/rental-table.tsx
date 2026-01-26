@@ -204,7 +204,7 @@ function RentalDetails({ rental }: { rental: Rental }) {
         if (date instanceof Date) return date;
         if (date.toDate && typeof date.toDate === 'function') return date.toDate();
         const parsed = new Date(date);
-        return isNaN(parsed.getTime()) ? undefined : parsed;
+        return isNaN(parsed.getTime()) ? undefined : getSafeDate(date);
     };
 
     const safeDebutDate = getSafeDate(rental.location.dateDebut);
@@ -378,48 +378,41 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       
       .print-section {
         break-inside: avoid;
+        border: 0.5pt solid #ccc !important;
+        padding: 2mm !important;
+        border-radius: 3px;
+        margin-bottom: 2mm;
       }
-
-      .md\\:grid {
+      
+      #printable-contract .md\\:grid {
         display: grid !important;
-      }
-      .md\\:grid-cols-2 {
         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-      }
-      .md\\:gap-x-6 {
         column-gap: 1.5rem !important;
       }
-      .md\\:mt-0 {
+      
+      #printable-contract .md\\:mt-0 {
         margin-top: 0 !important;
       }
 
-      #printable-contract .border {
-        border-width: 0.5pt !important;
-        border-color: #ccc !important;
-        padding: 2mm !important;
-      }
-
-      #printable-contract .contract-body > div {
-        break-inside: avoid;
-      }
       #printable-contract p { margin: 0.3mm 0; }
       #printable-contract h2, #printable-contract h3, #printable-contract h4 { margin: 0 0 1mm 0; padding: 0; font-weight: bold; }
       #printable-contract strong { font-weight: bold; }
       #printable-contract .text-sm { font-size: 8pt; line-height: 1.3; }
-      #printable-contract .p-3 { padding: 2mm; }
       #printable-contract .text-center { text-align: center; }
       #printable-contract .mb-4 { margin-bottom: 3mm; }
       #printable-contract .text-2xl { font-size: 14pt; }
       #printable-contract .tracking-wider { letter-spacing: 0.05em; }
       #printable-contract .text-muted-foreground { color: #555; }
       
-      #printable-contract .rounded-md { border-radius: 3px; }
       #printable-contract .mb-2 { margin-bottom: 1mm; }
       #printable-contract .underline { text-decoration: underline; }
       #printable-contract .font-semibold { font-weight: 600; }
       #printable-contract .text-base { font-size: 9pt; }
       
-      #printable-contract .gap-16 { gap: 20mm; }
+      #printable-contract .signatures-section .grid {
+         grid-template-columns: repeat(2, minmax(0, 1fr));
+         gap: 20mm;
+      }
       #printable-contract .border-t { border-top: 0.5pt solid #ccc; }
       #printable-contract .pt-2 { padding-top: 2mm; }
       #printable-contract .text-xs { font-size: 7pt; }
@@ -429,14 +422,17 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       #printable-contract .block { display: block; }
       #printable-contract .mb-1 { margin-bottom: 1mm; }
       
-      .printable-diagram-wrapper { padding: 1mm 0; text-align: center; }
-      .printable-diagram-wrapper > div { max-width: 150px !important; margin: 0 auto; display: inline-block; cursor: default !important; }
-      .printable-diagram-wrapper svg { max-width: 100% !important; height: auto !important; }
-      .printable-diagram-wrapper svg rect { cursor: default !important; fill-opacity: 0.8 !important; }
-      .printable-diagram-wrapper svg rect:hover { fill: none !important; }
+      .printable-diagram-wrapper {
+          display: none !important;
+      }
 
       #printable-contract *, #printable-contract *::before, #printable-contract *::after {
         break-inside: avoid !important;
+      }
+
+      .flex.justify-between {
+        display: flex;
+        justify-content: space-between;
       }
     `;
 
@@ -815,3 +811,6 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
 
 
 
+
+
+    
