@@ -1,4 +1,3 @@
-
 "use client";
 
 import { cn } from '@/lib/utils';
@@ -118,24 +117,29 @@ const CarDamageDiagram: React.FC<CarDamageDiagramProps> = ({ damages, onDamagesC
           <div className="absolute top-0 left-0 w-full h-full">
               <svg viewBox="0 0 400 200" className="w-full h-full">
                   <g>
-                      {carParts.map((part) => (
-                          <rect
-                              key={part.id}
-                              x={part.x}
-                              y={part.y}
-                              width={part.w}
-                              height={part.h}
-                              onClick={readOnly ? undefined : () => handlePartClick(part.id)}
-                              className={cn(
-                                "transition-colors",
-                                damages[part.id] ? damageTypes[damages[part.id]!].color : "fill-transparent",
-                                !readOnly && "cursor-pointer",
-                                !readOnly && !damages[part.id] && "hover:fill-primary/20",
-                              )}
-                          >
-                            <title>{part.label}{damages[part.id] ? `: ${damageTypes[damages[part.id]!].label}` : ''}</title>
-                          </rect>
-                      ))}
+                      {carParts.map((part) => {
+                          const damageKey = damages[part.id];
+                          const damageInfo = damageKey ? damageTypes[damageKey] : undefined;
+
+                          return (
+                              <rect
+                                  key={part.id}
+                                  x={part.x}
+                                  y={part.y}
+                                  width={part.w}
+                                  height={part.h}
+                                  onClick={readOnly ? undefined : () => handlePartClick(part.id)}
+                                  className={cn(
+                                    "transition-colors",
+                                    damageInfo ? damageInfo.color : "fill-transparent",
+                                    !readOnly && "cursor-pointer",
+                                    !readOnly && !damages[part.id] && "hover:fill-primary/20",
+                                  )}
+                              >
+                                <title>{part.label}{damageInfo ? `: ${damageInfo.label}` : ''}</title>
+                              </rect>
+                          );
+                      })}
                   </g>
               </svg>
           </div>
