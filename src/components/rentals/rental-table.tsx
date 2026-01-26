@@ -13,7 +13,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { PlusCircle, MoreHorizontal, Printer, Pencil, CheckCircle } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Printer, Pencil, CheckCircle, FileText, Triangle, Car, Gavel } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -36,7 +36,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import type { Rental, Client, Car, DamageType, Inspection, Damage } from "@/lib/definitions";
+import type { Rental, Client, Car as CarType, DamageType, Inspection, Damage } from "@/lib/definitions";
 import { damageTypes } from "@/lib/definitions";
 import { formatCurrency, cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -52,6 +52,9 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import CarDamageDiagram, { carParts } from "./car-damage-diagram";
 import { Skeleton } from "../ui/skeleton";
+import { Logo } from "../logo";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
+import { Checkbox } from "../ui/checkbox";
 
 type RentalTableProps = {
   rentals: Rental[];
@@ -60,7 +63,7 @@ type RentalTableProps = {
   isDashboard?: boolean;
 };
 
-const InspectionDetailsView: React.FC<{ inspectionId: string }> = ({ inspectionId }) => {
+const InspectionDetailsView: React.FC<{ inspectionId: string, type: 'depart' | 'retour' }> = ({ inspectionId, type }) => {
     const [inspection, setInspection] = React.useState<Inspection | null>(null);
     const [loading, setLoading] = React.useState(true);
     const { firestore } = useFirebase();
@@ -115,7 +118,7 @@ const InspectionDetailsView: React.FC<{ inspectionId: string }> = ({ inspectionI
     }
 
     if (!inspection) {
-        return <p>Détails de l'inspection non trouvés.</p>;
+        return type === 'retour' ? <p>Véhicule non retourné.</p> : <p>Détails de l'inspection de départ non trouvés.</p>;
     }
     
     const damageEntries = Object.entries(damagesForDiagram);
@@ -128,6 +131,16 @@ const InspectionDetailsView: React.FC<{ inspectionId: string }> = ({ inspectionI
                 <div className="flex justify-between"><span><strong>Date:</strong></span> <span>{safeInspectionDate}</span></div>
                 <div className="flex justify-between"><span><strong>Kilométrage:</strong></span> <span>{inspection.kilometrage.toLocaleString()} km</span></div>
                 <div className="flex justify-between"><span><strong>Niveau Carburant:</strong></span> <span>{inspection.carburantNiveau * 100}%</span></div>
+            </div>
+             <div className="mt-2 text-xs">
+                <strong>Check-list des accessoires:</strong>
+                <div className="grid grid-cols-2 gap-x-4">
+                    <div className="flex items-center gap-2"><Checkbox checked={inspection.roueSecours} readOnly disabled/> Roue de secours</div>
+                    <div className="flex items-center gap-2"><Checkbox checked={inspection.cric} readOnly disabled/> Cric & manivelle</div>
+                    <div className="flex items-center gap-2"><Checkbox checked={inspection.giletTriangle} readOnly disabled/> Gilet & triangle</div>
+                    <div className="flex items-center gap-2"><Checkbox checked={inspection.posteRadio} readOnly disabled/> Poste radio</div>
+                    <div className="flex items-center gap-2"><Checkbox checked={inspection.doubleCles} readOnly disabled/> Double des clés</div>
+                </div>
             </div>
 
             {inspection.notes && <p className="text-xs italic mt-1"><strong>Notes:</strong> {inspection.notes}</p>}
@@ -145,7 +158,7 @@ const InspectionDetailsView: React.FC<{ inspectionId: string }> = ({ inspectionI
                     </ul>
                 </div>
             )}
-            <div className="mt-2 print:hidden">
+             <div className="mt-2 no-print">
                 <strong className="block mb-1 font-semibold">Schéma des dommages:</strong>
                 <CarDamageDiagram damages={damagesForDiagram} onDamagesChange={() => {}} readOnly showLegend={false} />
             </div>
@@ -153,45 +166,19 @@ const InspectionDetailsView: React.FC<{ inspectionId: string }> = ({ inspectionI
     );
 };
 
-const OldInspectionDetailsView: React.FC<{
-    data: Rental['livraison'] | Rental['reception'],
-    type: 'depart' | 'retour'
-}> = ({ data, type }) => {
-    if (!data) return type === 'retour' ? <p>Véhicule non retourné.</p> : null;
+const ConditionsGenerales = () => (
+    <div className="text-xs text-muted-foreground space-y-2 p-2 border rounded-md">
+      <h4 className="font-bold text-center text-sm">CONDITIONS GÉNÉRALES DE LOCATION</h4>
+      <p><strong>1. Utilisation du Véhicule:</strong> Le locataire s'engage à conduire avec prudence et à respecter le code de la route. Il est interdit de sous-louer le véhicule, de participer à des compétitions, ou de conduire sous l'emprise d'alcool/stupéfiants.</p>
+      <p><strong>2. État du Véhicule:</strong> Le véhicule est livré en parfait état de marche, sauf annotations sur la fiche d'état. Le locataire est responsable de la vérification des niveaux tous les 500 km. Tout dommage non signalé au départ sera facturé.</p>
+      <p><strong>3. Assurance et Responsabilité:</strong> Une franchise reste à la charge du locataire en cas d'accident responsable ou sans tiers identifié. Les dommages aux pneumatiques, jantes, bris de glace et intérieur ne sont pas couverts par l'assurance standard.</p>
+      <p><strong>4. Restitution:</strong> Le véhicule doit être restitué à la date et heure prévues. Tout retard peut entraîner la facturation d'une journée supplémentaire. Le carburant doit être au même niveau qu'au départ, sinon il sera facturé.</p>
+      <p><strong>5. Amendes:</strong> Le locataire est seul responsable des amendes et contraventions durant la location.</p>
+      <p><strong>6. Dépôt de Garantie:</strong> La caution couvre les éventuels dommages ou frais supplémentaires et sera restituée après vérification finale.</p>
+      <p><strong>7. Litiges:</strong> En cas de litige, le tribunal compétent est celui du siège social de l'agence.</p>
+    </div>
+  );
 
-    const safeDate = data.dateHeure?.toDate ? format(data.dateHeure.toDate(), "dd/MM/yyyy HH:mm", { locale: fr }) : 'N/A';
-    const damageEntries = Object.entries(data.damages || {});
-
-    return (
-        <div className="space-y-2">
-            <h4 className="font-bold text-base">{type === 'depart' ? 'Livraison (Départ)' : 'Réception (Retour)'}</h4>
-            <div className="space-y-1">
-                <div className="flex justify-between"><span><strong>Date:</strong></span> <span>{safeDate}</span></div>
-                <div className="flex justify-between"><span><strong>Kilométrage:</strong></span> <span>{data.kilometrage?.toLocaleString()} km</span></div>
-                <div className="flex justify-between"><span><strong>Niveau Carburant:</strong></span> <span>{data.carburantNiveau ? data.carburantNiveau * 100 + '%' : 'N/A'}</span></div>
-            </div>
-            {data.dommagesNotes && <p className="text-xs italic mt-1"><strong>Notes:</strong> {data.dommagesNotes}</p>}
-
-            {damageEntries.length > 0 && (
-                <div className="mt-2 text-xs">
-                    <strong>Dommages constatés:</strong>
-                    <ul className="list-disc list-inside">
-                        {damageEntries.map(([partId, damageType]) => {
-                            const part = carParts.find(p => p.id === partId);
-                            const damage = damageTypes[damageType as DamageType];
-                            if (!part || !damage) return null;
-                            return ( <li key={partId}>{part.label}: {damage.label}</li> )
-                        })}
-                    </ul>
-                </div>
-            )}
-            <div className="mt-2 print:hidden">
-                <strong className="block mb-1 font-semibold">Schéma des dommages:</strong>
-                <CarDamageDiagram damages={data.damages || {}} onDamagesChange={() => {}} readOnly showLegend={false} />
-            </div>
-        </div>
-    );
-};
 
 function RentalDetails({ rental }: { rental: Rental }) {
     const getSafeDate = (date: any): Date | undefined => {
@@ -206,25 +193,23 @@ function RentalDetails({ rental }: { rental: Rental }) {
     const safeFinDate = getSafeDate(rental.location.dateFin);
 
     return (
-      <ScrollArea className="h-[70vh]">
-        <div className="text-sm p-2" id="printable-contract">
-          <div className="contract-body flex flex-col h-full">
+      <ScrollArea className="h-[80vh]">
+        <div className="p-1" id="printable-contract">
+          <div className="printable-contract-body flex flex-col h-full min-h-[260mm] p-4 border rounded-md" >
             {/* Header */}
-            <div className="text-center mb-4">
-                <h2 className="text-2xl font-bold tracking-wider">CONTRAT DE LOCATION DE VÉHICULE</h2>
-                <p className="text-muted-foreground">Contrat N°: {rental.id?.substring(0, 8).toUpperCase()}</p>
+            <div className="text-center mb-4 flex flex-col items-center">
+                <Logo />
+                <h2 className="text-xl font-bold tracking-wider mt-2">CONTRAT DE LOCATION & ÉTAT DES LIEUX</h2>
+                <p className="text-muted-foreground text-sm">Contrat N°: {rental.id?.substring(0, 8).toUpperCase()}</p>
+                <div className="text-xs mt-1">
+                    <span>Location Auto Pro, Agdal, Rabat, Maroc</span> | <span>Tél: +212 537 00 00 00</span>
+                </div>
             </div>
             
             <div className="space-y-4 flex-grow">
                  <div className="border p-3 rounded-md">
                     <h3 className="font-bold text-base underline mb-2">LES PARTIES</h3>
                      <div className="md:grid md:grid-cols-2 md:gap-x-4">
-                         <div className="space-y-1">
-                            <h4 className="font-semibold">Le Loueur :</h4>
-                            <p>Location Auto Pro</p>
-                            <p>Agdal, Rabat, Maroc</p>
-                            <p>Tél: +212 537 00 00 00</p>
-                        </div>
                         <div className="space-y-1">
                             <h4 className="font-semibold">Le Locataire (Conducteur Principal) :</h4>
                             <div className="flex justify-between"><span><strong>Nom:</strong></span> <span>{rental.locataire.nomPrenom}</span></div>
@@ -233,13 +218,11 @@ function RentalDetails({ rental }: { rental: Rental }) {
                             <div className="flex justify-between"><span><strong>Téléphone:</strong></span> <span>{rental.locataire.telephone}</span></div>
                         </div>
                         {rental.conducteur2 && (
-                        <div className="mt-2 pt-2 border-t md:border-t-0 md:pt-0 md:col-span-2">
+                        <div className="space-y-1 mt-2 md:mt-0">
                             <h4 className="font-semibold">Deuxième Conducteur :</h4>
-                            <div className="space-y-1">
-                                <div className="flex justify-between"><span><strong>Nom:</strong></span> <span>{rental.conducteur2.nomPrenom}</span></div>
-                                <div className="flex justify-between"><span><strong>CIN/Passeport:</strong></span> <span>{rental.conducteur2.cin}</span></div>
-                                <div className="flex justify-between"><span><strong>Permis N°:</strong></span> <span>{rental.conducteur2.permisNo}</span></div>
-                            </div>
+                            <div className="flex justify-between"><span><strong>Nom:</strong></span> <span>{rental.conducteur2.nomPrenom}</span></div>
+                            <div className="flex justify-between"><span><strong>CIN/Passeport:</strong></span> <span>{rental.conducteur2.cin}</span></div>
+                            <div className="flex justify-between"><span><strong>Permis N°:</strong></span> <span>{rental.conducteur2.permisNo}</span></div>
                         </div>
                         )}
                     </div>
@@ -260,7 +243,7 @@ function RentalDetails({ rental }: { rental: Rental }) {
                             <div className="flex justify-between"><span><strong>Début:</strong></span> <span>{safeDebutDate ? format(safeDebutDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</span></div>
                             <div className="flex justify-between"><span><strong>Fin Prévue:</strong></span> <span>{safeFinDate ? format(safeFinDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</span></div>
                             <div className="flex justify-between"><span><strong>Durée:</strong></span> <span>{rental.location.nbrJours} jour(s)</span></div>
-                            {rental.statut !== 'terminee' && (
+                             {rental.statut !== 'terminee' && (
                                 <div className="flex justify-between"><span><strong>Dépôt de Caution:</strong></span> <span>{formatCurrency(rental.location.depot || 0, 'MAD')}</span></div>
                             )}
                             <div className="flex justify-between font-bold text-base mt-2 pt-2 border-t"><span>Prix Total:</span> <span>{formatCurrency(rental.location.montantAPayer, 'MAD')}</span></div>
@@ -273,19 +256,23 @@ function RentalDetails({ rental }: { rental: Rental }) {
                     <div className="md:grid md:grid-cols-2 md:gap-x-4">
                         <div>
                             {rental.livraisonInspectionId ? (
-                                <InspectionDetailsView inspectionId={rental.livraisonInspectionId} />
-                            ) : (
-                                <OldInspectionDetailsView data={rental.livraison} type="depart" />
-                            )}
+                                <InspectionDetailsView inspectionId={rental.livraisonInspectionId} type="depart" />
+                            ) : null }
                         </div>
                         <div className="mt-4 md:mt-0">
                             {rental.receptionInspectionId ? (
-                                <InspectionDetailsView inspectionId={rental.receptionInspectionId} />
+                                <InspectionDetailsView inspectionId={rental.receptionInspectionId} type="retour" />
                             ) : (
-                                <OldInspectionDetailsView data={rental.reception} type="retour" />
+                               <div className="space-y-2">
+                                 <h4 className="font-bold text-base">Réception (Retour)</h4>
+                                 <p>Véhicule non retourné.</p>
+                               </div>
                             )}
                         </div>
                     </div>
+                </div>
+                 <div className="text-xs text-muted-foreground mt-4">
+                    <p>Le locataire reconnaît avoir reçu le véhicule en bon état de marche, avec les accessoires mentionnés, et s'engage à le restituer dans le même état.</p>
                 </div>
             </div>
 
@@ -300,6 +287,19 @@ function RentalDetails({ rental }: { rental: Rental }) {
                     <p className="text-xs text-muted-foreground">(Précédée de la mention "Lu et approuvé")</p>
                 </div>
             </div>
+            <div className="contract-footer text-center text-xs text-muted-foreground mt-2">
+                RC: 123456 | IF: 78901234 | ICE: 567890123456789
+            </div>
+          </div>
+          <div className="no-print p-4">
+            <Collapsible>
+                <CollapsibleTrigger asChild>
+                    <Button variant="link" className="p-0 h-auto"><Gavel className="mr-2" />Voir les conditions générales</Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                    <ConditionsGenerales />
+                </CollapsibleContent>
+            </Collapsible>
           </div>
         </div>
       </ScrollArea>
@@ -336,23 +336,34 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       return;
     }
 
-    // Using Tailwind's print modifier classes in the JSX is a cleaner approach
-    // than injecting a style block here. I've added `print:hidden` to the
-    // diagram wrapper. Let's add a few more for structure.
     const styles = `
+      @import url('https://rsms.me/inter/inter.css');
+      body { font-family: 'Inter', sans-serif; }
+      .no-print { display: none !important; }
+      .printable-contract-body {
+          border: none !important;
+          box-shadow: none !important;
+      }
+      .signatures-section {
+          page-break-before: auto;
+          page-break-inside: avoid;
+      }
       @page {
         size: A4;
         margin: 15mm;
       }
-      body {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-      }
     `;
 
     printWindow.document.write('<html><head><title>Contrat de Location</title>');
+    
+    // Link to external stylesheets from the main document
+    Array.from(document.styleSheets).forEach(sheet => {
+        if (sheet.href) {
+            printWindow.document.write(`<link rel="stylesheet" href="${sheet.href}">`);
+        }
+    });
+
     printWindow.document.write(`<style>${styles}</style>`);
-    // This will pick up the Tailwind classes from the main document.
     printWindow.document.write('</head><body>');
     printWindow.document.write(printContent.innerHTML);
     printWindow.document.write('</body></html>');
@@ -360,9 +371,11 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     printWindow.document.close();
     
     printWindow.onload = function() {
-      printWindow.focus();
-      printWindow.print();
-      printWindow.close();
+      setTimeout(function() { // Timeout to ensure styles are loaded
+        printWindow.focus();
+        printWindow.print();
+        printWindow.close();
+      }, 500);
     };
   };
 
@@ -469,6 +482,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
                 setRentalForModal(rental);
                 setIsDetailsOpen(true);
               }}>
+                <FileText className="mr-2 h-4 w-4"/>
                 Voir les détails
               </DropdownMenuItem>
               
@@ -480,7 +494,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
                         setIsSheetOpen(true);
                     }}>
                         <Pencil className="mr-2 h-4 w-4" />
-                        Modifier
+                        Modifier/Prolonger
                     </DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => {
                         setRentalForModal(rental);
@@ -671,7 +685,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
           if (!open) setRentalForModal(null);
         }}>
         {rentalForModal && (
-            <DialogContent className="sm:max-w-3xl">
+            <DialogContent className="sm:max-w-4xl">
                 <DialogHeader className="no-print">
                     <DialogTitle>Détails du contrat de location #{rentalForModal.id?.substring(0,6)}</DialogTitle>
                     <DialogDesc>
@@ -682,7 +696,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
                 <DialogFooter className="no-print">
                   <Button variant="outline" onClick={handlePrint}>
                     <Printer className="mr-2 h-4 w-4"/>
-                    Imprimer
+                    Imprimer le contrat
                   </Button>
                 </DialogFooter>
             </DialogContent>
@@ -711,5 +725,3 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     </>
   );
 }
-
-    

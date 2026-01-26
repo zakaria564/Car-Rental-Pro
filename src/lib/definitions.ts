@@ -35,10 +35,10 @@ export type Client = {
 };
 
 export const damageTypes = {
-  rayure: { label: 'Rayure', color: 'bg-yellow-400/70 border-yellow-500' },
-  rayure_importante: { label: 'Rayure importante', color: 'bg-orange-500/70 border-orange-600' },
-  choc: { label: 'Choc', color: 'bg-red-600/70 border-red-700' },
-  a_remplacer: { label: 'À remplacer', color: 'bg-gray-800/80 border-gray-900 text-white' },
+  R: { label: 'Rayure', color: 'bg-yellow-400/70 border-yellow-500' },
+  E: { label: 'Éclat / Bosse', color: 'bg-orange-500/70 border-orange-600' },
+  C: { label: 'Cassure', color: 'bg-red-600/70 border-red-700' },
+  X: { label: 'À remplacer', color: 'bg-gray-800/80 border-gray-900 text-white' },
 } as const;
 
 export type DamageType = keyof typeof damageTypes;
@@ -53,7 +53,7 @@ export type Damage = {
 };
 
 export type Inspection = {
-  id: string;
+  id:string;
   vehicleId: string;
   rentalId: string;
   userId: string;
@@ -65,6 +65,9 @@ export type Inspection = {
   roueSecours: boolean;
   posteRadio: boolean;
   lavage: boolean;
+  cric: boolean;
+  giletTriangle: boolean;
+  doubleCles: boolean;
   photos?: string[];
   damages: Damage[]; // This will be populated from the subcollection for UI purposes
 };
@@ -106,6 +109,9 @@ export type Rental = {
     roueSecours: boolean;
     posteRadio: boolean;
     lavage: boolean;
+    cric: boolean;
+    giletTriangle: boolean;
+    doubleCles: boolean;
     dommages: { [key: string]: DamageType };
     dommagesNotes?: string;
     photos?: string[];
@@ -117,6 +123,9 @@ export type Rental = {
     roueSecours?: boolean;
     posteRadio?: boolean;
     lavage?: boolean;
+    cric: boolean;
+    giletTriangle: boolean;
+    doubleCles: boolean;
     dommages?: { [key: string]: DamageType };
     dommagesNotes?: string;
     photos?: string[];

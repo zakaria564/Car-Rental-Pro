@@ -53,7 +53,7 @@ type CarDamageDiagramProps = {
 };
 
 const CarDamageDiagram: React.FC<CarDamageDiagramProps> = ({ damages, onDamagesChange, readOnly = false, showLegend = true }) => {
-  const [selectedDamageType, setSelectedDamageType] = React.useState<DamageType | undefined>('rayure');
+  const [selectedDamageType, setSelectedDamageType] = React.useState<DamageType | undefined>('R');
 
   const handleDamageTypeSelect = (type: DamageType | undefined) => {
     if (readOnly) return;
@@ -158,7 +158,9 @@ const CarDamageDiagram: React.FC<CarDamageDiagramProps> = ({ damages, onDamagesC
                             : 'border-transparent hover:bg-muted'
                       )}
                   >
-                      <div className={cn("w-3 h-3 rounded-sm border", color.replace('bg-', 'border-'))} />
+                      <div className={cn("w-3 h-3 flex items-center justify-center font-bold text-xs rounded-sm border", color.replace('bg-', 'border-'))}>
+                         {type}
+                      </div>
                       <span>{label}</span>
                   </button>
                 )

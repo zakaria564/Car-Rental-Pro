@@ -37,7 +37,7 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { Skeleton } from "../ui/skeleton";
 
-const damageTypeEnum = z.enum(['rayure', 'rayure_importante', 'choc', 'a_remplacer']);
+const damageTypeEnum = z.enum(['R', 'E', 'C', 'X']);
 
 const baseSchema = z.object({
   clientId: z.string({ required_error: "Veuillez sélectionner un client." }).min(1, "Veuillez sélectionner un client."),
@@ -56,6 +56,9 @@ const baseSchema = z.object({
   roueSecours: z.boolean().default(false),
   posteRadio: z.boolean().default(false),
   lavage: z.boolean().default(false),
+  cric: z.boolean().default(false),
+  giletTriangle: z.boolean().default(false),
+  doubleCles: z.boolean().default(false),
   dommagesDepartNotes: z.string().optional(),
   dommagesDepart: z.record(z.string(), damageTypeEnum).optional(),
   photosDepart: z.array(z.object({ url: z.string().url("Veuillez entrer une URL valide.").or(z.literal('')) })).optional(),
@@ -69,6 +72,9 @@ const baseSchema = z.object({
   roueSecoursRetour: z.boolean().default(true).optional(),
   posteRadioRetour: z.boolean().default(true).optional(),
   lavageRetour: z.boolean().default(true).optional(),
+  cricRetour: z.boolean().default(true).optional(),
+  giletTriangleRetour: z.boolean().default(true).optional(),
+  doubleClesRetour: z.boolean().default(true).optional(),
   dommagesRetourNotes: z.string().optional(),
   dommagesRetour: z.record(z.string(), damageTypeEnum).optional(),
   photosRetour: z.array(z.object({ url: z.string().url("Veuillez entrer une URL valide.").or(z.literal('')) })).optional(),
@@ -170,10 +176,16 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
       roueSecours: true,
       posteRadio: true,
       lavage: true,
+      cric: true,
+      giletTriangle: true,
+      doubleCles: true,
       dateRetour: new Date(),
       roueSecoursRetour: true,
       posteRadioRetour: true,
       lavageRetour: true,
+      cricRetour: true,
+      giletTriangleRetour: true,
+      doubleClesRetour: true,
   };
 
   const [initialValues, setInitialValues] = React.useState(newRentalInitialValues);
@@ -233,6 +245,9 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                    roueSecours: insp.roueSecours,
                    posteRadio: insp.posteRadio,
                    lavage: insp.lavage,
+                   cric: insp.cric,
+                   giletTriangle: insp.giletTriangle,
+                   doubleCles: insp.doubleCles,
                    dommagesNotes: insp.notes,
                    damages: insp.damages,
                    photos: insp.photos || []
@@ -252,6 +267,9 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                    roueSecours: insp.roueSecours,
                    posteRadio: insp.posteRadio,
                    lavage: insp.lavage,
+                   cric: insp.cric,
+                   giletTriangle: insp.giletTriangle,
+                   doubleCles: insp.doubleCles,
                    dommagesNotes: insp.notes,
                    damages: insp.damages,
                    photos: insp.photos || []
@@ -273,6 +291,9 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             roueSecours: livraisonData?.roueSecours,
             posteRadio: livraisonData?.posteRadio,
             lavage: livraisonData?.lavage,
+            cric: livraisonData?.cric,
+            giletTriangle: livraisonData?.giletTriangle,
+            doubleCles: livraisonData?.doubleCles,
             dommagesDepartNotes: livraisonData?.dommagesNotes || "",
             dommagesDepart: livraisonData?.damages || {},
             photosDepart: (livraisonData?.photos || []).map((p: string) => ({url: p})),
@@ -282,6 +303,9 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             roueSecoursRetour: receptionData?.roueSecours ?? true,
             posteRadioRetour: receptionData?.posteRadio ?? true,
             lavageRetour: receptionData?.lavage ?? true,
+            cricRetour: receptionData?.cric ?? true,
+            giletTriangleRetour: receptionData?.giletTriangle ?? true,
+            doubleClesRetour: receptionData?.doubleCles ?? true,
             dommagesRetourNotes: receptionData?.dommagesNotes || "",
             dommagesRetour: receptionData?.damages || (mode === 'check-in' ? livraisonData?.damages : {}) || {},
             photosRetour: (receptionData?.photos || []).map((p: string) => ({url: p})),
@@ -380,7 +404,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
         const photosArray = type === 'depart' ? inspectionData.photosDepart : inspectionData.photosRetour;
         const photoUrls = photosArray ? photosArray.map((item: {url:string}) => item.url.trim()).filter((url: string) => url) : [];
 
-        const inspectionPayload = {
+        const inspectionPayload: Omit<Inspection, 'id' | 'damages'> = {
             vehicleId: carId,
             rentalId: rentalId,
             userId: userId,
@@ -392,6 +416,9 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             roueSecours: type === 'depart' ? inspectionData.roueSecours : inspectionData.roueSecoursRetour,
             posteRadio: type === 'depart' ? inspectionData.posteRadio : inspectionData.posteRadioRetour,
             lavage: type === 'depart' ? inspectionData.lavage : inspectionData.lavageRetour,
+            cric: type === 'depart' ? inspectionData.cric : inspectionData.cricRetour,
+            giletTriangle: type === 'depart' ? inspectionData.giletTriangle : inspectionData.giletTriangleRetour,
+            doubleCles: type === 'depart' ? inspectionData.doubleCles : inspectionData.doubleClesRetour,
             photos: photoUrls,
         };
         batch.set(inspectionRef, inspectionPayload);
@@ -748,49 +775,13 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                     
                     <div>
                         <FormLabel>Checklist des équipements</FormLabel>
-                        <div className="grid grid-cols-2 gap-4 mt-2">
-                            <FormField
-                              control={form.control}
-                              name="roueSecours"
-                              render={({ field }) => (
-                                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                                  <FormControl>
-                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={mode !== 'new'} />
-                                  </FormControl>
-                                  <div className="space-y-1 leading-none">
-                                    <FormLabel>Roue de secours</FormLabel>
-                                  </div>
-                                </FormItem>
-                              )}
-                            />
-                             <FormField
-                              control={form.control}
-                              name="posteRadio"
-                              render={({ field }) => (
-                                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                                  <FormControl>
-                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={mode !== 'new'} />
-                                  </FormControl>
-                                  <div className="space-y-1 leading-none">
-                                    <FormLabel>Poste Radio</FormLabel>
-                                  </div>
-                                </FormItem>
-                              )}
-                            />
-                             <FormField
-                              control={form.control}
-                              name="lavage"
-                              render={({ field }) => (
-                                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                                  <FormControl>
-                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={mode !== 'new'} />
-                                  </FormControl>
-                                  <div className="space-y-1 leading-none">
-                                    <FormLabel>Voiture propre</FormLabel>
-                                  </div>
-                                </FormItem>
-                              )}
-                            />
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2">
+                             <FormField control={form.control} name="roueSecours" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={mode !== 'new'} /></FormControl><FormLabel className="font-normal">Roue de secours</FormLabel></FormItem>)} />
+                             <FormField control={form.control} name="posteRadio" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={mode !== 'new'} /></FormControl><FormLabel className="font-normal">Poste Radio</FormLabel></FormItem>)} />
+                             <FormField control={form.control} name="lavage" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={mode !== 'new'} /></FormControl><FormLabel className="font-normal">Voiture propre</FormLabel></FormItem>)} />
+                             <FormField control={form.control} name="cric" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={mode !== 'new'} /></FormControl><FormLabel className="font-normal">Cric et manivelle</FormLabel></FormItem>)} />
+                             <FormField control={form.control} name="giletTriangle" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={mode !== 'new'} /></FormControl><FormLabel className="font-normal">Gilet et triangle</FormLabel></FormItem>)} />
+                             <FormField control={form.control} name="doubleCles" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={mode !== 'new'} /></FormControl><FormLabel className="font-normal">Double des clés</FormLabel></FormItem>)} />
                         </div>
                     </div>
 
@@ -975,49 +966,13 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                       />
                        <div>
                         <FormLabel>Checklist des équipements (Retour)</FormLabel>
-                        <div className="grid grid-cols-2 gap-4 mt-2">
-                            <FormField
-                              control={form.control}
-                              name="roueSecoursRetour"
-                              render={({ field }) => (
-                                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                                  <FormControl>
-                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                                  </FormControl>
-                                  <div className="space-y-1 leading-none">
-                                    <FormLabel>Roue de secours</FormLabel>
-                                  </div>
-                                </FormItem>
-                              )}
-                            />
-                             <FormField
-                              control={form.control}
-                              name="posteRadioRetour"
-                              render={({ field }) => (
-                                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                                  <FormControl>
-                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                                  </FormControl>
-                                  <div className="space-y-1 leading-none">
-                                    <FormLabel>Poste Radio</FormLabel>
-                                  </div>
-                                </FormItem>
-                              )}
-                            />
-                             <FormField
-                              control={form.control}
-                              name="lavageRetour"
-                              render={({ field }) => (
-                                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                                  <FormControl>
-                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                                  </FormControl>
-                                  <div className="space-y-1 leading-none">
-                                    <FormLabel>Voiture propre</FormLabel>
-                                  </div>
-                                </FormItem>
-                              )}
-                            />
+                         <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2">
+                             <FormField control={form.control} name="roueSecoursRetour" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Roue de secours</FormLabel></FormItem>)} />
+                             <FormField control={form.control} name="posteRadioRetour" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Poste Radio</FormLabel></FormItem>)} />
+                             <FormField control={form.control} name="lavageRetour" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Voiture propre</FormLabel></FormItem>)} />
+                             <FormField control={form.control} name="cricRetour" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Cric et manivelle</FormLabel></FormItem>)} />
+                             <FormField control={form.control} name="giletTriangleRetour" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Gilet et triangle</FormLabel></FormItem>)} />
+                             <FormField control={form.control} name="doubleClesRetour" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Double des clés</FormLabel></FormItem>)} />
                         </div>
                     </div>
                       <div>
