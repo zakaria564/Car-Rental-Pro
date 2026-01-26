@@ -221,9 +221,9 @@ function RentalDetails({ rental }: { rental: Rental }) {
             </div>
             
             <div className="space-y-4">
-                <div className="border p-3 rounded-md print-section">
+                <div className="border p-3 rounded-md">
                     <h3 className="font-bold text-base underline mb-2">LES PARTIES</h3>
-                    <div className="md:grid md:grid-cols-2 md:gap-x-6">
+                    <div className="md:grid print:grid md:grid-cols-2 print:grid-cols-2 md:gap-x-6 print:gap-x-6">
                         <div className="space-y-1">
                             <h4 className="font-semibold">Le Loueur :</h4>
                             <p>Location Auto Pro</p>
@@ -250,9 +250,9 @@ function RentalDetails({ rental }: { rental: Rental }) {
                     </div>
                 </div>
 
-                <div className="border p-3 rounded-md print-section">
+                <div className="border p-3 rounded-md">
                     <h3 className="font-bold text-base underline mb-2">DÉTAILS DE LA LOCATION</h3>
-                     <div className="md:grid md:grid-cols-2 md:gap-x-6">
+                     <div className="md:grid print:grid md:grid-cols-2 print:grid-cols-2 md:gap-x-6 print:gap-x-6">
                         <div className="space-y-1">
                             <h4 className="font-semibold">Véhicule Loué :</h4>
                             <div className="flex justify-between"><span><strong>Marque/Modèle:</strong></span> <span>{rental.vehicule.marque}</span></div>
@@ -273,9 +273,9 @@ function RentalDetails({ rental }: { rental: Rental }) {
                     </div>
                 </div>
 
-                <div className="border p-3 rounded-md print-section">
+                <div className="border p-3 rounded-md">
                     <h3 className="font-bold text-base mb-2 underline">ÉTAT DU VÉHICULE</h3>
-                    <div className="md:grid md:grid-cols-2 md:gap-x-6">
+                    <div className="md:grid print:grid md:grid-cols-2 print:grid-cols-2 md:gap-x-6 print:gap-x-6">
                         <div>
                             {rental.livraisonInspectionId ? (
                                 <InspectionDetailsView inspectionId={rental.livraisonInspectionId} />
@@ -284,7 +284,7 @@ function RentalDetails({ rental }: { rental: Rental }) {
                             )}
                         </div>
 
-                        <div className="mt-4 md:mt-0">
+                        <div className="mt-4 md:mt-0 print:mt-0">
                             {rental.receptionInspectionId ? (
                                 <InspectionDetailsView inspectionId={rental.receptionInspectionId} />
                             ) : (
@@ -376,35 +376,11 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
         padding-top: 10mm;
       }
       
-      .print-section {
-        break-inside: avoid;
-        border: 0.5pt solid #ccc !important;
-        padding: 3mm !important;
-        border-radius: 4px;
-        margin-bottom: 4mm;
-      }
-      
-      /* Replicate the dialog's column layout for printing */
-      #printable-contract .md\\:grid {
-        display: grid !important;
-        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-        column-gap: 1.5rem !important;
-      }
-      
-      /* Hide the damage diagrams as requested */
       .printable-diagram-wrapper {
           display: none !important;
       }
       
-      /* Position signatures at the bottom, side-by-side */
-      #printable-contract .signatures-section .grid {
-         display: grid !important;
-         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-         gap: 20mm !important;
-      }
-
       /* General styling clean-up for print */
-      #printable-contract .flex.justify-between { display: flex; justify-content: space-between; }
       #printable-contract h2, #printable-contract h3, #printable-contract h4 { margin: 0 0 2mm 0; padding: 0; font-weight: bold; }
       #printable-contract p { margin: 0.5mm 0; }
       #printable-contract .text-2xl { font-size: 14pt; }
@@ -421,7 +397,6 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       #printable-contract .list-disc { list-style-type: disc; }
       #printable-contract .list-inside { list-style-position: inside; }
       #printable-contract .mt-2 { margin-top: 2mm; }
-      #printable-contract .md\\:mt-0 { margin-top: 0 !important; }
     `;
 
     printWindow.document.write('<html><head><title>Contrat de Location</title>');
@@ -802,3 +777,4 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
 
 
     
+
