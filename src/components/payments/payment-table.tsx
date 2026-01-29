@@ -75,7 +75,7 @@ export default function PaymentTable({ payments }: { payments: Payment[] }) {
     const printContent = document.getElementById('printable-invoice');
     if (!printContent) return;
 
-    const printWindow = window.open('', '', 'height=600,width=800');
+    const printWindow = window.open('', '', 'fullscreen=yes');
     if (!printWindow) {
       toast({
         variant: "destructive",
@@ -86,11 +86,14 @@ export default function PaymentTable({ payments }: { payments: Payment[] }) {
     }
     
     const styles = `
-      body { font-family: 'Inter', sans-serif; }
+      body { 
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+       }
       .no-print { display: none !important; }
        @page {
-        size: A5 landscape;
-        margin: 10mm;
+        size: A4;
+        margin: 15mm;
       }
     `;
 
@@ -114,7 +117,7 @@ export default function PaymentTable({ payments }: { payments: Payment[] }) {
         printWindow.focus();
         printWindow.print();
         printWindow.close();
-      }, 250);
+      }, 500);
     };
   };
 
@@ -323,7 +326,7 @@ export default function PaymentTable({ payments }: { payments: Payment[] }) {
             if (!open) setSelectedPayment(null);
             }}>
             {selectedPayment && (
-                <DialogContent className="sm:max-w-2xl">
+                <DialogContent className="sm:max-w-3xl">
                     <DialogHeader>
                         <DialogTitle>Facture N° {selectedPayment.id?.substring(0,8).toUpperCase()}</DialogTitle>
                     </DialogHeader>
