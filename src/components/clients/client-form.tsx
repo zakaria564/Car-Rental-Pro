@@ -20,7 +20,8 @@ import type { Client } from "@/lib/definitions";
 import { PhotoFormField } from "../ui/file-input";
 import { useRouter } from "next/navigation";
 import { useFirebase } from "@/firebase";
-import { addDoc, collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { format } from "date-fns";
@@ -30,7 +31,7 @@ import React from "react";
 const clientFormSchema = z.object({
   nom: z.string().min(2, "Le nom doit comporter au moins 2 caractères."),
   cin: z.string().min(5, "La CIN semble trop courte."),
-  permisNo: z.string().min(5, "Le numéro de permis semble trop court."),
+  permisNo: z.string().min(5, "Le numéro de permis semble trop court.").optional().nullable(),
   permisDateDelivrance: z.coerce.date().optional().nullable(),
   telephone: z.string().min(10, "Le numéro de téléphone semble incorrect."),
   adresse: z.string().min(10, "L'adresse est trop courte."),
@@ -49,7 +50,8 @@ const getSafeDate = (date: any): Date | undefined => {
 export default function ClientForm({ client, onFinished }: { client: Client | null, onFinished: () => void }) {
   const router = useRouter();
   const { toast } = useToast();
-  const { firestore } = useFirebase();
+  const { firestore, storage } = useFirebase();
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
   
   const defaultValues: Partial<ClientFormValues> = client ? {
     ...client,
@@ -73,45 +75,69 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
   const photoCINRef = form.register("photoCIN");
 
   async function onSubmit(data: ClientFormValues) {
-    const { photoCIN, ...clientData } = data;
-    
-    const clientPayload = {
-      ...clientData,
-      photoCIN: "https://picsum.photos/seed/cin-default/400/250",
-      createdAt: serverTimestamp(),
-    };
+    setIsSubmitting(true);
+    const { photoCIN, ...clientDataWithoutPhoto } = data;
 
-    if (client) {
-      const clientRef = doc(firestore, 'clients', client.id);
-      setDoc(clientRef, clientPayload, { merge: true }).catch(serverError => {
-        const permissionError = new FirestorePermissionError({
-            path: clientRef.path,
-            operation: 'update',
-            requestResourceData: clientPayload
-        }, serverError);
-        errorEmitter.emit('permission-error', permissionError);
-      });
-       toast({
-        title: "Client mis à jour",
-        description: "L'opération a été initiée.",
-      });
-    } else {
-      const clientsCollection = collection(firestore, 'clients');
-      addDoc(clientsCollection, clientPayload).catch(serverError => {
-        const permissionError = new FirestorePermissionError({
-            path: clientsCollection.path,
-            operation: 'create',
-            requestResourceData: clientPayload
-        }, serverError);
-        errorEmitter.emit('permission-error', permissionError);
-      });
-       toast({
-        title: "Client ajouté",
-        description: "L'opération a été initiée.",
-      });
+    const clientId = client?.id || doc(collection(firestore, 'clients')).id;
+    const isNewClient = !client;
+
+    let finalPhotoUrl = client?.photoCIN;
+
+    if (!finalPhotoUrl && isNewClient) {
+        finalPhotoUrl = `https://picsum.photos/seed/${clientId}/400/250`;
     }
 
-    onFinished();
+    if (photoCIN && photoCIN.length > 0 && photoCIN[0] instanceof File) {
+        const file = photoCIN[0];
+        const storageRef = ref(storage, `clients/${clientId}/cin_${Date.now()}_${file.name}`);
+        
+        try {
+            const uploadResult = await uploadBytes(storageRef, file);
+            finalPhotoUrl = await getDownloadURL(uploadResult.ref);
+        } catch (e) {
+            console.error(e);
+            toast({
+              variant: "destructive",
+              title: "Erreur de téléversement",
+              description: "Impossible d'enregistrer l'image. Veuillez réessayer.",
+            });
+            setIsSubmitting(false);
+            return;
+        }
+    }
+
+    const clientPayload = {
+      ...clientDataWithoutPhoto,
+      photoCIN: finalPhotoUrl,
+      ...(isNewClient ? { createdAt: serverTimestamp() } : { createdAt: client.createdAt }),
+    };
+
+    const clientRef = doc(firestore, 'clients', clientId);
+
+    setDoc(clientRef, clientPayload, { merge: !isNewClient })
+      .then(() => {
+        toast({
+          title: isNewClient ? "Client ajouté" : "Client mis à jour",
+          description: "Les informations du client ont été sauvegardées avec succès.",
+        });
+        onFinished();
+      })
+      .catch(serverError => {
+        const permissionError = new FirestorePermissionError({
+            path: clientRef.path,
+            operation: isNewClient ? 'create' : 'update',
+            requestResourceData: clientPayload
+        }, serverError as Error);
+        errorEmitter.emit('permission-error', permissionError);
+        toast({
+            variant: "destructive",
+            title: "Erreur de sauvegarde",
+            description: "Impossible d'enregistrer les informations du client."
+        });
+      })
+      .finally(() => {
+        setIsSubmitting(false);
+      });
   }
 
   return (
@@ -150,7 +176,7 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
             <FormItem>
               <FormLabel>Numéro de permis de conduire</FormLabel>
               <FormControl>
-                <Input placeholder="CD789123" {...field} />
+                <Input placeholder="CD789123" {...field} value={field.value ?? ''} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -206,8 +232,8 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
           </FormControl>
           <FormMessage />
         </FormItem>
-        <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={form.formState.isSubmitting}>
-          {form.formState.isSubmitting ? 'Enregistrement...' : (client ? 'Mettre à jour le client' : 'Ajouter un client')}
+        <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isSubmitting}>
+          {isSubmitting ? 'Enregistrement...' : (client ? 'Mettre à jour le client' : 'Ajouter un client')}
         </Button>
       </form>
     </Form>
