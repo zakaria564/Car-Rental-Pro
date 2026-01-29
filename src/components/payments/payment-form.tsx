@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -150,7 +151,7 @@ export default function PaymentForm({ payment, rentals, onFinished }: { payment:
               </Select>
               {selectedRental && (
                 <FormDescription>
-                  Client: {selectedRental.locataire.nomPrenom}. Montant total: {formatCurrency(selectedRental.location.montantTotal, 'MAD')}
+                  Client: {selectedRental.locataire.nomPrenom}. Montant total: {formatCurrency(selectedRental.location.montantTotal || 0, 'MAD')}
                 </FormDescription>
               )}
               <FormMessage />
