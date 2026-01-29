@@ -11,6 +11,9 @@ const CarFrontView = () => (
         <path d="M5,35 C5,25 15,20 20,18 L80,18 C85,20 95,25 95,35 V50 H5 Z" fill="#f0f0f0" stroke="#888" strokeWidth="0.5" />
         {/* Windshield */}
         <path d="M20,18 L30,5 H70 L80,18 Z" fill="#e0e0e0" stroke="#888" strokeWidth="0.5" />
+        {/* Mirrors */}
+        <path d="M20,18 L15,20 L15,24 L20,20Z" fill="#ccc" stroke="#888" strokeWidth="0.5" />
+        <path d="M80,18 L85,20 L85,24 L80,20Z" fill="#ccc" stroke="#888" strokeWidth="0.5" />
         {/* Grille */}
         <rect x="35" y="25" width="30" height="10" fill="none" stroke="#888" strokeWidth="0.5" />
         <line x1="35" y1="28" x2="65" y2="28" stroke="#888" strokeWidth="0.5" />
@@ -32,6 +35,9 @@ const CarBackView = () => (
         <path d="M5,35 C5,25 15,20 20,18 L80,18 C85,20 95,25 95,35 V50 H5 Z" fill="#f0f0f0" stroke="#888" strokeWidth="0.5" />
         {/* Rear Windshield */}
         <path d="M20,18 L30,5 H70 L80,18 Z" fill="#e0e0e0" stroke="#888" strokeWidth="0.5" />
+        {/* Mirrors */}
+        <path d="M20,18 L15,20 L15,24 L20,20Z" fill="#ccc" stroke="#888" strokeWidth="0.5" />
+        <path d="M80,18 L85,20 L85,24 L80,20Z" fill="#ccc" stroke="#888" strokeWidth="0.5" />
         {/* Trunk line */}
         <line x1="15" y1="22" x2="85" y2="22" stroke="#888" strokeWidth="0.5" />
         {/* Tail lights */}
@@ -51,6 +57,8 @@ const CarSideView = ({ side = 'left' }: { side?: 'left' | 'right' }) => (
   <svg viewBox="0 0 150 50" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto border border-gray-300 rounded" style={{ transform: side === 'right' ? 'scaleX(-1)' : 'none' }}>
     <path d="M 10 40 C 5 30, 15 20, 25 20 H 125 C 140 20, 145 30, 140 40 Z" fill="#f0f0f0" stroke="#888" strokeWidth="0.5" />
     <path d="M 30 20 L 50 5 H 90 L 110 20 Z" fill="#e0e0e0" stroke="#888" strokeWidth="0.5" />
+    {/* Mirror */}
+    <path d="M 50 20 L 45 18 L 45 22 Z" fill="#ccc" stroke="#888" strokeWidth="0.5" />
     <circle cx="40" cy="40" r="7" fill="#fff" stroke="#888" strokeWidth="0.5" />
     <circle cx="110" cy="40" r="7" fill="#fff" stroke="#888" strokeWidth="0.5" />
   </svg>
