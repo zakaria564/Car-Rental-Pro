@@ -60,7 +60,7 @@ const getSafeDate = (date: any): Date | null => {
     if (date instanceof Date) return date;
     if (date.toDate && typeof date.toDate === 'function') return date.toDate();
     const parsed = new Date(date);
-    return isNaN(parsed.getTime()) ? null : d;
+    return isNaN(parsed.getTime()) ? null : parsed;
 };
 
 const calculateTotal = (rental: Rental): number => {
