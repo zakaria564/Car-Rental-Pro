@@ -1,15 +1,21 @@
-
 'use client';
-import { Car, KeyRound, DollarSign } from "lucide-react";
+import { Car, KeyRound, TriangleAlert } from "lucide-react";
 import { StatCard } from "@/components/stat-card";
 import RentalTable from "@/components/rentals/rental-table";
 import { DashboardHeader } from "@/components/dashboard-header";
-import { formatCurrency } from "@/lib/utils";
 import React from "react";
 import { useFirebase } from "@/firebase";
 import { collection, onSnapshot } from "firebase/firestore";
 import type { Car as CarType, Rental } from "@/lib/definitions";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { differenceInDays, format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import Link from "next/link";
+import { cn } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
 
 export default function DashboardPage() {
   const [rentals, setRentals] = React.useState<Rental[]>([]);
@@ -30,9 +36,7 @@ export default function DashboardPage() {
   React.useEffect(() => {
     if (!firestore) return;
     setLoading(true);
-    const now = new Date();
-    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
+    
     const carsUnsubscribe = onSnapshot(collection(firestore, "cars"), (snapshot) => {
       const carsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CarType));
       setCars(carsData);
@@ -61,53 +65,128 @@ export default function DashboardPage() {
   const availableCars = cars.filter(c => c.disponible).length;
   const activeRentals = rentals.filter(r => r.statut === 'en_cours').length;
   
-  const now = new Date();
-  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const expiringDocuments = React.useMemo(() => {
+    const today = new Date();
+    const alerts: { car: CarType, documentName: string, expiryDate: Date, status: 'Expiré' | 'Expire bientôt' }[] = [];
 
-  const monthlyRevenue = rentals.reduce((acc, r) => {
-    // Check if createdAt exists and has the toDate method (i.e., it's a Firestore Timestamp)
-    if (r.createdAt?.toDate) {
-      const rentalDate = r.createdAt.toDate();
-      if (rentalDate >= firstDayOfMonth) {
-        return acc + (r.location.montantAPayer || 0);
-      }
-    }
-    return acc;
-  }, 0);
+    cars.forEach(car => {
+        const assuranceDate = car.dateExpirationAssurance?.toDate ? car.dateExpirationAssurance.toDate() : null;
+        if (assuranceDate) {
+            const daysDiff = differenceInDays(assuranceDate, today);
+            if (daysDiff < 0) {
+                alerts.push({ car, documentName: 'Assurance', expiryDate: assuranceDate, status: 'Expiré' });
+            } else if (daysDiff <= 7) {
+                alerts.push({ car, documentName: 'Assurance', expiryDate: assuranceDate, status: 'Expire bientôt' });
+            }
+        }
+
+        const visiteDate = car.dateProchaineVisiteTechnique?.toDate ? car.dateProchaineVisiteTechnique.toDate() : null;
+        if (visiteDate) {
+            const daysDiff = differenceInDays(visiteDate, today);
+            if (daysDiff < 0) {
+                alerts.push({ car, documentName: 'Visite Technique', expiryDate: visiteDate, status: 'Expiré' });
+            } else if (daysDiff <= 7) {
+                alerts.push({ car, documentName: 'Visite Technique', expiryDate: visiteDate, status: 'Expire bientôt' });
+            }
+        }
+    });
+
+    return alerts.sort((a, b) => a.expiryDate.getTime() - b.expiryDate.getTime());
+  }, [cars]);
 
 
   return (
     <>
       <DashboardHeader title="Tableau de bord" description="Un aperçu de votre activité de location." />
       {loading ? (
-        <>
-            <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
-                <Skeleton className="h-28" />
+        <div className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
                 <Skeleton className="h-28" />
                 <Skeleton className="h-28" />
                 <Skeleton className="h-28" />
             </div>
-            <div className="mt-8">
-                 <Skeleton className="h-10 w-64 mb-4" />
-                 <div className="space-y-2">
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
-                </div>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+                <Skeleton className="lg:col-span-4 h-72" />
+                <Skeleton className="lg:col-span-3 h-72" />
             </div>
-        </>
+        </div>
       ) : (
-      <>
-        <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
+      <div className="space-y-6">
+        <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
             <StatCard title="Voitures totales" value={cars.length.toString()} icon={Car} />
             <StatCard title="Voitures disponibles" value={`${availableCars} / ${cars.length}`} icon={Car} color="text-green-500" />
             <StatCard title="Locations actives" value={activeRentals.toString()} icon={KeyRound} />
-            <StatCard title="Revenu total (mois)" value={formatCurrency(monthlyRevenue, 'MAD')} icon={DollarSign} />
         </div>
-        <div>
-            <h2 className="text-2xl font-semibold tracking-tight mb-4">Locations récentes</h2>
-            <RentalTable rentals={rentals.slice(0, 5)} isDashboard={true} />
+        <div className="grid auto-rows-fr gap-4 lg:grid-cols-7">
+            <Card className="lg:col-span-4">
+                <CardHeader>
+                    <CardTitle>Locations récentes</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <RentalTable rentals={rentals.slice(0, 5)} isDashboard={true} />
+                </CardContent>
+            </Card>
+
+            <Card className="lg:col-span-3">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <TriangleAlert className="h-5 w-5 text-destructive" />
+                        <span>Alertes Documents</span>
+                    </CardTitle>
+                    <CardDescription>
+                        Véhicules avec documents expirés ou expirant dans les 7 prochains jours.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                   {expiringDocuments.length > 0 ? (
+                    <div className="space-y-4">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Véhicule</TableHead>
+                                    <TableHead>Document</TableHead>
+                                    <TableHead className="text-right">Expire le</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {expiringDocuments.slice(0, 4).map((alert, index) => (
+                                    <TableRow key={index}>
+                                        <TableCell>
+                                            <div className="font-medium">{alert.car.marque} {alert.car.modele}</div>
+                                            <div className="text-sm text-muted-foreground">
+                                                {alert.car.immat}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>{alert.documentName}</TableCell>
+                                        <TableCell className="text-right">
+                                            <div className="flex flex-col items-end">
+                                                <span>{format(alert.expiryDate, "dd/MM/yyyy", { locale: fr })}</span>
+                                                <Badge variant={alert.status === 'Expiré' ? 'destructive' : 'default'} className={cn(alert.status === 'Expire bientôt' && 'bg-accent text-accent-foreground hover:bg-accent/80')}>
+                                                    {alert.status}
+                                                </Badge>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                         {expiringDocuments.length > 4 && (
+                            <div className="text-center">
+                                <Link href="/dashboard/cars" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
+                                    et {expiringDocuments.length - 4} autre(s)...
+                                </Link>
+                            </div>
+                        )}
+                    </div>
+                   ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-center p-8">
+                        <p className="text-muted-foreground">Aucune alerte de document pour le moment.</p>
+                    </div>
+                   )}
+                </CardContent>
+            </Card>
         </div>
-      </>
+      </div>
       )}
     </>
   );
