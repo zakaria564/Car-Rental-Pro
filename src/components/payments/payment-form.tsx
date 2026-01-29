@@ -150,9 +150,23 @@ export default function PaymentForm({ payment, rentals, onFinished }: { payment:
                 </SelectContent>
               </Select>
               {selectedRental && (
-                <FormDescription>
-                  Client: {selectedRental.locataire.nomPrenom}. Montant total: {formatCurrency(selectedRental.location.montantTotal || 0, 'MAD')}
-                </FormDescription>
+                <div className="mt-2 text-sm p-3 bg-muted rounded-md border">
+                    <p className="font-semibold mb-2">Résumé Financier du Contrat</p>
+                    <div className="space-y-1">
+                        <div className="flex justify-between">
+                            <span>Total du contrat:</span>
+                            <span className="font-medium">{formatCurrency(selectedRental.location.montantTotal || 0, 'MAD')}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span>Montant déjà payé:</span>
+                            <span className="font-medium text-green-600">{formatCurrency(selectedRental.location.montantPaye || 0, 'MAD')}</span>
+                        </div>
+                         <div className="flex justify-between border-t mt-2 pt-2">
+                            <span className="font-semibold">Reste à payer:</span>
+                            <span className="font-semibold text-destructive">{formatCurrency((selectedRental.location.montantTotal || 0) - (selectedRental.location.montantPaye || 0), 'MAD')}</span>
+                        </div>
+                    </div>
+                </div>
               )}
               <FormMessage />
             </FormItem>
