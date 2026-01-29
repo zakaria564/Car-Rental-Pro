@@ -38,6 +38,7 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Invoice } from "./invoice";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function PaymentTable({ payments }: { payments: Payment[] }) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -330,7 +331,9 @@ export default function PaymentTable({ payments }: { payments: Payment[] }) {
                     <DialogHeader>
                         <DialogTitle>Facture N° {selectedPayment.id?.substring(0,8).toUpperCase()}</DialogTitle>
                     </DialogHeader>
-                    <Invoice payment={selectedPayment} />
+                    <ScrollArea className="h-[75vh]">
+                      <Invoice payment={selectedPayment} />
+                    </ScrollArea>
                     <DialogFooter className="no-print">
                     <Button variant="outline" onClick={handlePrintInvoice}>
                         <Printer className="mr-2 h-4 w-4"/>
