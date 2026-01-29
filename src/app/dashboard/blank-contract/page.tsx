@@ -84,46 +84,47 @@ export default function BlankContractPage() {
 
   return (
     <>
+      <style jsx global>{`
+        @media print {
+          body * {
+              visibility: hidden;
+          }
+          #blank-contract, #blank-contract * {
+              visibility: visible;
+          }
+          #blank-contract {
+              position: absolute;
+              left: 0;
+              top: 0;
+              width: 100%;
+              height: 100%;
+              box-shadow: none !important;
+              border: none !important;
+              padding: 0;
+              margin: 0;
+          }
+          .no-print { 
+              display: none !important; 
+          }
+          body { 
+              -webkit-print-color-adjust: exact; 
+              print-color-adjust: exact; 
+              background-color: white;
+          }
+        }
+        @page {
+          size: A4;
+          margin: 15mm;
+        }
+      `}</style>
       <div className="no-print mb-6 flex justify-between items-center">
         <h1 className="text-2xl font-bold">Contrat de Location Vierge</h1>
         <Button onClick={handlePrint} className="bg-primary hover:bg-primary/90">
-          <Printer className="mr-2 h-4 w-4" /> Imprimer le contrat
+          <Printer className="mr-2 h-4 w-4" /> Imprimer le contrat vierge
         </Button>
       </div>
 
       <div id="blank-contract" className="p-4 bg-white text-black text-xs sm:text-sm md:text-base lg:text-lg shadow-lg rounded-lg border font-sans">
-        <style jsx global>{`
-          @media print {
-            body * {
-                visibility: hidden;
-            }
-            #blank-contract, #blank-contract * {
-                visibility: visible;
-            }
-            #blank-contract {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                box-shadow: none !important;
-                border: none !important;
-                padding: 0;
-                margin: 0;
-            }
-            .no-print { 
-                display: none !important; 
-            }
-            body { 
-                -webkit-print-color-adjust: exact; 
-                print-color-adjust: exact; 
-                background-color: white;
-            }
-          }
-          @page {
-            size: A4;
-            margin: 15mm;
-          }
-        `}</style>
         
         {/* Header */}
         <header className="flex items-center justify-between mb-4 border-b-2 border-black pb-2">
