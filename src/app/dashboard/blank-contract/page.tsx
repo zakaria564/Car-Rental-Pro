@@ -6,23 +6,45 @@ import { Printer } from 'lucide-react';
 import React from 'react';
 
 const CarFrontView = () => (
-  <svg viewBox="0 0 100 50" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto border border-gray-300 rounded">
-    <path d="M 20 45 L 10 30 V 20 L 20 5 H 80 L 90 20 V 30 L 80 45 Z" fill="#f0f0f0" stroke="#888" strokeWidth="0.5" />
-    <rect x="25" y="15" width="50" height="15" fill="#e0e0e0" stroke="#888" strokeWidth="0.5" />
-    <rect x="30" y="35" width="40" height="5" fill="#ccc" stroke="#888" strokeWidth="0.5" />
-    <circle cx="25" cy="12" r="4" fill="#fff" stroke="#888" strokeWidth="0.5" />
-    <circle cx="75" cy="12" r="4" fill="#fff" stroke="#888" strokeWidth="0.5" />
-  </svg>
+    <svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto border border-gray-300 rounded">
+        {/* Car Body */}
+        <path d="M5,35 C5,25 15,20 20,18 L80,18 C85,20 95,25 95,35 V50 H5 Z" fill="#f0f0f0" stroke="#888" strokeWidth="0.5" />
+        {/* Windshield */}
+        <path d="M20,18 L30,5 H70 L80,18 Z" fill="#e0e0e0" stroke="#888" strokeWidth="0.5" />
+        {/* Grille */}
+        <rect x="35" y="25" width="30" height="10" fill="none" stroke="#888" strokeWidth="0.5" />
+        <line x1="35" y1="28" x2="65" y2="28" stroke="#888" strokeWidth="0.5" />
+        <line x1="35" y1="32" x2="65" y2="32" stroke="#888" strokeWidth="0.5" />
+        {/* Headlights */}
+        <path d="M20,25 C25,22 33,22 33,25 L33,32 C33,35 25,35 20,32 Z" fill="#fff" stroke="#888" strokeWidth="0.5" />
+        <path d="M80,25 C75,22 67,22 67,25 L67,32 C67,35 75,35 80,32 Z" fill="#fff" stroke="#888" strokeWidth="0.5" />
+        {/* Bumper */}
+        <rect x="15" y="40" width="70" height="8" fill="#ccc" stroke="#888" strokeWidth="0.5" />
+        {/* Wheels hint */}
+        <rect x="10" y="50" width="15" height="5" fill="#aaa" />
+        <rect x="75" y="50" width="15" height="5" fill="#aaa" />
+    </svg>
 );
 
 const CarBackView = () => (
-  <svg viewBox="0 0 100 50" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto border border-gray-300 rounded">
-    <path d="M 20 45 L 10 30 V 20 L 20 5 H 80 L 90 20 V 30 L 80 45 Z" fill="#f0f0f0" stroke="#888" strokeWidth="0.5" />
-    <rect x="25" y="15" width="50" height="15" fill="#e0e0e0" stroke="#888" strokeWidth="0.5" />
-    <rect x="30" y="35" width="40" height="5" fill="#ccc" stroke="#888" strokeWidth="0.5" />
-    <rect x="20" y="8" width="10" height="5" fill="red" stroke="#888" strokeWidth="0.5" />
-    <rect x="70" y="8" width="10" height="5" fill="red" stroke="#888" strokeWidth="0.5" />
-  </svg>
+    <svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto border border-gray-300 rounded">
+        {/* Car Body */}
+        <path d="M5,35 C5,25 15,20 20,18 L80,18 C85,20 95,25 95,35 V50 H5 Z" fill="#f0f0f0" stroke="#888" strokeWidth="0.5" />
+        {/* Rear Windshield */}
+        <path d="M20,18 L30,5 H70 L80,18 Z" fill="#e0e0e0" stroke="#888" strokeWidth="0.5" />
+        {/* Trunk line */}
+        <line x1="15" y1="22" x2="85" y2="22" stroke="#888" strokeWidth="0.5" />
+        {/* Tail lights */}
+        <rect x="20" y="25" width="15" height="8" fill="#ff7777" stroke="red" strokeWidth="0.5" />
+        <rect x="65" y="25" width="15" height="8" fill="#ff7777" stroke="red" strokeWidth="0.5" />
+        {/* License plate area */}
+        <rect x="40" y="30" width="20" height="8" fill="#fff" stroke="#888" strokeWidth="0.5" />
+        {/* Bumper */}
+        <rect x="15" y="40" width="70" height="8" fill="#ccc" stroke="#888" strokeWidth="0.5" />
+        {/* Wheels hint */}
+        <rect x="10" y="50" width="15" height="5" fill="#aaa" />
+        <rect x="75" y="50" width="15" height="5" fill="#aaa" />
+    </svg>
 );
 
 const CarSideView = ({ side = 'left' }: { side?: 'left' | 'right' }) => (
