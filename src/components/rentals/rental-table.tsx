@@ -14,7 +14,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { PlusCircle, MoreHorizontal, Printer, Pencil, CheckCircle, FileText, Triangle, Car, Gavel } from "lucide-react";
-import { format } from "date-fns";
+import { format, differenceInCalendarDays, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,39 @@ import CarDamageDiagram, { carParts } from "./car-damage-diagram";
 import { Skeleton } from "../ui/skeleton";
 import { Logo } from "../logo";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
+
+const getSafeDate = (date: any): Date | null => {
+    if (!date) return null;
+    if (date instanceof Date) return date;
+    if (date.toDate && typeof date.toDate === 'function') return date.toDate();
+    const parsed = new Date(date);
+    return isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const calculateTotal = (rental: Rental): number => {
+    // 1. Use montantTotal if it's a valid number
+    if (typeof rental.location.montantTotal === 'number' && !isNaN(rental.location.montantTotal) && rental.location.montantTotal > 0) {
+      return rental.location.montantTotal;
+    }
+
+    // 2. Calculate from dates
+    const from = getSafeDate(rental.location.dateDebut);
+    const to = getSafeDate(rental.location.dateFin);
+    const pricePerDay = rental.location.prixParJour || 0;
+
+    if (from && to && pricePerDay > 0) {
+        const days = differenceInCalendarDays(startOfDay(to), startOfDay(from));
+        return (days >= 0 ? days + 1 : 1) * pricePerDay;
+    }
+
+    // 3. Fallback to nbrJours if dates are not reliable
+    if (rental.location.nbrJours && pricePerDay > 0) {
+      return rental.location.nbrJours * pricePerDay;
+    }
+    
+    // 4. If all else fails, return 0
+    return 0;
+  };
 
 type RentalTableProps = {
   rentals: Rental[];
@@ -240,16 +273,20 @@ const ConditionsGenerales = () => (
 
 
 function RentalDetails({ rental }: { rental: Rental }) {
-    const getSafeDate = (date: any): Date | undefined => {
-        if (!date) return undefined;
-        if (date instanceof Date) return date;
-        if (date.toDate && typeof date.toDate === 'function') return date.toDate();
-        const parsed = new Date(date);
-        return isNaN(parsed.getTime()) ? undefined : parsed;
-    };
-
     const safeDebutDate = getSafeDate(rental.location.dateDebut);
     const safeFinDate = getSafeDate(rental.location.dateFin);
+
+    const totalAmount = calculateTotal(rental);
+    const amountPaid = rental.location.montantPaye || 0;
+    const amountRemaining = totalAmount - amountPaid;
+
+    const rentalDuration = () => {
+        if (safeDebutDate && safeFinDate) {
+            const days = differenceInCalendarDays(startOfDay(safeFinDate), startOfDay(safeDebutDate));
+            return days >= 0 ? days + 1 : 1;
+        }
+        return rental.location.nbrJours || 0;
+    };
 
     return (
       <ScrollArea className="h-[80vh]">
@@ -299,13 +336,13 @@ function RentalDetails({ rental }: { rental: Rental }) {
                             <h4 className="font-semibold">Période &amp; Coût :</h4>
                             <div><strong>Début:</strong> {safeDebutDate ? format(safeDebutDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</div>
                             <div><strong>Fin Prévue:</strong> {safeFinDate ? format(safeFinDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</div>
-                            <div><strong>Durée:</strong> {rental.location.nbrJours} jour(s)</div>
+                            <div><strong>Durée:</strong> {rentalDuration()} jour(s)</div>
                             <div><strong>Dépôt de Caution:</strong> {formatCurrency(rental.location.depot || 0, 'MAD')}</div>
                         </div>
                         <div className="space-y-1 mt-auto pt-2 border-t">
-                            <div className="flex justify-between"><span>Montant Total:</span> <span className="font-medium">{formatCurrency(rental.location.montantTotal, 'MAD')}</span></div>
-                            <div className="flex justify-between text-green-600"><span>Montant Payé:</span> <span className="font-medium">{formatCurrency(rental.location.montantPaye || 0, 'MAD')}</span></div>
-                            <div className="flex justify-between font-bold"><span>Reste à Payer:</span> <span>{formatCurrency(rental.location.montantTotal - (rental.location.montantPaye || 0), 'MAD')}</span></div>
+                            <div className="flex justify-between"><span>Montant Total:</span> <span className="font-medium">{formatCurrency(totalAmount, 'MAD')}</span></div>
+                            <div className="flex justify-between text-green-600"><span>Montant Payé:</span> <span className="font-medium">{formatCurrency(amountPaid, 'MAD')}</span></div>
+                            <div className="flex justify-between font-bold"><span>Reste à Payer:</span> <span>{formatCurrency(amountRemaining, 'MAD')}</span></div>
                         </div>
                     </div>
                 </div>
@@ -511,18 +548,22 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     {
       accessorKey: "location.montantTotal",
       header: () => <div className="text-right">Montant Total</div>,
-      cell: ({ row }) => (
-        <div className="text-right font-medium">
-          {formatCurrency(row.original.location.montantTotal, 'MAD')}
-        </div>
-      ),
+      cell: ({ row }) => {
+        const total = calculateTotal(row.original);
+        return (
+            <div className="text-right font-medium">
+            {formatCurrency(total, 'MAD')}
+            </div>
+        );
+      },
     },
     {
       accessorKey: "location.montantPaye",
       header: () => <div className="text-right">Reste à Payer</div>,
       cell: ({ row }) => {
           const rental = row.original;
-          const reste = rental.location.montantTotal - (rental.location.montantPaye || 0);
+          const total = calculateTotal(rental);
+          const reste = total - (rental.location.montantPaye || 0);
           return (
             <div className={cn("text-right font-medium", reste > 0 && "text-destructive")}>
               {formatCurrency(reste, 'MAD')}
@@ -801,7 +842,3 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     </>
   );
 }
-
-    
-
-
