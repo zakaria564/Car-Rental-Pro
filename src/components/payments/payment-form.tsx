@@ -75,6 +75,18 @@ export default function PaymentForm({ payment, rentals, onFinished }: { payment:
     return rentals.find(r => r.id === selectedRentalId);
   }, [selectedRentalId, rentals]);
 
+  const financialSummary = React.useMemo(() => {
+    if (!selectedRental) return { total: 0, paye: 0, reste: 0 };
+
+    const total = selectedRental.location.montantTotal ?? 
+                  (selectedRental.location.nbrJours || 0) * (selectedRental.location.prixParJour || 0);
+    
+    const paye = selectedRental.location.montantPaye || 0;
+    const reste = total - paye;
+
+    return { total, paye, reste };
+  }, [selectedRental]);
+
   async function onSubmit(data: PaymentFormValues) {
     if (!firestore || !selectedRental) return;
     setIsSubmitting(true);
@@ -155,15 +167,15 @@ export default function PaymentForm({ payment, rentals, onFinished }: { payment:
                     <div className="space-y-1">
                         <div className="flex justify-between">
                             <span>Total du contrat:</span>
-                            <span className="font-medium">{formatCurrency(selectedRental.location.montantTotal || 0, 'MAD')}</span>
+                            <span className="font-medium">{formatCurrency(financialSummary.total, 'MAD')}</span>
                         </div>
                         <div className="flex justify-between">
                             <span>Montant déjà payé:</span>
-                            <span className="font-medium text-green-600">{formatCurrency(selectedRental.location.montantPaye || 0, 'MAD')}</span>
+                            <span className="font-medium text-green-600">{formatCurrency(financialSummary.paye, 'MAD')}</span>
                         </div>
                          <div className="flex justify-between border-t mt-2 pt-2">
                             <span className="font-semibold">Reste à payer:</span>
-                            <span className="font-semibold text-destructive">{formatCurrency((selectedRental.location.montantTotal || 0) - (selectedRental.location.montantPaye || 0), 'MAD')}</span>
+                            <span className="font-semibold text-destructive">{formatCurrency(financialSummary.reste, 'MAD')}</span>
                         </div>
                     </div>
                 </div>
