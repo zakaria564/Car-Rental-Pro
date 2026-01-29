@@ -12,8 +12,8 @@ const CarFrontView = () => (
         {/* Windshield */}
         <path d="M20,18 L30,5 H70 L80,18 Z" fill="#e0e0e0" stroke="#888" strokeWidth="0.5" />
         {/* Mirrors */}
-        <path d="M20,18 L15,20 L15,24 L20,20Z" fill="#ccc" stroke="#888" strokeWidth="0.5" />
-        <path d="M80,18 L85,20 L85,24 L80,20Z" fill="#ccc" stroke="#888" strokeWidth="0.5" />
+        <path d="M18,18 L13,16 V22 L18,20Z" fill="#ccc" stroke="#888" strokeWidth="0.5" />
+        <path d="M82,18 L87,16 V22 L82,20Z" fill="#ccc" stroke="#888" strokeWidth="0.5" />
         {/* Grille */}
         <rect x="35" y="25" width="30" height="10" fill="none" stroke="#888" strokeWidth="0.5" />
         <line x1="35" y1="28" x2="65" y2="28" stroke="#888" strokeWidth="0.5" />
@@ -36,8 +36,8 @@ const CarBackView = () => (
         {/* Rear Windshield */}
         <path d="M20,18 L30,5 H70 L80,18 Z" fill="#e0e0e0" stroke="#888" strokeWidth="0.5" />
         {/* Mirrors */}
-        <path d="M20,18 L15,20 L15,24 L20,20Z" fill="#ccc" stroke="#888" strokeWidth="0.5" />
-        <path d="M80,18 L85,20 L85,24 L80,20Z" fill="#ccc" stroke="#888" strokeWidth="0.5" />
+        <path d="M18,18 L13,16 V22 L18,20Z" fill="#ccc" stroke="#888" strokeWidth="0.5" />
+        <path d="M82,18 L87,16 V22 L82,20Z" fill="#ccc" stroke="#888" strokeWidth="0.5" />
         {/* Trunk line */}
         <line x1="15" y1="22" x2="85" y2="22" stroke="#888" strokeWidth="0.5" />
         {/* Tail lights */}
@@ -58,7 +58,7 @@ const CarSideView = ({ side = 'left' }: { side?: 'left' | 'right' }) => (
     <path d="M 10 40 C 5 30, 15 20, 25 20 H 125 C 140 20, 145 30, 140 40 Z" fill="#f0f0f0" stroke="#888" strokeWidth="0.5" />
     <path d="M 30 20 L 50 5 H 90 L 110 20 Z" fill="#e0e0e0" stroke="#888" strokeWidth="0.5" />
     {/* Mirror */}
-    <path d="M 50 20 L 45 18 L 45 22 Z" fill="#ccc" stroke="#888" strokeWidth="0.5" />
+    <path d="M 48 20 L 43 18 V 22 L 48 20 Z" fill="#ccc" stroke="#888" strokeWidth="0.5" />
     <circle cx="40" cy="40" r="7" fill="#fff" stroke="#888" strokeWidth="0.5" />
     <circle cx="110" cy="40" r="7" fill="#fff" stroke="#888" strokeWidth="0.5" />
   </svg>
@@ -94,11 +94,29 @@ export default function BlankContractPage() {
       <div id="blank-contract" className="p-4 bg-white text-black text-xs sm:text-sm md:text-base lg:text-lg shadow-lg rounded-lg border font-sans">
         <style jsx global>{`
           @media print {
-            .no-print { display: none !important; }
-            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            body * {
+                visibility: hidden;
+            }
+            #blank-contract, #blank-contract * {
+                visibility: visible;
+            }
             #blank-contract {
-              box-shadow: none !important;
-              border: none !important;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                box-shadow: none !important;
+                border: none !important;
+                padding: 0;
+                margin: 0;
+            }
+            .no-print { 
+                display: none !important; 
+            }
+            body { 
+                -webkit-print-color-adjust: exact; 
+                print-color-adjust: exact; 
+                background-color: white;
             }
           }
           @page {
