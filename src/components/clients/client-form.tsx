@@ -18,11 +18,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import type { Client } from "@/lib/definitions";
-import { PhotoFormField } from "../ui/file-input";
 import { useRouter } from "next/navigation";
 import { useFirebase } from "@/firebase";
 import { collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { format } from "date-fns";
@@ -38,7 +36,7 @@ const clientFormSchema = z.object({
   permisDateDelivrance: z.coerce.date().optional().nullable(),
   telephone: z.string().min(10, "Le numéro de téléphone semble incorrect."),
   adresse: z.string().min(10, "L'adresse est trop courte."),
-  photoCIN: z.any().optional(),
+  photoCIN: z.string().url("Veuillez entrer une URL valide.").or(z.literal('')).optional(),
   otherPhotos: z.array(z.object({ url: z.string().url("URL invalide.").or(z.literal('')) })).optional(),
 });
 
@@ -54,12 +52,13 @@ const getSafeDate = (date: any): Date | undefined => {
 export default function ClientForm({ client, onFinished }: { client: Client | null, onFinished: () => void }) {
   const router = useRouter();
   const { toast } = useToast();
-  const { firestore, storage } = useFirebase();
+  const { firestore } = useFirebase();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   
   const defaultValues: Partial<ClientFormValues> = client ? {
     ...client,
     permisDateDelivrance: getSafeDate(client.permisDateDelivrance),
+    photoCIN: client.photoCIN || "",
     otherPhotos: client.otherPhotos ? client.otherPhotos.map(url => ({ url })) : [],
   } : {
     nom: "",
@@ -68,7 +67,7 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
     permisDateDelivrance: null,
     telephone: "",
     adresse: "",
-    photoCIN: undefined,
+    photoCIN: "",
     otherPhotos: [],
   };
 
@@ -84,10 +83,12 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
     name: "otherPhotos"
   });
 
-  const photoCINRef = form.register("photoCIN");
 
   async function onSubmit(data: ClientFormValues) {
-    if (!firestore || !storage) return;
+    if (!firestore) {
+        toast({ variant: "destructive", title: "Erreur", description: "La base de données n'est pas disponible." });
+        return;
+    }
     setIsSubmitting(true);
     
     const clientId = client?.id || doc(collection(firestore, 'clients')).id;
@@ -95,29 +96,16 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
     const clientRef = doc(firestore, 'clients', clientId);
 
     try {
-        const { photoCIN, otherPhotos, ...clientDataWithoutPhoto } = data;
-
-        let finalPhotoUrl = client?.photoCIN || "";
-
-        // 1. Handle file upload if a new file is provided
-        if (photoCIN && photoCIN.length > 0 && photoCIN[0] instanceof File) {
-            const file = photoCIN[0];
-            const storageRef = ref(storage, `clients/${clientId}/cin_${Date.now()}_${file.name}`);
-            const uploadResult = await uploadBytes(storageRef, file);
-            finalPhotoUrl = await getDownloadURL(uploadResult.ref);
-        }
-
-        // 2. Prepare the payload for Firestore
+        const { otherPhotos, ...clientData } = data;
         const photoUrls = otherPhotos ? otherPhotos.map(p => p.url).filter(Boolean) : [];
 
         const clientPayload = {
-          ...clientDataWithoutPhoto,
-          photoCIN: finalPhotoUrl,
+          ...clientData,
+          photoCIN: data.photoCIN || "",
           otherPhotos: photoUrls,
-          ...(isNewClient ? { createdAt: serverTimestamp() } : { createdAt: client.createdAt }),
+          createdAt: client?.createdAt || serverTimestamp(),
         };
 
-        // 3. Save to Firestore
         await setDoc(clientRef, clientPayload, { merge: !isNewClient });
 
         toast({
@@ -125,15 +113,14 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
           description: "Les informations du client ont été sauvegardées avec succès.",
         });
         onFinished();
-
     } catch (serverError: any) {
         console.error("Erreur de sauvegarde du client:", serverError);
         
-        // Create and emit a permission error for debugging
         const permissionError = new FirestorePermissionError({
             path: clientRef.path,
             operation: isNewClient ? 'create' : 'update',
-        }, serverError);
+            requestResourceData: data
+        }, serverError as Error);
         errorEmitter.emit('permission-error', permissionError);
 
         toast({
@@ -231,27 +218,35 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
             </FormItem>
           )}
         />
-        <FormItem>
-          <FormLabel>Photo de la CIN</FormLabel>
-          {client?.photoCIN && client.photoCIN.startsWith('http') && (
-            <div className="relative w-full aspect-[16/10] rounded-md overflow-hidden border bg-muted my-2">
-                <Image 
-                    src={client.photoCIN} 
-                    alt={`CIN de ${client.nom}`} 
-                    fill 
-                    className="object-cover"
-                    data-ai-hint="id card"
-                />
-            </div>
+        <FormField
+          control={form.control}
+          name="photoCIN"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Photo de la CIN (URL)</FormLabel>
+              {field.value && field.value.startsWith('http') ? (
+                <div className="relative w-full aspect-[16/10] rounded-md overflow-hidden border bg-muted my-2">
+                    <Image 
+                        src={field.value} 
+                        alt={`CIN de ${form.getValues('nom')}`} 
+                        fill 
+                        className="object-cover"
+                        data-ai-hint="id card"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
+                </div>
+              ) : null}
+              <FormControl>
+                <Input placeholder="https://exemple.com/image.jpg" {...field} value={field.value ?? ''} />
+              </FormControl>
+              <FormDescription>
+                Collez l'URL de l'image de la carte d'identité.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
           )}
-          <FormControl>
-             <PhotoFormField {...photoCINRef} />
-          </FormControl>
-          <FormDescription>
-            {client?.photoCIN ? "Téléversez un nouveau fichier pour remplacer l'image actuelle." : "Ajoutez une photo de la carte d'identité."}
-          </FormDescription>
-          <FormMessage />
-        </FormItem>
+        />
+
 
         <FormItem>
           <FormLabel>Autres Photos</FormLabel>
@@ -309,5 +304,7 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
     </Form>
   );
 }
+
+    
 
     
