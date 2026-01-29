@@ -187,7 +187,7 @@ function RentalDetails({ rental }: { rental: Rental }) {
         if (date instanceof Date) return date;
         if (date.toDate && typeof date.toDate === 'function') return date.toDate();
         const parsed = new Date(date);
-        return isNaN(parsed.getTime()) ? undefined : getSafeDate(date);
+        return isNaN(parsed.getTime()) ? undefined : parsed;
     };
 
     const safeDebutDate = getSafeDate(rental.location.dateDebut);
@@ -208,7 +208,7 @@ function RentalDetails({ rental }: { rental: Rental }) {
             </div>
             
             <div className="space-y-4 flex-grow">
-                 <div className="md:grid md:grid-cols-2 md:gap-x-4 space-y-4 md:space-y-0">
+                 <div className="space-y-4 md:space-y-0 print:space-y-0 md:grid md:grid-cols-2 md:gap-x-4 print:grid print:grid-cols-2 print:gap-x-4">
                     <div className="border p-3 rounded-md">
                         <h3 className="font-bold text-base underline mb-2">LES PARTIES</h3>
                         <div className="space-y-1">
@@ -251,13 +251,13 @@ function RentalDetails({ rental }: { rental: Rental }) {
 
                  <div className="border p-3 rounded-md">
                     <h3 className="font-bold text-base mb-2 underline">ÉTAT DU VÉHICULE</h3>
-                    <div className="md:grid md:grid-cols-2 md:gap-x-4">
+                    <div className="md:grid md:grid-cols-2 md:gap-x-4 print:grid print:grid-cols-2 print:gap-x-4">
                         <div>
                             {rental.livraisonInspectionId ? (
                                 <InspectionDetailsView inspectionId={rental.livraisonInspectionId} type="depart" />
                             ) : null }
                         </div>
-                        <div className="mt-4 md:mt-0">
+                        <div className="mt-4 md:mt-0 print:mt-0">
                             {rental.receptionInspectionId ? (
                                 <InspectionDetailsView inspectionId={rental.receptionInspectionId} type="retour" />
                             ) : (
