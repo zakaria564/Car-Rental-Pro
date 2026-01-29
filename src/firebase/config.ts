@@ -1,9 +1,8 @@
-
 'use client';
 
 import { FirebaseApp, getApp, getApps, initializeApp } from 'firebase/app';
 import { Auth, getAuth } from 'firebase/auth';
-import { Firestore, getFirestore } from 'firebase/firestore';
+import { Firestore, getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
 import { FirebaseStorage, getStorage } from "firebase/storage";
 
 // This function ensures that Firebase is initialized only once.
@@ -28,6 +27,17 @@ export function getFirebaseServices() {
   const auth = getAuth(app);
   const firestore = getFirestore(app);
   const storage = getStorage(app);
+
+  if (typeof window !== 'undefined') {
+    enableIndexedDbPersistence(firestore)
+      .catch((err) => {
+        if (err.code == 'failed-precondition') {
+          console.warn('Firestore persistence failed: Multiple tabs open, persistence can only be enabled in one tab at a time.');
+        } else if (err.code == 'unimplemented') {
+          console.warn('Firestore persistence is not supported in this browser.');
+        }
+      });
+  }
 
   return { app, auth, firestore, storage };
 }
