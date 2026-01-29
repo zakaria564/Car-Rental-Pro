@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -76,7 +75,7 @@ function ClientDetails({ client }: { client: Client }) {
                             src={client.photoCIN} 
                             alt={`CIN de ${client.nom}`} 
                             fill 
-                            className="object-cover"
+                            className="object-contain"
                             data-ai-hint="id card"
                         />
                       </a>
@@ -100,7 +99,7 @@ function ClientDetails({ client }: { client: Client }) {
                             src={photoUrl}
                             alt={`Autre photo ${index + 1}`}
                             fill
-                            className="object-cover"
+                            className="object-contain"
                             data-ai-hint="client document"
                         />
                     </a>

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useForm, useFieldArray } from "react-hook-form";
@@ -18,7 +17,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import type { Client } from "@/lib/definitions";
-import { useRouter } from "next/navigation";
 import { useFirebase } from "@/firebase";
 import { collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
@@ -50,7 +48,6 @@ const getSafeDate = (date: any): Date | undefined => {
 };
 
 export default function ClientForm({ client, onFinished }: { client: Client | null, onFinished: () => void }) {
-  const router = useRouter();
   const { toast } = useToast();
   const { firestore } = useFirebase();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -83,27 +80,27 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
     name: "otherPhotos"
   });
 
-
-  async function onSubmit(data: ClientFormValues) {
+  const onSubmit = async (data: ClientFormValues) => {
     if (!firestore) {
         toast({ variant: "destructive", title: "Erreur", description: "La base de données n'est pas disponible." });
         return;
     }
+
     setIsSubmitting(true);
-    
-    const clientId = client?.id || doc(collection(firestore, 'clients')).id;
-    const isNewClient = !client;
-    const clientRef = doc(firestore, 'clients', clientId);
 
     try {
+        const clientId = client?.id || doc(collection(firestore, 'clients')).id;
+        const isNewClient = !client;
+        const clientRef = doc(firestore, 'clients', clientId);
+
         const { otherPhotos, ...clientData } = data;
         const photoUrls = otherPhotos ? otherPhotos.map(p => p.url).filter(Boolean) : [];
 
         const clientPayload = {
           ...clientData,
-          photoCIN: data.photoCIN || "",
-          otherPhotos: photoUrls,
           createdAt: client?.createdAt || serverTimestamp(),
+          otherPhotos: photoUrls,
+          photoCIN: data.photoCIN || '',
         };
 
         await setDoc(clientRef, clientPayload, { merge: !isNewClient });
@@ -117,8 +114,8 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
         console.error("Erreur de sauvegarde du client:", serverError);
         
         const permissionError = new FirestorePermissionError({
-            path: clientRef.path,
-            operation: isNewClient ? 'create' : 'update',
+            path: `clients/${client?.id || 'new'}`,
+            operation: client ? 'update' : 'create',
             requestResourceData: data
         }, serverError as Error);
         errorEmitter.emit('permission-error', permissionError);
@@ -131,7 +128,7 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
     } finally {
         setIsSubmitting(false);
     }
-  }
+  };
 
   return (
     <Form {...form}>
@@ -230,7 +227,7 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
                         src={field.value} 
                         alt={`CIN de ${form.getValues('nom')}`} 
                         fill 
-                        className="object-cover"
+                        className="object-contain"
                         data-ai-hint="id card"
                         onError={(e) => { e.currentTarget.style.display = 'none'; }}
                     />
@@ -304,7 +301,3 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
     </Form>
   );
 }
-
-    
-
-    
