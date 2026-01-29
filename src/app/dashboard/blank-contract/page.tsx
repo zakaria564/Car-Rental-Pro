@@ -67,34 +67,39 @@ const CarSideView = ({ side = 'left' }: { side?: 'left' | 'right' }) => (
 export default function BlankContractPage() {
   const handlePrint = () => {
     const printStyles = `
-        @media print {
-          body * {
-            visibility: hidden;
-          }
-          #blank-contract, #blank-contract * {
-            visibility: visible;
-          }
-          #blank-contract {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-          }
-          .no-print {
-            display: none;
-          }
+      @media print {
+        .no-print {
+          display: none !important;
         }
-        @page {
-          size: A4;
-          margin: 15mm;
+        body > *:not(#printable-area) {
+          display: none !important;
         }
-      `;
+        #printable-area {
+          display: block !important;
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+        }
+      }
+      @page {
+        size: A4;
+        margin: 15mm;
+      }
+    `;
+
     const styleSheet = document.createElement("style");
-    styleSheet.type = "text/css";
-    styleSheet.innerText = printStyles;
+    styleSheet.id = "print-style-sheet";
+    styleSheet.innerHTML = printStyles;
     document.head.appendChild(styleSheet);
+
+    const onAfterPrint = () => {
+      styleSheet.remove();
+      window.removeEventListener('afterprint', onAfterPrint);
+    };
+
+    window.addEventListener('afterprint', onAfterPrint);
     window.print();
-    document.head.removeChild(styleSheet);
   };
   
   const CheckboxItem = ({ label }: { label: string }) => (
@@ -105,8 +110,8 @@ export default function BlankContractPage() {
   );
 
   return (
-    <>
-      <div className="no-print mb-6 flex justify-between items-center">
+    <div id="printable-area">
+      <div className="no-print mb-6 flex justify-between items-center p-4 lg:p-6">
         <h1 className="text-2xl font-bold">Contrat de Location Vierge</h1>
         <Button onClick={handlePrint} className="bg-primary hover:bg-primary/90">
           <Printer className="mr-2 h-4 w-4" /> Imprimer le contrat vierge
@@ -276,6 +281,6 @@ export default function BlankContractPage() {
             </div>
         </footer>
       </div>
-    </>
+    </div>
   );
 }
