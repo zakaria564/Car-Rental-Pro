@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -68,7 +67,7 @@ const PaymentHistoryDialog = ({ rental, payments, onPrintInvoice }: {
                 <TableCell className="text-right">{formatCurrency(p.amount, 'MAD')}</TableCell>
                 <TableCell className="text-right">
                   <Button variant="ghost" size="sm" onClick={() => onPrintInvoice(p)}>
-                    <FileText className="h-4 w-4 mr-2" />
+                    <FileText className="mr-2 h-4 w-4" />
                     Facture
                   </Button>
                 </TableCell>
@@ -184,13 +183,16 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
         header: "Voiture",
     },
     {
-      accessorKey: "location.montantTotal",
+      id: "montantTotal",
       header: () => <div className="text-right">Montant Total</div>,
-      cell: ({ row }) => (
-        <div className="text-right font-medium">
-          {formatCurrency(row.original.location.montantTotal, 'MAD')}
-        </div>
-      ),
+      cell: ({ row }) => {
+        const total = row.original.location.montantTotal ?? (row.original.location.nbrJours || 0) * (row.original.location.prixParJour || 0);
+        return (
+            <div className="text-right font-medium">
+            {formatCurrency(total, 'MAD')}
+            </div>
+        );
+      },
     },
     {
       accessorKey: "location.montantPaye",
@@ -205,7 +207,8 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
       id: 'resteAPayer',
       header: () => <div className="text-right">Reste à Payer</div>,
       cell: ({ row }) => {
-        const reste = row.original.location.montantTotal - (row.original.location.montantPaye || 0);
+        const total = row.original.location.montantTotal ?? (row.original.location.nbrJours || 0) * (row.original.location.prixParJour || 0);
+        const reste = total - (row.original.location.montantPaye || 0);
         return (
             <div className={cn("text-right font-bold", reste > 0 ? "text-destructive" : "text-muted-foreground")}>
                 {formatCurrency(reste, 'MAD')}
@@ -217,14 +220,19 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
         id: 'paymentStatus',
         header: "Statut Paiement",
         cell: ({ row }) => {
-          const total = row.original.location.montantTotal;
+          const total = row.original.location.montantTotal ?? (row.original.location.nbrJours || 0) * (row.original.location.prixParJour || 0);
           const paye = row.original.location.montantPaye || 0;
+
+          if (total === 0) {
+            return <Badge variant="outline">N/A</Badge>
+          }
+          
           const reste = total - paye;
           
-          let status: 'Payé' | 'Paiement Partiel' | 'Non Payé' | 'Avance' = 'Non Payé';
-          let variant: "default" | "destructive" | "outline" | "secondary" = "destructive";
+          let status: 'Payé' | 'Paiement Partiel' | 'Non Payé' = 'Non Payé';
+          let variant: "default" | "destructive" | "secondary" = "destructive";
 
-          if (reste <= 0 && total > 0) {
+          if (reste <= 0) {
             status = 'Payé';
             variant = 'default';
           } else if (paye > 0 && reste > 0) {
@@ -248,7 +256,8 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
       enableHiding: false,
       cell: ({ row }) => {
         const rental = row.original;
-        const reste = rental.location.montantTotal - (rental.location.montantPaye || 0);
+        const total = rental.location.montantTotal ?? (rental.location.nbrJours || 0) * (rental.location.prixParJour || 0);
+        const reste = total - (rental.location.montantPaye || 0);
         return (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
