@@ -178,6 +178,20 @@
         "positionY": { "type": "number", "description": "Y coordinate on the diagram." }
       },
       "required": ["partName", "damageType"]
+    },
+    "payment": {
+      "title": "Payment",
+      "description": "Represents a payment for a rental.",
+      "type": "object",
+      "properties": {
+        "rentalId": { "type": "string", "description": "Reference to the rental contract." },
+        "clientName": { "type": "string", "description": "Name of the client who paid."},
+        "amount": { "type": "number", "description": "Amount paid."},
+        "paymentDate": { "type": "string", "format": "date-time", "description": "Timestamp of the payment."},
+        "paymentMethod": { "type": "string", "enum": ["Especes", "Carte bancaire", "Virement"], "description": "Payment method."},
+        "status": { "type": "string", "enum": ["complete", "en_attente"], "description": "Payment status."}
+      },
+      "required": ["rentalId", "clientName", "amount", "paymentDate", "paymentMethod", "status"]
     }
   },
   "auth": {
@@ -203,6 +217,10 @@
     "/inspections/{inspectionId}/damages/{damageId}": {
         "schema": { "$ref": "#/entities/damage" },
         "description": "Stores specific damage points for an inspection."
+    },
+    "/payments/{paymentId}": {
+      "schema": { "$ref": "#/entities/payment" },
+      "description": "Stores payment records."
     }
   }
 }

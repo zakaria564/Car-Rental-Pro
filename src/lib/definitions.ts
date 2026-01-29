@@ -144,3 +144,13 @@ export type Rental = {
 };
 
 export type Contrat = Rental;
+
+export type Payment = {
+  id: string;
+  rentalId: string;
+  clientName: string;
+  amount: number;
+  paymentDate: any; // Timestamp
+  paymentMethod: 'Especes' | 'Carte bancaire' | 'Virement';
+  status: 'complete' | 'en_attente';
+};
