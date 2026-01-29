@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -15,7 +14,7 @@ const navItems = [
   { href: '/dashboard/cars', icon: Car, label: 'Voitures' },
   { href: '/dashboard/clients', icon: Users, label: 'Clients' },
   { href: '/dashboard/rentals', icon: KeyRound, label: 'Contrats' },
-  { href: '/dashboard/blank-contract', icon: FilePlus, label: 'Contrat Vierge' },
+  { href: '/dashboard/blank-contract', icon: FilePlus, label: 'Check-list état du véhicule vierge' },
 ];
 
 export function DashboardNav() {

@@ -60,9 +60,9 @@ export default function BlankContractPage() {
   return (
     <div id="printable-area">
       <div className="no-print mb-6 flex justify-between items-center p-4 lg:p-6">
-        <h1 className="text-2xl font-bold">Contrat de Location Vierge</h1>
+        <h1 className="text-2xl font-bold">Check-list état du véhicule vierge</h1>
         <Button onClick={handlePrint} className="bg-primary hover:bg-primary/90">
-          <Printer className="mr-2 h-4 w-4" /> Imprimer le contrat vierge
+          <Printer className="mr-2 h-4 w-4" /> Imprimer la check-list
         </Button>
       </div>
 
@@ -79,8 +79,8 @@ export default function BlankContractPage() {
                 </div>
             </div>
             <div className="text-right">
-                <h2 className="font-bold text-lg md:text-xl">CONTRAT DE LOCATION</h2>
-                <p className="text-sm">N°: <span className="inline-block border-b border-dotted border-gray-400 w-24"></span></p>
+                <h2 className="font-bold text-lg md:text-xl">CHECK-LIST ÉTAT DU VÉHICULE</h2>
+                <p className="text-sm">Contrat N°: <span className="inline-block border-b border-dotted border-gray-400 w-24"></span></p>
             </div>
         </header>
 
