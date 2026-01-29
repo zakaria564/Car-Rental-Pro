@@ -344,10 +344,8 @@ function RentalDetails({ rental }: { rental: Rental }) {
                             <h4 className="font-semibold">Le Locataire (Conducteur Principal) :</h4>
                             <div><strong>Nom:</strong> {rental.locataire.nomPrenom}</div>
                             <div><strong>CIN/Passeport:</strong> {rental.locataire.cin}</div>
-                            <div>
-                                <strong>Permis N°:</strong> {rental.locataire.permisNo}
-                                {rental.locataire.permisDateDelivrance && ` (délivré le ${format(getSafeDate(rental.locataire.permisDateDelivrance)!, "dd/MM/yyyy", { locale: fr })})`}
-                            </div>
+                            <div><strong>Permis N°:</strong> {rental.locataire.permisNo}</div>
+                            {rental.locataire.permisDateDelivrance && <div><strong>Délivré le :</strong> {format(getSafeDate(rental.locataire.permisDateDelivrance)!, "dd/MM/yyyy", { locale: fr })}</div>}
                             <div><strong>Téléphone:</strong> {rental.locataire.telephone}</div>
                         </div>
                         {rental.conducteur2 && (
@@ -355,10 +353,8 @@ function RentalDetails({ rental }: { rental: Rental }) {
                             <h4 className="font-semibold">Deuxième Conducteur :</h4>
                             <div><strong>Nom:</strong> {rental.conducteur2.nomPrenom}</div>
                             <div><strong>CIN/Passeport:</strong> {rental.conducteur2.cin}</div>
-                            <div>
-                                <strong>Permis N°:</strong> {rental.conducteur2.permisNo}
-                                {rental.conducteur2.permisDateDelivrance && ` (délivré le ${format(getSafeDate(rental.conducteur2.permisDateDelivrance)!, "dd/MM/yyyy", { locale: fr })})`}
-                            </div>
+                            <div><strong>Permis N°:</strong> {rental.conducteur2.permisNo}</div>
+                            {rental.conducteur2.permisDateDelivrance && <div><strong>Délivré le :</strong> {format(getSafeDate(rental.conducteur2.permisDateDelivrance)!, "dd/MM/yyyy", { locale: fr })}</div>}
                              <div><strong>Téléphone:</strong> {rental.conducteur2.telephone}</div>
                         </div>
                         )}
