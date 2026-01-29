@@ -71,6 +71,54 @@ const ReadOnlyCheckbox = ({ checked }: { checked: boolean | undefined }) => (
     </div>
 );
 
+const DeprecatedInspectionView: React.FC<{ data: any, type: 'depart' | 'retour' }> = ({ data, type }) => {
+    if (!data) return null;
+    const damageEntries = Object.entries(data.dommages || {});
+    const safeDate = data.dateHeure?.toDate ? format(data.dateHeure.toDate(), "dd/MM/yyyy HH:mm", { locale: fr }) : 'N/A';
+
+    return (
+        <div className="space-y-2">
+            <h4 className="font-bold text-base">{type === 'depart' ? 'Livraison (Départ)' : 'Réception (Retour)'}</h4>
+            <div className="space-y-1">
+                <div><strong>Date:</strong> {safeDate}</div>
+                <div><strong>Kilométrage:</strong> {data.kilometrage?.toLocaleString()} km</div>
+                <div><strong>Niveau Carburant:</strong> {data.carburantNiveau ? data.carburantNiveau * 100 : 0}%</div>
+            </div>
+            <div className="mt-2 text-xs">
+                <strong>Check-list des accessoires:</strong>
+                <div className="grid grid-cols-2 gap-x-4">
+                    <div className="flex items-center gap-2"><ReadOnlyCheckbox checked={data.roueSecours} /> Roue de secours</div>
+                    <div className="flex items-center gap-2"><ReadOnlyCheckbox checked={data.cric} /> Cric & manivelle</div>
+                    <div className="flex items-center gap-2"><ReadOnlyCheckbox checked={data.giletTriangle} /> Gilet & triangle</div>
+                    <div className="flex items-center gap-2"><ReadOnlyCheckbox checked={data.posteRadio} /> Poste radio</div>
+                    <div className="flex items-center gap-2"><ReadOnlyCheckbox checked={data.doubleCles} /> Double des clés</div>
+                    <div className="flex items-center gap-2"><ReadOnlyCheckbox checked={data.lavage} /> Voiture propre</div>
+                </div>
+            </div>
+
+            {data.dommagesNotes && <p className="text-xs italic mt-1"><strong>Notes:</strong> {data.dommagesNotes}</p>}
+            
+            {damageEntries.length > 0 && (
+                <div className="mt-2 text-xs">
+                    <strong>Dommages constatés:</strong>
+                    <ul className="list-disc list-inside">
+                        {damageEntries.map(([partId, damageType]) => {
+                           const part = carParts.find(p => p.id === partId);
+                           const damage = damageTypes[damageType as DamageType];
+                           if (!part || !damage) return null;
+                           return ( <li key={partId}>{part.label}: {damage.label}</li> )
+                        })}
+                    </ul>
+                </div>
+            )}
+             <div className="mt-2 no-print">
+                <strong className="block mb-1 font-semibold">Schéma des dommages:</strong>
+                <CarDamageDiagram damages={data.dommages || {}} onDamagesChange={() => {}} readOnly showLegend={false} />
+            </div>
+        </div>
+    );
+};
+
 
 const InspectionDetailsView: React.FC<{ inspectionId: string, type: 'depart' | 'retour' }> = ({ inspectionId, type }) => {
     const [inspection, setInspection] = React.useState<Inspection | null>(null);
@@ -266,11 +314,15 @@ function RentalDetails({ rental }: { rental: Rental }) {
                         <div>
                             {rental.livraisonInspectionId ? (
                                 <InspectionDetailsView inspectionId={rental.livraisonInspectionId} type="depart" />
+                            ) : rental.livraison ? (
+                                <DeprecatedInspectionView data={rental.livraison} type="depart" />
                             ) : null }
                         </div>
                         <div className="mt-4 md:mt-0 print:mt-0">
                             {rental.receptionInspectionId ? (
                                 <InspectionDetailsView inspectionId={rental.receptionInspectionId} type="retour" />
+                            ) : rental.reception ? (
+                                <DeprecatedInspectionView data={rental.reception} type="retour" />
                             ) : (
                                <div className="space-y-2">
                                  <h4 className="font-bold text-base">Réception (Retour)</h4>
