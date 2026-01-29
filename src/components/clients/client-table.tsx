@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -372,7 +371,7 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
         setIsDetailsOpen(open);
         if (!open) setSelectedClient(null);
       }}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>Détails du client</DialogTitle>
             {selectedClient && <DialogDescription>Informations complètes pour {selectedClient.nom}.</DialogDescription>}
