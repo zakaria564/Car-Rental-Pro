@@ -33,7 +33,7 @@ const paymentFormSchema = z.object({
   rentalId: z.string().min(1, "Veuillez sélectionner un contrat de location."),
   amount: z.coerce.number().positive("Le montant doit être un nombre positif."),
   paymentDate: z.date({ required_error: "La date de paiement est requise." }),
-  paymentMethod: z.enum(["Especes", "Carte bancaire", "Virement"], { required_error: "La méthode de paiement est requise." }),
+  paymentMethod: z.enum(["Especes", "Carte bancaire", "Virement", "Avance"], { required_error: "La méthode de paiement est requise." }),
   status: z.enum(["complete", "en_attente"], { required_error: "Le statut est requis." }),
 });
 
@@ -202,6 +202,7 @@ export default function PaymentForm({ payment, rentals, onFinished }: { payment:
                   <SelectItem value="Especes">Espèces</SelectItem>
                   <SelectItem value="Carte bancaire">Carte bancaire</SelectItem>
                   <SelectItem value="Virement">Virement</SelectItem>
+                  <SelectItem value="Avance">Avance</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />

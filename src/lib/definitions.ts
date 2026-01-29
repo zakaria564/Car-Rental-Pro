@@ -151,6 +151,6 @@ export type Payment = {
   clientName: string;
   amount: number;
   paymentDate: any; // Timestamp
-  paymentMethod: 'Especes' | 'Carte bancaire' | 'Virement';
+  paymentMethod: 'Especes' | 'Carte bancaire' | 'Virement' | 'Avance';
   status: 'complete' | 'en_attente';
 };

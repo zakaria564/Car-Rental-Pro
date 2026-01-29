@@ -188,7 +188,7 @@
         "clientName": { "type": "string", "description": "Name of the client who paid."},
         "amount": { "type": "number", "description": "Amount paid."},
         "paymentDate": { "type": "string", "format": "date-time", "description": "Timestamp of the payment."},
-        "paymentMethod": { "type": "string", "enum": ["Especes", "Carte bancaire", "Virement"], "description": "Payment method."},
+        "paymentMethod": { "type": "string", "enum": ["Especes", "Carte bancaire", "Virement", "Avance"], "description": "Payment method."},
         "status": { "type": "string", "enum": ["complete", "en_attente"], "description": "Payment status."}
       },
       "required": ["rentalId", "clientName", "amount", "paymentDate", "paymentMethod", "status"]
