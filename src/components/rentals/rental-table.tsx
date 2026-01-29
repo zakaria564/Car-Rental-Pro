@@ -804,3 +804,4 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
 
     
 
+
