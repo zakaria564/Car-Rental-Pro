@@ -34,6 +34,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "../ui/dialog";
 import { Invoice } from "./invoice";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useToast } from "@/hooks/use-toast";
 
 // New component for the payment history dialog
 const PaymentHistoryDialog = ({ rental, payments, onPrintInvoice }: {
@@ -391,7 +392,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
             }}>
             {selectedPaymentForInvoice && (
                 <DialogContent className="sm:max-w-3xl">
-                    <DialogHeader>
+                    <DialogHeader className="no-print">
                         <DialogTitle>Facture N° {selectedPaymentForInvoice.id?.substring(0,8).toUpperCase()}</DialogTitle>
                     </DialogHeader>
                     <ScrollArea className="h-[75vh]">
