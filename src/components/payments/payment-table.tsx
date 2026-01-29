@@ -12,7 +12,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ArrowUpDown, MoreHorizontal } from "lucide-react";
+import { ArrowUpDown, MoreHorizontal, Printer } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -29,19 +29,23 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { Payment } from "@/lib/definitions";
 import { formatCurrency, cn } from "@/lib/utils";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "../ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from "../ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "../ui/alert-dialog";
 import { useFirebase } from "@/firebase";
 import { deleteDoc, doc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
+import { PaymentReceipt } from "./payment-receipt";
 
 export default function PaymentTable({ payments }: { payments: Payment[] }) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const { firestore } = useFirebase();
   const { toast } = useToast();
+  const [selectedPayment, setSelectedPayment] = React.useState<Payment | null>(null);
+  const [isReceiptOpen, setIsReceiptOpen] = React.useState(false);
 
   const handleDeletePayment = async (paymentId: string) => {
     if (!firestore) return;
@@ -65,6 +69,53 @@ export default function PaymentTable({ payments }: { payments: Payment[] }) {
         description: "Vous n'avez pas la permission de supprimer ce paiement.",
       });
     }
+  };
+
+  const handlePrintReceipt = () => {
+    const printContent = document.getElementById('printable-receipt');
+    if (!printContent) return;
+
+    const printWindow = window.open('', '', 'height=600,width=800');
+    if (!printWindow) {
+      toast({
+        variant: "destructive",
+        title: "Erreur d'impression",
+        description: "Veuillez autoriser les pop-ups pour imprimer.",
+      });
+      return;
+    }
+    
+    const styles = `
+      body { font-family: 'Inter', sans-serif; }
+      .no-print { display: none !important; }
+       @page {
+        size: A5 landscape;
+        margin: 10mm;
+      }
+    `;
+
+    printWindow.document.write('<html><head><title>Reçu de Paiement</title>');
+    
+    Array.from(document.styleSheets).forEach(sheet => {
+        if (sheet.href) {
+            printWindow.document.write(`<link rel="stylesheet" href="${sheet.href}">`);
+        }
+    });
+
+    printWindow.document.write(`<style>${styles}</style>`);
+    printWindow.document.write('</head><body>');
+    printWindow.document.write(printContent.innerHTML);
+    printWindow.document.write('</body></html>');
+    
+    printWindow.document.close();
+    
+    printWindow.onload = function() {
+      setTimeout(function() {
+        printWindow.focus();
+        printWindow.print();
+        printWindow.close();
+      }, 250);
+    };
   };
 
 
@@ -139,6 +190,14 @@ export default function PaymentTable({ payments }: { payments: Payment[] }) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => {
+                  setSelectedPayment(payment);
+                  setIsReceiptOpen(true);
+                }}>
+                  <Printer className="mr-2 h-4 w-4" />
+                  Reçu de paiement
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                  <AlertDialogTrigger asChild>
                     <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">Supprimer</DropdownMenuItem>
                   </AlertDialogTrigger>
@@ -178,85 +237,106 @@ export default function PaymentTable({ payments }: { payments: Payment[] }) {
   });
 
   return (
-    <div className="w-full">
-        <div className="flex items-center py-4 gap-2">
-            <Input
-            placeholder="Filtrer par client..."
-            value={(table.getColumn("clientName")?.getFilterValue() as string) ?? ""}
-            onChange={(event) =>
-                table.getColumn("clientName")?.setFilterValue(event.target.value)
-            }
-            className="max-w-sm"
-            />
-        </div>
-        <div className="rounded-md border bg-card">
-        <Table>
-            <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                    return (
-                    <TableHead key={header.id}>
-                        {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
+    <>
+        <div className="w-full">
+            <div className="flex items-center py-4 gap-2">
+                <Input
+                placeholder="Filtrer par client..."
+                value={(table.getColumn("clientName")?.getFilterValue() as string) ?? ""}
+                onChange={(event) =>
+                    table.getColumn("clientName")?.setFilterValue(event.target.value)
+                }
+                className="max-w-sm"
+                />
+            </div>
+            <div className="rounded-md border bg-card">
+            <Table>
+                <TableHeader>
+                {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => {
+                        return (
+                        <TableHead key={header.id}>
+                            {header.isPlaceholder
+                            ? null
+                            : flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                                )}
+                        </TableHead>
+                        );
+                    })}
+                    </TableRow>
+                ))}
+                </TableHeader>
+                <TableBody>
+                {table.getRowModel().rows?.length ? (
+                    table.getRowModel().rows.map((row) => (
+                    <TableRow
+                        key={row.id}
+                        data-state={row.getIsSelected() && "selected"}
+                    >
+                        {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id}>
+                            {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
                             )}
-                    </TableHead>
-                    );
-                })}
-                </TableRow>
-            ))}
-            </TableHeader>
-            <TableBody>
-            {table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
-                <TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() && "selected"}
-                >
-                    {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                        {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                        )}
+                        </TableCell>
+                        ))}
+                    </TableRow>
+                    ))
+                ) : (
+                    <TableRow>
+                    <TableCell
+                        colSpan={columns.length}
+                        className="h-24 text-center"
+                    >
+                        Aucun paiement trouvé.
                     </TableCell>
-                    ))}
-                </TableRow>
-                ))
-            ) : (
-                <TableRow>
-                <TableCell
-                    colSpan={columns.length}
-                    className="h-24 text-center"
-                >
-                    Aucun paiement trouvé.
-                </TableCell>
-                </TableRow>
+                    </TableRow>
+                )}
+                </TableBody>
+            </Table>
+            </div>
+            <div className="flex items-center justify-end space-x-2 py-4">
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+            >
+                Précédent
+            </Button>
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+            >
+                Suivant
+            </Button>
+            </div>
+        </div>
+        <Dialog open={isReceiptOpen} onOpenChange={(open) => {
+            setIsReceiptOpen(open);
+            if (!open) setSelectedPayment(null);
+            }}>
+            {selectedPayment && (
+                <DialogContent className="sm:max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Reçu de paiement N° {selectedPayment.id?.substring(0,8).toUpperCase()}</DialogTitle>
+                    </DialogHeader>
+                    <PaymentReceipt payment={selectedPayment} />
+                    <DialogFooter className="no-print">
+                    <Button variant="outline" onClick={handlePrintReceipt}>
+                        <Printer className="mr-2 h-4 w-4"/>
+                        Imprimer le reçu
+                    </Button>
+                    </DialogFooter>
+                </DialogContent>
             )}
-            </TableBody>
-        </Table>
-        </div>
-        <div className="flex items-center justify-end space-x-2 py-4">
-        <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-        >
-            Précédent
-        </Button>
-        <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-        >
-            Suivant
-        </Button>
-        </div>
-    </div>
+        </Dialog>
+    </>
   );
 }
