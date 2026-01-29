@@ -105,9 +105,9 @@ export default function DashboardPage() {
                 <Skeleton className="h-28" />
                 <Skeleton className="h-28" />
             </div>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                <Skeleton className="lg:col-span-4 h-72" />
-                <Skeleton className="lg:col-span-3 h-72" />
+            <div className="grid gap-4">
+                <Skeleton className="h-72" />
+                <Skeleton className="h-72" />
             </div>
         </div>
       ) : (
@@ -117,17 +117,8 @@ export default function DashboardPage() {
             <StatCard title="Voitures disponibles" value={`${availableCars} / ${cars.length}`} icon={Car} color="text-green-500" />
             <StatCard title="Locations actives" value={activeRentals.toString()} icon={KeyRound} />
         </div>
-        <div className="grid auto-rows-fr gap-4 lg:grid-cols-7">
-            <Card className="lg:col-span-4">
-                <CardHeader>
-                    <CardTitle>Locations récentes</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <RentalTable rentals={rentals.slice(0, 5)} isDashboard={true} />
-                </CardContent>
-            </Card>
-
-            <Card className="lg:col-span-3">
+        <div className="grid auto-rows-fr gap-4">
+            <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <TriangleAlert className="h-5 w-5 text-destructive" />
@@ -183,6 +174,15 @@ export default function DashboardPage() {
                         <p className="text-muted-foreground">Aucune alerte de document pour le moment.</p>
                     </div>
                    )}
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Locations récentes</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <RentalTable rentals={rentals.slice(0, 5)} isDashboard={true} />
                 </CardContent>
             </Card>
         </div>
