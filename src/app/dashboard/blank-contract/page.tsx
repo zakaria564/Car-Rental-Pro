@@ -66,13 +66,35 @@ const CarSideView = ({ side = 'left' }: { side?: 'left' | 'right' }) => (
 
 export default function BlankContractPage() {
   const handlePrint = () => {
+    const printStyles = `
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #blank-contract, #blank-contract * {
+            visibility: visible;
+          }
+          #blank-contract {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+          }
+          .no-print {
+            display: none;
+          }
+        }
+        @page {
+          size: A4;
+          margin: 15mm;
+        }
+      `;
+    const styleSheet = document.createElement("style");
+    styleSheet.type = "text/css";
+    styleSheet.innerText = printStyles;
+    document.head.appendChild(styleSheet);
     window.print();
-  };
-
-  const renderLines = (num: number) => {
-    return Array.from({ length: num }).map((_, i) => (
-      <div key={i} className="border-b border-gray-300 h-6"></div>
-    ));
+    document.head.removeChild(styleSheet);
   };
   
   const CheckboxItem = ({ label }: { label: string }) => (
@@ -84,39 +106,6 @@ export default function BlankContractPage() {
 
   return (
     <>
-      <style jsx global>{`
-        @media print {
-          body * {
-              visibility: hidden;
-          }
-          #blank-contract, #blank-contract * {
-              visibility: visible;
-          }
-          #blank-contract {
-              position: absolute;
-              left: 0;
-              top: 0;
-              width: 100%;
-              height: 100%;
-              box-shadow: none !important;
-              border: none !important;
-              padding: 0;
-              margin: 0;
-          }
-          .no-print { 
-              display: none !important; 
-          }
-          body { 
-              -webkit-print-color-adjust: exact; 
-              print-color-adjust: exact; 
-              background-color: white;
-          }
-        }
-        @page {
-          size: A4;
-          margin: 15mm;
-        }
-      `}</style>
       <div className="no-print mb-6 flex justify-between items-center">
         <h1 className="text-2xl font-bold">Contrat de Location Vierge</h1>
         <Button onClick={handlePrint} className="bg-primary hover:bg-primary/90">
