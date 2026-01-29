@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -13,7 +14,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { ArrowUpDown, MoreHorizontal, Printer, FileText, DollarSign, History } from "lucide-react";
-import { format } from "date-fns";
+import { format, differenceInCalendarDays, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,14 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogD
 import { Invoice } from "./invoice";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
+
+const getSafeDate = (date: any): Date | null => {
+    if (!date) return null;
+    if (date.toDate) return date.toDate();
+    if (date instanceof Date) return date;
+    const d = new Date(date);
+    return isNaN(d.getTime()) ? null : d;
+};
 
 // New component for the payment history dialog
 const PaymentHistoryDialog = ({ rental, payments, onPrintInvoice }: {
@@ -186,10 +195,20 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
       id: "montantTotal",
       header: () => <div className="text-right">Montant Total</div>,
       cell: ({ row }) => {
-        const total = row.original.location.montantTotal ?? (row.original.location.nbrJours || 0) * (row.original.location.prixParJour || 0);
+        const from = getSafeDate(row.original.location.dateDebut);
+        const to = getSafeDate(row.original.location.dateFin);
+        let total = row.original.location.montantTotal;
+        if(from && to && row.original.location.prixParJour) {
+            const days = differenceInCalendarDays(startOfDay(to), startOfDay(from));
+            const rentalDays = days >= 0 ? days + 1 : 1;
+            total = rentalDays * row.original.location.prixParJour;
+        } else {
+             total = row.original.location.montantTotal ?? (row.original.location.nbrJours || 0) * (row.original.location.prixParJour || 0);
+        }
+
         return (
             <div className="text-right font-medium">
-            {formatCurrency(total, 'MAD')}
+            {formatCurrency(total || 0, 'MAD')}
             </div>
         );
       },
@@ -207,8 +226,18 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
       id: 'resteAPayer',
       header: () => <div className="text-right">Reste à Payer</div>,
       cell: ({ row }) => {
-        const total = row.original.location.montantTotal ?? (row.original.location.nbrJours || 0) * (row.original.location.prixParJour || 0);
-        const reste = total - (row.original.location.montantPaye || 0);
+        const from = getSafeDate(row.original.location.dateDebut);
+        const to = getSafeDate(row.original.location.dateFin);
+        let total = row.original.location.montantTotal;
+        if(from && to && row.original.location.prixParJour) {
+            const days = differenceInCalendarDays(startOfDay(to), startOfDay(from));
+            const rentalDays = days >= 0 ? days + 1 : 1;
+            total = rentalDays * row.original.location.prixParJour;
+        } else {
+             total = row.original.location.montantTotal ?? (row.original.location.nbrJours || 0) * (row.original.location.prixParJour || 0);
+        }
+        
+        const reste = (total || 0) - (row.original.location.montantPaye || 0);
         return (
             <div className={cn("text-right font-bold", reste > 0 ? "text-destructive" : "text-muted-foreground")}>
                 {formatCurrency(reste, 'MAD')}
@@ -220,10 +249,20 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
         id: 'paymentStatus',
         header: "Statut Paiement",
         cell: ({ row }) => {
-          const total = row.original.location.montantTotal ?? (row.original.location.nbrJours || 0) * (row.original.location.prixParJour || 0);
+          const from = getSafeDate(row.original.location.dateDebut);
+          const to = getSafeDate(row.original.location.dateFin);
+          let total = row.original.location.montantTotal;
+          if(from && to && row.original.location.prixParJour) {
+              const days = differenceInCalendarDays(startOfDay(to), startOfDay(from));
+              const rentalDays = days >= 0 ? days + 1 : 1;
+              total = rentalDays * row.original.location.prixParJour;
+          } else {
+            total = row.original.location.montantTotal ?? (row.original.location.nbrJours || 0) * (row.original.location.prixParJour || 0);
+          }
+
           const paye = row.original.location.montantPaye || 0;
 
-          if (total === 0) {
+          if (!total || total === 0) {
             return <Badge variant="outline">N/A</Badge>
           }
           
@@ -256,8 +295,20 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
       enableHiding: false,
       cell: ({ row }) => {
         const rental = row.original;
-        const total = rental.location.montantTotal ?? (rental.location.nbrJours || 0) * (rental.location.prixParJour || 0);
-        const reste = total - (rental.location.montantPaye || 0);
+        
+        const from = getSafeDate(rental.location.dateDebut);
+        const to = getSafeDate(rental.location.dateFin);
+        let total = rental.location.montantTotal;
+        if(from && to && rental.location.prixParJour) {
+            const days = differenceInCalendarDays(startOfDay(to), startOfDay(from));
+            const rentalDays = days >= 0 ? days + 1 : 1;
+            total = rentalDays * rental.location.prixParJour;
+        } else {
+            total = rental.location.montantTotal ?? (rental.location.nbrJours || 0) * (rental.location.prixParJour || 0);
+        }
+
+        const reste = (total || 0) - (rental.location.montantPaye || 0);
+        
         return (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -420,3 +471,4 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
     </>
   );
 }
+
