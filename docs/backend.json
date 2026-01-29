@@ -40,6 +40,7 @@
         "nom": { "type": "string" },
         "cin": { "type": "string" },
         "permisNo": { "type": "string" },
+        "permisDateDelivrance": { "type": "string", "format": "date-time" },
         "telephone": { "type": "string" },
         "adresse": { "type": "string" },
         "photoCIN": { "type": "string", "format": "uri" },
@@ -58,6 +59,7 @@
             "cin": { "type": "string" },
             "nomPrenom": { "type": "string" },
             "permisNo": { "type": "string" },
+            "permisDateDelivrance": { "type": "string", "format": "date-time" },
             "telephone": { "type": "string" }
           }
         },
@@ -68,6 +70,7 @@
                 "cin": { "type": "string", "description": "Numéro de CIN ou passeport." },
                 "nomPrenom": { "type": "string", "description": "Nom et prénom." },
                 "permisNo": { "type": "string", "description": "Numéro de permis de conduire." },
+                "permisDateDelivrance": { "type": "string", "format": "date-time" },
                 "telephone": { "type": "string", "description": "Numéro de téléphone." }
             }
         },

@@ -60,7 +60,7 @@ const getSafeDate = (date: any): Date | null => {
     if (date instanceof Date) return date;
     if (date.toDate && typeof date.toDate === 'function') return date.toDate();
     const parsed = new Date(date);
-    return isNaN(parsed.getTime()) ? null : parsed;
+    return isNaN(parsed.getTime()) ? null : d;
 };
 
 const calculateTotal = (rental: Rental): number => {
@@ -344,7 +344,10 @@ function RentalDetails({ rental }: { rental: Rental }) {
                             <h4 className="font-semibold">Le Locataire (Conducteur Principal) :</h4>
                             <div><strong>Nom:</strong> {rental.locataire.nomPrenom}</div>
                             <div><strong>CIN/Passeport:</strong> {rental.locataire.cin}</div>
-                            <div><strong>Permis N°:</strong> {rental.locataire.permisNo}</div>
+                            <div>
+                                <strong>Permis N°:</strong> {rental.locataire.permisNo}
+                                {rental.locataire.permisDateDelivrance && ` (délivré le ${format(getSafeDate(rental.locataire.permisDateDelivrance)!, "dd/MM/yyyy", { locale: fr })})`}
+                            </div>
                             <div><strong>Téléphone:</strong> {rental.locataire.telephone}</div>
                         </div>
                         {rental.conducteur2 && (
@@ -352,7 +355,10 @@ function RentalDetails({ rental }: { rental: Rental }) {
                             <h4 className="font-semibold">Deuxième Conducteur :</h4>
                             <div><strong>Nom:</strong> {rental.conducteur2.nomPrenom}</div>
                             <div><strong>CIN/Passeport:</strong> {rental.conducteur2.cin}</div>
-                            <div><strong>Permis N°:</strong> {rental.conducteur2.permisNo}</div>
+                            <div>
+                                <strong>Permis N°:</strong> {rental.conducteur2.permisNo}
+                                {rental.conducteur2.permisDateDelivrance && ` (délivré le ${format(getSafeDate(rental.conducteur2.permisDateDelivrance)!, "dd/MM/yyyy", { locale: fr })})`}
+                            </div>
                              <div><strong>Téléphone:</strong> {rental.conducteur2.telephone}</div>
                         </div>
                         )}
@@ -371,9 +377,9 @@ function RentalDetails({ rental }: { rental: Rental }) {
                             <div><strong>Début:</strong> {safeDebutDate ? format(safeDebutDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</div>
                             <div><strong>Fin Prévue:</strong> {safeFinDate ? format(safeFinDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</div>
                             <div><strong>Durée:</strong> {rentalDuration()} jour(s)</div>
-                            <div><strong>Dépôt de Caution:</strong> {formatCurrency(rental.location.depot || 0, 'MAD')}</div>
+                            <div className="no-print"><strong>Dépôt de Caution:</strong> {formatCurrency(rental.location.depot || 0, 'MAD')}</div>
                         </div>
-                        <div className="space-y-1 mt-auto pt-2 border-t">
+                        <div className="space-y-1 mt-auto pt-2 border-t no-print">
                             <div className="flex justify-between"><span>Montant Total:</span> <span className="font-medium">{formatCurrency(totalAmount, 'MAD')}</span></div>
                             <div className="flex justify-between text-green-600"><span>Montant Payé:</span> <span className="font-medium">{formatCurrency(amountPaid, 'MAD')}</span></div>
                             <div className="flex justify-between font-bold"><span>Reste à Payer:</span> <span>{formatCurrency(amountRemaining, 'MAD')}</span></div>

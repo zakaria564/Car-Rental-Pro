@@ -525,6 +525,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                     cin: selectedClient.cin,
                     nomPrenom: selectedClient.nom,
                     permisNo: selectedClient.permisNo || 'N/A',
+                    permisDateDelivrance: selectedClient.permisDateDelivrance,
                     telephone: selectedClient.telephone,
                 },
                 ...(selectedConducteur2 && {
@@ -532,6 +533,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                         nomPrenom: selectedConducteur2.nom,
                         cin: selectedConducteur2.cin,
                         permisNo: selectedConducteur2.permisNo || 'N/A',
+                        permisDateDelivrance: selectedConducteur2.permisDateDelivrance,
                         telephone: selectedConducteur2.telephone,
                     }
                 }),

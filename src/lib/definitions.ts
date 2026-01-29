@@ -32,6 +32,7 @@ export type Client = {
   photoCIN: string;
   createdAt: any; // Can be Timestamp
   permisNo?: string;
+  permisDateDelivrance?: any;
 };
 
 export const damageTypes = {
@@ -78,12 +79,14 @@ export type Rental = {
     cin: string;
     nomPrenom: string;
     permisNo: string;
+    permisDateDelivrance?: any;
     telephone: string;
   };
   conducteur2?: {
     cin: string;
     nomPrenom: string;
     permisNo: string;
+    permisDateDelivrance?: any;
     telephone: string;
   };
   vehicule: {
