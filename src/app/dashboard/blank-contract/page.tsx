@@ -145,13 +145,21 @@ export default function BlankContractPage() {
         <div className="space-y-4">
             {/* Locataire & Véhicule */}
             <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="border border-gray-300 p-2 rounded-md space-y-1">
-                    <h3 className="font-bold border-b border-gray-300 pb-1 mb-1">LOCATAIRE / CONDUCTEUR</h3>
-                    <p>Nom & Prénom: <span className="block border-b border-dotted w-full h-4"></span></p>
-                    <p>Adresse: <span className="block border-b border-dotted w-full h-4"></span></p>
-                    <p>Téléphone: <span className="block border-b border-dotted w-full h-4"></span></p>
-                    <p>CIN / Passeport N°: <span className="block border-b border-dotted w-full h-4"></span></p>
-                    <p>Permis N°: <span className="block border-b border-dotted w-full h-4"></span> Délivré le: <span className="inline-block border-b border-dotted w-20 h-4"></span></p>
+                <div className="border border-gray-300 p-2 rounded-md space-y-2">
+                    <div className="space-y-1">
+                        <h3 className="font-bold border-b border-gray-300 pb-1 mb-1">LOCATAIRE / CONDUCTEUR 1</h3>
+                        <p>Nom & Prénom: <span className="block border-b border-dotted w-full h-4"></span></p>
+                        <p>Adresse: <span className="block border-b border-dotted w-full h-4"></span></p>
+                        <p>Téléphone: <span className="block border-b border-dotted w-full h-4"></span></p>
+                        <p>CIN / Passeport N°: <span className="block border-b border-dotted w-full h-4"></span></p>
+                        <p>Permis N°: <span className="block border-b border-dotted w-full h-4"></span> Délivré le: <span className="inline-block border-b border-dotted w-20 h-4"></span></p>
+                    </div>
+                    <div className="space-y-1 pt-2">
+                        <h3 className="font-bold border-b border-gray-300 pb-1 mb-1">CONDUCTEUR 2 (Optionnel)</h3>
+                        <p>Nom & Prénom: <span className="block border-b border-dotted w-full h-4"></span></p>
+                        <p>CIN / Passeport N°: <span className="block border-b border-dotted w-full h-4"></span></p>
+                        <p>Permis N°: <span className="block border-b border-dotted w-full h-4"></span> Délivré le: <span className="inline-block border-b border-dotted w-20 h-4"></span></p>
+                    </div>
                 </div>
                  <div className="border border-gray-300 p-2 rounded-md space-y-1">
                     <h3 className="font-bold border-b border-gray-300 pb-1 mb-1">VÉHICULE</h3>
