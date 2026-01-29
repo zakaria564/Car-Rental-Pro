@@ -101,6 +101,8 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
           createdAt: client?.createdAt || serverTimestamp(),
           otherPhotos: photoUrls,
           photoCIN: data.photoCIN || '',
+          permisDateDelivrance: data.permisDateDelivrance ?? null,
+          permisNo: data.permisNo ?? null,
         };
 
         await setDoc(clientRef, clientPayload, { merge: !isNewClient });
@@ -113,18 +115,25 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
     } catch (serverError: any) {
         console.error("Erreur de sauvegarde du client:", serverError);
         
-        const permissionError = new FirestorePermissionError({
-            path: `clients/${client?.id || 'new'}`,
-            operation: client ? 'update' : 'create',
-            requestResourceData: data
-        }, serverError as Error);
-        errorEmitter.emit('permission-error', permissionError);
-
-        toast({
-            variant: "destructive",
-            title: "Erreur de sauvegarde",
-            description: "Impossible d'enregistrer les informations du client. " + (serverError.message || "Veuillez vérifier votre connexion et vos permissions."),
-        });
+        if (serverError.code === 'permission-denied') {
+            const permissionError = new FirestorePermissionError({
+                path: `clients/${client?.id || 'new'}`,
+                operation: client ? 'update' : 'create',
+                requestResourceData: data
+            }, serverError as Error);
+            errorEmitter.emit('permission-error', permissionError);
+             toast({
+                variant: "destructive",
+                title: "Erreur de permission",
+                description: "Vous n'avez pas la permission d'enregistrer ce client.",
+            });
+        } else {
+            toast({
+                variant: "destructive",
+                title: "Erreur de sauvegarde",
+                description: "Impossible d'enregistrer les informations du client. " + (serverError.message || "Veuillez vérifier les données et votre connexion."),
+            });
+        }
     } finally {
         setIsSubmitting(false);
     }
@@ -234,7 +243,7 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
                 </div>
               ) : null}
               <FormControl>
-                <Input placeholder="https://exemple.com/image.jpg" {...field} value={field.value ?? ''} />
+                <Input type="text" placeholder="https://exemple.com/image.jpg" {...field} value={field.value ?? ''} />
               </FormControl>
               <FormDescription>
                 Collez l'URL de l'image de la carte d'identité.
