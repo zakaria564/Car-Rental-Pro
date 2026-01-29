@@ -13,7 +13,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ArrowUpDown, MoreHorizontal, Printer, FileText, DollarSign, History } from "lucide-react";
+import { ArrowUpDown, MoreHorizontal, Printer, FileText, DollarSign, History, Trash2 } from "lucide-react";
 import { format, differenceInCalendarDays, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -30,11 +30,17 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { Payment, Rental } from "@/lib/definitions";
 import { formatCurrency, cn } from "@/lib/utils";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "../ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "../ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Invoice } from "./invoice";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
+import { useFirebase } from "@/firebase";
+import { doc, runTransaction } from "firebase/firestore";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
+
 
 const getSafeDate = (date: any): Date | null => {
     if (!date) return null;
@@ -45,10 +51,11 @@ const getSafeDate = (date: any): Date | null => {
 };
 
 // New component for the payment history dialog
-const PaymentHistoryDialog = ({ rental, payments, onPrintInvoice }: {
+const PaymentHistoryDialog = ({ rental, payments, onPrintInvoice, onDeletePaymentClick }: {
   rental: Rental;
   payments: Payment[];
   onPrintInvoice: (payment: Payment) => void;
+  onDeletePaymentClick: (payment: Payment) => void;
 }) => {
   return (
     <DialogContent className="sm:max-w-2xl">
@@ -75,10 +82,29 @@ const PaymentHistoryDialog = ({ rental, payments, onPrintInvoice }: {
                 <TableCell>{p.paymentMethod}</TableCell>
                 <TableCell className="text-right">{formatCurrency(p.amount, 'MAD')}</TableCell>
                 <TableCell className="text-right">
-                  <Button variant="ghost" size="sm" onClick={() => onPrintInvoice(p)}>
-                    <FileText className="mr-2 h-4 w-4" />
-                    Facture
-                  </Button>
+                   <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                              <span className="sr-only">Ouvrir le menu</span>
+                              <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => onPrintInvoice(p)}>
+                              <FileText className="mr-2 h-4 w-4" />
+                              Voir la facture
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                              className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                              onSelect={() => onDeletePaymentClick(p)}
+                          >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Supprimer
+                          </DropdownMenuItem>
+                      </DropdownMenuContent>
+                  </DropdownMenu>
                 </TableCell>
               </TableRow>
             )) : (
@@ -105,7 +131,54 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
   const [isInvoiceOpen, setIsInvoiceOpen] = React.useState(false);
   const [selectedRentalForHistory, setSelectedRentalForHistory] = React.useState<Rental | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = React.useState(false);
+  const [paymentToDelete, setPaymentToDelete] = React.useState<Payment | null>(null);
   const { toast } = useToast();
+  const { firestore } = useFirebase();
+
+  const handleDeletePayment = async (paymentToDelete: Payment) => {
+    if (!firestore || !paymentToDelete) return;
+
+    const paymentRef = doc(firestore, "payments", paymentToDelete.id);
+    const rentalRef = doc(firestore, "rentals", paymentToDelete.rentalId);
+
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            const rentalDoc = await transaction.get(rentalRef);
+            if (!rentalDoc.exists()) {
+                throw "Contrat de location introuvable.";
+            }
+
+            const currentRentalData = rentalDoc.data() as Rental;
+            const currentPaidAmount = currentRentalData.location.montantPaye || 0;
+            const newPaidAmount = currentPaidAmount - paymentToDelete.amount;
+
+            transaction.delete(paymentRef);
+            transaction.update(rentalRef, { 'location.montantPaye': newPaidAmount });
+        });
+
+        toast({
+          title: "Paiement supprimé",
+          description: `Le paiement de ${formatCurrency(paymentToDelete.amount, 'MAD')} a été annulé.`,
+        });
+
+    } catch (error: any) {
+        console.error("Erreur de transaction lors de la suppression:", error);
+        
+        const permissionError = new FirestorePermissionError({
+            path: paymentRef.path,
+            operation: 'delete',
+        }, error);
+        errorEmitter.emit('permission-error', permissionError);
+
+        toast({
+          variant: "destructive",
+          title: "Une erreur est survenue",
+          description: error.message || "Impossible de supprimer le paiement. Vérifiez vos permissions et réessayez.",
+        });
+    } finally {
+        setPaymentToDelete(null);
+    }
+  };
 
   const handlePrintInvoice = () => {
     const printContent = document.getElementById('printable-invoice');
@@ -198,7 +271,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
         const from = getSafeDate(row.original.location.dateDebut);
         const to = getSafeDate(row.original.location.dateFin);
         let total = row.original.location.montantTotal;
-        if(from && to && row.original.location.prixParJour) {
+        if (!total && from && to && row.original.location.prixParJour) {
             const days = differenceInCalendarDays(startOfDay(to), startOfDay(from));
             const rentalDays = days >= 0 ? days + 1 : 1;
             total = rentalDays * row.original.location.prixParJour;
@@ -229,7 +302,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
         const from = getSafeDate(row.original.location.dateDebut);
         const to = getSafeDate(row.original.location.dateFin);
         let total = row.original.location.montantTotal;
-        if(from && to && row.original.location.prixParJour) {
+        if(!total && from && to && row.original.location.prixParJour) {
             const days = differenceInCalendarDays(startOfDay(to), startOfDay(from));
             const rentalDays = days >= 0 ? days + 1 : 1;
             total = rentalDays * row.original.location.prixParJour;
@@ -252,7 +325,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
           const from = getSafeDate(row.original.location.dateDebut);
           const to = getSafeDate(row.original.location.dateFin);
           let total = row.original.location.montantTotal;
-          if(from && to && row.original.location.prixParJour) {
+          if(!total && from && to && row.original.location.prixParJour) {
               const days = differenceInCalendarDays(startOfDay(to), startOfDay(from));
               const rentalDays = days >= 0 ? days + 1 : 1;
               total = rentalDays * row.original.location.prixParJour;
@@ -299,7 +372,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
         const from = getSafeDate(rental.location.dateDebut);
         const to = getSafeDate(rental.location.dateFin);
         let total = rental.location.montantTotal;
-        if(from && to && rental.location.prixParJour) {
+        if(!total && from && to && rental.location.prixParJour) {
             const days = differenceInCalendarDays(startOfDay(to), startOfDay(from));
             const rentalDays = days >= 0 ? days + 1 : 1;
             total = rentalDays * rental.location.prixParJour;
@@ -443,6 +516,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
               rental={selectedRentalForHistory} 
               payments={payments.filter(p => p.rentalId === selectedRentalForHistory.id)}
               onPrintInvoice={openInvoice}
+              onDeletePaymentClick={setPaymentToDelete}
             />
           )}
         </Dialog>
@@ -468,7 +542,33 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
                 </DialogContent>
             )}
         </Dialog>
+        
+        <AlertDialog open={!!paymentToDelete} onOpenChange={(open) => !open && setPaymentToDelete(null)}>
+            {paymentToDelete && (
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Supprimer ce paiement ?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Cette action est irréversible. Le paiement de {formatCurrency(paymentToDelete.amount, 'MAD')} du {paymentToDelete.paymentDate?.toDate ? format(paymentToDelete.paymentDate.toDate(), "dd/MM/yyyy") : ''} sera supprimé.
+                            Le montant sera déduit du total payé pour le contrat.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                        <AlertDialogAction 
+                            onClick={() => handleDeletePayment(paymentToDelete)} 
+                            className="bg-destructive hover:bg-destructive/90"
+                        >
+                            Supprimer
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            )}
+        </AlertDialog>
     </>
   );
 }
 
+
+
+    
