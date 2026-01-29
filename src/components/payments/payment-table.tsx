@@ -12,7 +12,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ArrowUpDown } from "lucide-react";
+import { ArrowUpDown, MoreHorizontal } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -29,8 +29,46 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { Payment } from "@/lib/definitions";
 import { formatCurrency, cn } from "@/lib/utils";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "../ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "../ui/alert-dialog";
+import { useFirebase } from "@/firebase";
+import { deleteDoc, doc } from "firebase/firestore";
+import { useToast } from "@/hooks/use-toast";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
 
-export const columns: ColumnDef<Payment>[] = [
+export default function PaymentTable({ payments }: { payments: Payment[] }) {
+  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const { firestore } = useFirebase();
+  const { toast } = useToast();
+
+  const handleDeletePayment = async (paymentId: string) => {
+    if (!firestore) return;
+    const paymentDocRef = doc(firestore, 'payments', paymentId);
+    
+    try {
+        await deleteDoc(paymentDocRef);
+        toast({
+          title: "Paiement supprimé",
+          description: "Le paiement a été supprimé de la base de données.",
+        });
+    } catch(serverError) {
+      const permissionError = new FirestorePermissionError({
+          path: paymentDocRef.path,
+          operation: 'delete'
+      }, serverError as Error);
+      errorEmitter.emit('permission-error', permissionError);
+      toast({
+        variant: "destructive",
+        title: "Erreur de suppression",
+        description: "Vous n'avez pas la permission de supprimer ce paiement.",
+      });
+    }
+  };
+
+
+  const columns: ColumnDef<Payment>[] = [
     {
       accessorKey: "rentalId",
       header: "Contrat ID",
@@ -85,11 +123,44 @@ export const columns: ColumnDef<Payment>[] = [
         </Badge>
       ),
     },
+     {
+      id: "actions",
+      enableHiding: false,
+      cell: ({ row }) => {
+        const payment = row.original;
+        return (
+          <AlertDialog>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">Ouvrir le menu</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                 <AlertDialogTrigger asChild>
+                    <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">Supprimer</DropdownMenuItem>
+                  </AlertDialogTrigger>
+              </DropdownMenuContent>
+            </DropdownMenu>
+             <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Êtes-vous absolument sûr?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Cette action est irréversible. Ce paiement sera définitivement supprimé.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Annuler</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => handleDeletePayment(payment.id)} className="bg-destructive hover:bg-destructive/90">Supprimer</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+          </AlertDialog>
+        );
+      },
+    },
   ];
-
-export default function PaymentTable({ payments }: { payments: Payment[] }) {
-  const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
 
   const table = useReactTable({
     data: payments,

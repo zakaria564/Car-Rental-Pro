@@ -4,17 +4,23 @@ import PaymentTable from "@/components/payments/payment-table";
 import React from "react";
 import { useFirebase } from "@/firebase";
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
-import type { Payment } from "@/lib/definitions";
+import type { Payment, Rental } from "@/lib/definitions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, PlusCircle } from "lucide-react";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import PaymentForm from "@/components/payments/payment-form";
 
 export default function PaymentsPage() {
   const [payments, setPayments] = React.useState<Payment[]>([]);
+  const [rentals, setRentals] = React.useState<Rental[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   let firestore: any;
 
   try {
@@ -29,12 +35,21 @@ export default function PaymentsPage() {
   React.useEffect(() => {
     if (!firestore) return;
 
+    const loadedStatus = { payments: false, rentals: false };
+    const checkAllLoaded = () => {
+        if (loadedStatus.payments && loadedStatus.rentals) {
+            setLoading(false);
+        }
+    };
+
     const paymentsQuery = query(collection(firestore, "payments"), orderBy("paymentDate", "desc"));
-    const unsubscribe = onSnapshot(paymentsQuery, (snapshot) => {
+    const unsubPayments = onSnapshot(paymentsQuery, (snapshot) => {
       const paymentsData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Payment));
       setPayments(paymentsData);
-      setLoading(false);
-      setError(null);
+      if (!loadedStatus.payments) {
+          loadedStatus.payments = true;
+          checkAllLoaded();
+      }
     }, (serverError) => {
       setLoading(false);
       setError("Impossible de charger les paiements. Vérifiez vos permissions.");
@@ -45,27 +60,60 @@ export default function PaymentsPage() {
       errorEmitter.emit('permission-error', permissionError);
     });
 
-    return () => unsubscribe();
+    const rentalsQuery = query(collection(firestore, "rentals"), orderBy("createdAt", "desc"));
+    const unsubRentals = onSnapshot(rentalsQuery, (snapshot) => {
+      const rentalsData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Rental));
+      setRentals(rentalsData);
+      if (!loadedStatus.rentals) {
+        loadedStatus.rentals = true;
+        checkAllLoaded();
+      }
+    }, (err) => {
+        console.error("Error loading rentals:", err);
+        setError(prev => (prev ? prev + " " : "") + "Impossible de charger les contrats.");
+    });
+
+
+    return () => {
+        unsubPayments();
+        unsubRentals();
+    };
   }, [firestore]);
 
   return (
-    <>
-      <DashboardHeader title="Paiements" description="Gérez et suivez tous les paiements de location." />
-      {loading ? (
-        <div className="space-y-2">
-            <Skeleton className="h-12 w-full" />
-            <Skeleton className="h-12 w-full" />
-            <Skeleton className="h-12 w-full" />
-        </div>
-      ) : error ? (
-         <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Erreur de chargement</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : (
-        <PaymentTable payments={payments} />
-      )}
-    </>
+    <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+        <DashboardHeader title="Paiements" description="Gérez et suivez tous les paiements de location.">
+            <SheetTrigger asChild>
+                <Button className="bg-primary hover:bg-primary/90">
+                    <PlusCircle className="mr-2 h-4 w-4" /> Ajouter un paiement
+                </Button>
+            </SheetTrigger>
+        </DashboardHeader>
+      
+        {loading ? (
+            <div className="space-y-2">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+            </div>
+        ) : error ? (
+            <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Erreur de chargement</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+            </Alert>
+        ) : (
+            <PaymentTable payments={payments} />
+        )}
+
+        <SheetContent className="sm:max-w-md">
+            <SheetHeader>
+                <SheetTitle>Ajouter un nouveau paiement</SheetTitle>
+            </SheetHeader>
+            <ScrollArea className="h-full pr-4">
+                <PaymentForm payment={null} rentals={rentals} onFinished={() => setIsSheetOpen(false)} />
+            </ScrollArea>
+        </SheetContent>
+    </Sheet>
   );
 }

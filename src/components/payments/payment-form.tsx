@@ -1,0 +1,238 @@
+"use client";
+
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import type { Payment, Rental } from "@/lib/definitions";
+import { useFirebase } from "@/firebase";
+import { collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
+import React from "react";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { CalendarIcon } from "lucide-react";
+import { Calendar } from "../ui/calendar";
+import { cn, formatCurrency } from "@/lib/utils";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+
+const paymentFormSchema = z.object({
+  rentalId: z.string().min(1, "Veuillez sélectionner un contrat de location."),
+  amount: z.coerce.number().positive("Le montant doit être un nombre positif."),
+  paymentDate: z.date({ required_error: "La date de paiement est requise." }),
+  paymentMethod: z.enum(["Especes", "Carte bancaire", "Virement"], { required_error: "La méthode de paiement est requise." }),
+  status: z.enum(["complete", "en_attente"], { required_error: "Le statut est requis." }),
+});
+
+type PaymentFormValues = z.infer<typeof paymentFormSchema>;
+
+export default function PaymentForm({ payment, rentals, onFinished }: { payment: Payment | null, rentals: Rental[], onFinished: () => void }) {
+  const { toast } = useToast();
+  const { firestore } = useFirebase();
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  const getSafeDate = (date: any): Date | undefined => {
+    if (!date) return undefined;
+    if (date.toDate) return date.toDate(); // Firestore Timestamp
+    const parsed = new Date(date);
+    return isNaN(parsed.getTime()) ? undefined : parsed;
+  };
+
+  const defaultValues = React.useMemo(() => {
+    return payment ? {
+      ...payment,
+      paymentDate: getSafeDate(payment.paymentDate),
+    } : {
+      rentalId: "",
+      amount: undefined,
+      paymentDate: new Date(),
+      paymentMethod: "Especes" as const,
+      status: "complete" as const,
+    }
+  }, [payment]);
+
+  const form = useForm<PaymentFormValues>({
+    resolver: zodResolver(paymentFormSchema),
+    mode: "onChange",
+    defaultValues: defaultValues as any,
+  });
+
+  const selectedRentalId = form.watch("rentalId");
+  const selectedRental = React.useMemo(() => {
+    return rentals.find(r => r.id === selectedRentalId);
+  }, [selectedRentalId, rentals]);
+
+  const onSubmit = (data: PaymentFormValues) => {
+    if (!firestore || !selectedRental) return;
+    setIsSubmitting(true);
+
+    const paymentId = payment?.id || doc(collection(firestore, 'payments')).id;
+    const isNewPayment = !payment;
+
+    const paymentPayload = {
+      ...data,
+      clientName: selectedRental.locataire.nomPrenom,
+    };
+
+    const paymentRef = doc(firestore, 'payments', paymentId);
+    
+    setDoc(paymentRef, paymentPayload, { merge: !isNewPayment })
+      .then(() => {
+        toast({
+          title: isNewPayment ? "Paiement ajouté" : "Paiement mis à jour",
+          description: `Le paiement de ${formatCurrency(paymentPayload.amount, 'MAD')} a été enregistré.`,
+        });
+        onFinished();
+      })
+      .catch((serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: paymentRef.path,
+          operation: isNewPayment ? 'create' : 'update',
+          requestResourceData: paymentPayload
+        }, serverError as Error);
+        errorEmitter.emit('permission-error', permissionError);
+
+        toast({
+          variant: "destructive",
+          title: "Une erreur est survenue",
+          description: "Impossible de sauvegarder le paiement. Vérifiez vos permissions et réessayez.",
+        });
+      }).finally(() => {
+        setIsSubmitting(false);
+      });
+  };
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-4">
+        <FormField
+          control={form.control}
+          name="rentalId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Contrat de location</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!payment}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un contrat" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {rentals.map(rental => (
+                    <SelectItem key={rental.id} value={rental.id}>
+                      {rental.locataire.nomPrenom} - {rental.vehicule.marque} ({rental.id.substring(0, 6).toUpperCase()})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedRental && (
+                <FormDescription>
+                  Client: {selectedRental.locataire.nomPrenom}. Montant total: {formatCurrency(selectedRental.location.montantAPayer, 'MAD')}
+                </FormDescription>
+              )}
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="amount"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Montant (MAD)</FormLabel>
+              <FormControl>
+                <Input type="number" placeholder="300" {...field} value={field.value ?? ''} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="paymentDate"
+          render={({ field }) => (
+              <FormItem className="flex flex-col">
+              <FormLabel>Date du paiement</FormLabel>
+              <Popover>
+                  <PopoverTrigger asChild>
+                  <FormControl>
+                      <Button
+                      variant={"outline"}
+                      className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
+                      >
+                      {field.value ? (format(field.value, "PPP", { locale: fr })) : (<span>Choisir une date</span>)}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                  </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus locale={fr}/>
+                  </PopoverContent>
+              </Popover>
+              <FormMessage />
+              </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="paymentMethod"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Méthode de paiement</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choisir une méthode" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="Especes">Espèces</SelectItem>
+                  <SelectItem value="Carte bancaire">Carte bancaire</SelectItem>
+                  <SelectItem value="Virement">Virement</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="status"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Statut</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choisir un statut" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="complete">Complété</SelectItem>
+                  <SelectItem value="en_attente">En attente</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isSubmitting}>
+          {isSubmitting ? 'Enregistrement...' : (payment ? 'Mettre à jour' : 'Ajouter le paiement')}
+        </Button>
+      </form>
+    </Form>
+  );
+}
