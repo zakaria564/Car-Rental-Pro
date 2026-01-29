@@ -14,7 +14,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { PlusCircle, ArrowUpDown, ChevronDown, MoreHorizontal, User } from "lucide-react";
+import { PlusCircle, ArrowUpDown, ChevronDown, MoreHorizontal, User, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -91,20 +91,22 @@ function ClientDetails({ client }: { client: Client }) {
         {client.otherPhotos && client.otherPhotos.length > 0 && (
           <div className="space-y-2 pt-4 border-t">
             <p className="text-sm font-medium">Autres Photos</p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {client.otherPhotos.map((photoUrl, index) => (
-                photoUrl && (
-                  <a key={index} href={photoUrl} target="_blank" rel="noopener noreferrer" className="relative aspect-video block hover:opacity-80 transition-opacity">
-                      <Image
-                          src={photoUrl}
-                          alt={`Autre photo ${index + 1}`}
-                          fill
-                          className="rounded-md object-cover"
-                          data-ai-hint="client document"
-                      />
-                  </a>
-                )
-              ))}
+            <div className="overflow-x-auto pb-2">
+              <div className="flex w-max space-x-2">
+                {client.otherPhotos.map((photoUrl, index) => (
+                  photoUrl && (
+                    <a key={index} href={photoUrl} target="_blank" rel="noopener noreferrer" className="relative block h-20 w-28 flex-shrink-0 rounded-md overflow-hidden bg-muted hover:opacity-80 transition-opacity">
+                        <Image
+                            src={photoUrl}
+                            alt={`Autre photo ${index + 1}`}
+                            fill
+                            className="object-cover"
+                            data-ai-hint="client document"
+                        />
+                    </a>
+                  )
+                ))}
+              </div>
             </div>
           </div>
         )}
