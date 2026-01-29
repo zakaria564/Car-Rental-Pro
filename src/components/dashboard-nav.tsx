@@ -14,7 +14,7 @@ const navItems = [
   { href: '/dashboard/cars', icon: Car, label: 'Voitures' },
   { href: '/dashboard/clients', icon: Users, label: 'Clients' },
   { href: '/dashboard/rentals', icon: KeyRound, label: 'Contrats' },
-  { href: '/dashboard/payments', icon: CreditCard, label: 'Paiements' },
+  { href: '/dashboard/payments', icon: CreditCard, label: 'Comptabilité' },
 ];
 
 export function DashboardNav() {

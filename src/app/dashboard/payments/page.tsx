@@ -114,7 +114,7 @@ export default function PaymentsPage() {
 
   return (
     <Sheet open={isSheetOpen} onOpenChange={handleSheetOpenChange}>
-        <DashboardHeader title="Paiements" description="Gérez et suivez tous les paiements de location.">
+        <DashboardHeader title="Comptabilité" description="Suivez la situation financière de vos contrats.">
             <SheetTrigger asChild>
                 <Button className="bg-primary hover:bg-primary/90" onClick={() => setRentalIdForNewPayment(null)}>
                     <PlusCircle className="mr-2 h-4 w-4" /> Ajouter un paiement
@@ -153,7 +153,11 @@ export default function PaymentsPage() {
                 <AlertDescription>{error}</AlertDescription>
             </Alert>
         ) : (
-            <PaymentTable payments={payments} onAddPaymentForRental={handleAddPaymentForRental} />
+            <PaymentTable 
+              rentals={rentals} 
+              payments={payments} 
+              onAddPaymentForRental={handleAddPaymentForRental} 
+            />
         )}
 
         <SheetContent className="sm:max-w-md">

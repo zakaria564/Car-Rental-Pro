@@ -13,7 +13,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ArrowUpDown, MoreHorizontal, Printer, FileText, DollarSign } from "lucide-react";
+import { ArrowUpDown, MoreHorizontal, Printer, FileText, DollarSign, History } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -28,50 +28,75 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import type { Payment } from "@/lib/definitions";
+import type { Payment, Rental } from "@/lib/definitions";
 import { formatCurrency, cn } from "@/lib/utils";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from "../ui/dropdown-menu";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "../ui/alert-dialog";
-import { useFirebase } from "@/firebase";
-import { deleteDoc, doc } from "firebase/firestore";
-import { useToast } from "@/hooks/use-toast";
-import { errorEmitter } from "@/firebase/error-emitter";
-import { FirestorePermissionError } from "@/firebase/errors";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "../ui/dropdown-menu";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "../ui/dialog";
 import { Invoice } from "./invoice";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-export default function PaymentTable({ payments, onAddPaymentForRental }: { payments: Payment[], onAddPaymentForRental: (rentalId: string) => void }) {
+// New component for the payment history dialog
+const PaymentHistoryDialog = ({ rental, payments, onPrintInvoice }: {
+  rental: Rental;
+  payments: Payment[];
+  onPrintInvoice: (payment: Payment) => void;
+}) => {
+  return (
+    <DialogContent className="sm:max-w-2xl">
+      <DialogHeader>
+        <DialogTitle>Historique des paiements</DialogTitle>
+        <DialogDescription>
+          Contrat {rental.id.substring(0,8).toUpperCase()} pour {rental.locataire.nomPrenom}
+        </DialogDescription>
+      </DialogHeader>
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Date</TableHead>
+              <TableHead>Méthode</TableHead>
+              <TableHead className="text-right">Montant</TableHead>
+              <TableHead><span className="sr-only">Actions</span></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {payments.length > 0 ? payments.map(p => (
+              <TableRow key={p.id}>
+                <TableCell>{p.paymentDate?.toDate ? format(p.paymentDate.toDate(), "dd/MM/yyyy", { locale: fr }) : 'N/A'}</TableCell>
+                <TableCell>{p.paymentMethod}</TableCell>
+                <TableCell className="text-right">{formatCurrency(p.amount, 'MAD')}</TableCell>
+                <TableCell className="text-right">
+                  <Button variant="ghost" size="sm" onClick={() => onPrintInvoice(p)}>
+                    <FileText className="h-4 w-4 mr-2" />
+                    Facture
+                  </Button>
+                </TableCell>
+              </TableRow>
+            )) : (
+              <TableRow>
+                <TableCell colSpan={4} className="h-24 text-center">Aucun paiement enregistré pour ce contrat.</TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </DialogContent>
+  )
+};
+
+export default function PaymentTable({ rentals, payments, onAddPaymentForRental }: { 
+  rentals: Rental[], 
+  payments: Payment[], 
+  onAddPaymentForRental: (rentalId: string) => void 
+}) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const { firestore } = useFirebase();
-  const { toast } = useToast();
-  const [selectedPayment, setSelectedPayment] = React.useState<Payment | null>(null);
+  
+  const [selectedPaymentForInvoice, setSelectedPaymentForInvoice] = React.useState<Payment | null>(null);
   const [isInvoiceOpen, setIsInvoiceOpen] = React.useState(false);
-
-  const handleDeletePayment = async (paymentId: string) => {
-    if (!firestore) return;
-    const paymentDocRef = doc(firestore, 'payments', paymentId);
-    
-    try {
-        await deleteDoc(paymentDocRef);
-        toast({
-          title: "Paiement supprimé",
-          description: "Le paiement a été supprimé de la base de données.",
-        });
-    } catch(serverError) {
-      const permissionError = new FirestorePermissionError({
-          path: paymentDocRef.path,
-          operation: 'delete'
-      }, serverError as Error);
-      errorEmitter.emit('permission-error', permissionError);
-      toast({
-        variant: "destructive",
-        title: "Erreur de suppression",
-        description: "Vous n'avez pas la permission de supprimer ce paiement.",
-      });
-    }
-  };
+  const [selectedRentalForHistory, setSelectedRentalForHistory] = React.useState<Rental | null>(null);
+  const [isHistoryOpen, setIsHistoryOpen] = React.useState(false);
+  const { toast } = useToast();
 
   const handlePrintInvoice = () => {
     const printContent = document.getElementById('printable-invoice');
@@ -122,16 +147,25 @@ export default function PaymentTable({ payments, onAddPaymentForRental }: { paym
       }, 500);
     };
   };
+  
+  const openInvoice = (payment: Payment) => {
+    setSelectedPaymentForInvoice(payment);
+    setIsInvoiceOpen(true);
+  }
+  
+  const openHistory = (rental: Rental) => {
+    setSelectedRentalForHistory(rental);
+    setIsHistoryOpen(true);
+  }
 
-
-  const columns: ColumnDef<Payment>[] = [
+  const columns: ColumnDef<Rental>[] = [
     {
-      accessorKey: "rentalId",
+      accessorKey: "id",
       header: "Contrat ID",
-      cell: ({ row }) => <div className="font-mono text-xs">{row.original.rentalId?.substring(0, 8).toUpperCase()}</div>,
+      cell: ({ row }) => <div className="font-mono text-xs">{row.original.id?.substring(0, 8).toUpperCase()}</div>,
     },
     {
-      accessorKey: "clientName",
+      accessorKey: "locataire.nomPrenom",
       header: ({ column }) => (
         <Button
           variant="ghost"
@@ -141,51 +175,79 @@ export default function PaymentTable({ payments, onAddPaymentForRental }: { paym
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       ),
-      cell: ({ row }) => <div className="font-medium">{row.getValue("clientName")}</div>,
+      cell: ({ row }) => <div className="font-medium">{row.original.locataire.nomPrenom}</div>,
     },
     {
-      accessorKey: "paymentDate",
-      header: "Date de paiement",
-      cell: ({ row }) => {
-          const date = row.original.paymentDate;
-          if (date && date.toDate) {
-            return format(date.toDate(), "dd/MM/yyyy", { locale: fr });
-          }
-          return "N/A";
-      }
+        accessorKey: "vehicule.marque",
+        header: "Voiture",
     },
     {
-      accessorKey: "amount",
-      header: () => <div className="text-right">Montant</div>,
+      accessorKey: "location.montantTotal",
+      header: () => <div className="text-right">Montant Total</div>,
       cell: ({ row }) => (
         <div className="text-right font-medium">
-          {formatCurrency(row.original.amount, 'MAD')}
+          {formatCurrency(row.original.location.montantTotal, 'MAD')}
         </div>
       ),
     },
     {
-      accessorKey: "paymentMethod",
-      header: "Méthode",
-    },
-    {
-      accessorKey: "status",
-      header: "Statut",
+      accessorKey: "location.montantPaye",
+      header: () => <div className="text-right">Montant Payé</div>,
       cell: ({ row }) => (
-        <Badge variant={row.getValue("status") === 'complete' ? 'default' : 'outline'} className={cn(
-            row.getValue("status") === 'complete' && "bg-green-100 text-green-800",
-            row.getValue("status") === 'en_attente' && "bg-yellow-100 text-yellow-800"
-        )}>
-          {row.getValue("status") === 'complete' ? "Complété" : "En attente"}
-        </Badge>
+        <div className="text-right font-medium text-green-600">
+          {formatCurrency(row.original.location.montantPaye || 0, 'MAD')}
+        </div>
       ),
     },
+    {
+      id: 'resteAPayer',
+      header: () => <div className="text-right">Reste à Payer</div>,
+      cell: ({ row }) => {
+        const reste = row.original.location.montantTotal - (row.original.location.montantPaye || 0);
+        return (
+            <div className={cn("text-right font-bold", reste > 0 ? "text-destructive" : "text-muted-foreground")}>
+                {formatCurrency(reste, 'MAD')}
+            </div>
+        )
+      }
+    },
+    {
+        id: 'paymentStatus',
+        header: "Statut Paiement",
+        cell: ({ row }) => {
+          const total = row.original.location.montantTotal;
+          const paye = row.original.location.montantPaye || 0;
+          const reste = total - paye;
+          
+          let status: 'Payé' | 'Paiement Partiel' | 'Non Payé' | 'Avance' = 'Non Payé';
+          let variant: "default" | "destructive" | "outline" | "secondary" = "destructive";
+
+          if (reste <= 0 && total > 0) {
+            status = 'Payé';
+            variant = 'default';
+          } else if (paye > 0 && reste > 0) {
+            status = 'Paiement Partiel';
+            variant = 'secondary';
+          }
+          
+          return (
+            <Badge variant={variant} className={cn(
+              status === 'Payé' && "bg-green-100 text-green-800 border-green-300",
+              status === 'Paiement Partiel' && "bg-yellow-100 text-yellow-800 border-yellow-300",
+              status === 'Non Payé' && "bg-red-100 text-red-800 border-red-300"
+            )}>
+              {status}
+            </Badge>
+          );
+        },
+      },
      {
       id: "actions",
       enableHiding: false,
       cell: ({ row }) => {
-        const payment = row.original;
+        const rental = row.original;
+        const reste = rental.location.montantTotal - (rental.location.montantPaye || 0);
         return (
-          <AlertDialog>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="h-8 w-8 p-0">
@@ -195,43 +257,25 @@ export default function PaymentTable({ payments, onAddPaymentForRental }: { paym
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => {
-                  setSelectedPayment(payment);
-                  setIsInvoiceOpen(true);
-                }}>
-                  <FileText className="mr-2 h-4 w-4" />
-                  Voir la facture
+                {reste > 0 && 
+                  <DropdownMenuItem onClick={() => onAddPaymentForRental(rental.id)}>
+                    <DollarSign className="mr-2 h-4 w-4" />
+                    <span>Encaisser un paiement</span>
+                  </DropdownMenuItem>
+                }
+                <DropdownMenuItem onClick={() => openHistory(rental)}>
+                  <History className="mr-2 h-4 w-4" />
+                  Historique des paiements
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onAddPaymentForRental(payment.rentalId)}>
-                  <DollarSign className="mr-2 h-4 w-4" />
-                  <span>Encaisser un paiement</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                 <AlertDialogTrigger asChild>
-                    <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">Supprimer</DropdownMenuItem>
-                  </AlertDialogTrigger>
               </DropdownMenuContent>
             </DropdownMenu>
-             <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Êtes-vous absolument sûr?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Cette action est irréversible. Ce paiement sera définitivement supprimé.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Annuler</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => handleDeletePayment(payment.id)} className="bg-destructive hover:bg-destructive/90">Supprimer</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-          </AlertDialog>
         );
       },
     },
   ];
 
   const table = useReactTable({
-    data: payments,
+    data: rentals,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -251,9 +295,9 @@ export default function PaymentTable({ payments, onAddPaymentForRental }: { paym
             <div className="flex items-center py-4 gap-2">
                 <Input
                 placeholder="Filtrer par client..."
-                value={(table.getColumn("clientName")?.getFilterValue() as string) ?? ""}
+                value={(table.getColumn("locataire.nomPrenom")?.getFilterValue() as string) ?? ""}
                 onChange={(event) =>
-                    table.getColumn("clientName")?.setFilterValue(event.target.value)
+                    table.getColumn("locataire.nomPrenom")?.setFilterValue(event.target.value)
                 }
                 className="max-w-sm"
                 />
@@ -301,7 +345,7 @@ export default function PaymentTable({ payments, onAddPaymentForRental }: { paym
                         colSpan={columns.length}
                         className="h-24 text-center"
                     >
-                        Aucun paiement trouvé.
+                        Aucun contrat trouvé.
                     </TableCell>
                     </TableRow>
                 )}
@@ -327,17 +371,31 @@ export default function PaymentTable({ payments, onAddPaymentForRental }: { paym
             </Button>
             </div>
         </div>
+        
+        <Dialog open={isHistoryOpen} onOpenChange={(open) => {
+            setIsHistoryOpen(open);
+            if (!open) setSelectedRentalForHistory(null);
+        }}>
+          {selectedRentalForHistory && (
+            <PaymentHistoryDialog 
+              rental={selectedRentalForHistory} 
+              payments={payments.filter(p => p.rentalId === selectedRentalForHistory.id)}
+              onPrintInvoice={openInvoice}
+            />
+          )}
+        </Dialog>
+        
         <Dialog open={isInvoiceOpen} onOpenChange={(open) => {
             setIsInvoiceOpen(open);
-            if (!open) setSelectedPayment(null);
+            if (!open) setSelectedPaymentForInvoice(null);
             }}>
-            {selectedPayment && (
+            {selectedPaymentForInvoice && (
                 <DialogContent className="sm:max-w-3xl">
                     <DialogHeader>
-                        <DialogTitle>Facture N° {selectedPayment.id?.substring(0,8).toUpperCase()}</DialogTitle>
+                        <DialogTitle>Facture N° {selectedPaymentForInvoice.id?.substring(0,8).toUpperCase()}</DialogTitle>
                     </DialogHeader>
                     <ScrollArea className="h-[75vh]">
-                      <Invoice payment={selectedPayment} />
+                      <Invoice payment={selectedPaymentForInvoice} />
                     </ScrollArea>
                     <DialogFooter className="no-print">
                     <Button variant="outline" onClick={handlePrintInvoice}>
