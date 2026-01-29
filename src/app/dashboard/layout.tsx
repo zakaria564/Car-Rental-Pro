@@ -1,5 +1,5 @@
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -57,7 +57,6 @@ export default function DashboardLayout({
             <DropdownMenuTrigger asChild>
               <Button variant="secondary" size="icon" className="rounded-full">
                 <Avatar>
-                  <AvatarImage src="https://i.pravatar.cc/150?u=a042581f4e29026024d" />
                   <AvatarFallback>AD</AvatarFallback>
                 </Avatar>
                 <span className="sr-only">Menu utilisateur</span>
