@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,7 @@ import { FirestorePermissionError } from "@/firebase/errors";
 import { format } from "date-fns";
 import React from "react";
 import Image from "next/image";
+import { Plus, Trash2 } from "lucide-react";
 
 
 const clientFormSchema = z.object({
@@ -37,6 +38,7 @@ const clientFormSchema = z.object({
   telephone: z.string().min(10, "Le numéro de téléphone semble incorrect."),
   adresse: z.string().min(10, "L'adresse est trop courte."),
   photoCIN: z.any().optional(),
+  otherPhotos: z.array(z.object({ url: z.string().url("URL invalide.").or(z.literal('')) })).optional(),
 });
 
 type ClientFormValues = z.infer<typeof clientFormSchema>;
@@ -57,6 +59,7 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
   const defaultValues: Partial<ClientFormValues> = client ? {
     ...client,
     permisDateDelivrance: getSafeDate(client.permisDateDelivrance),
+    otherPhotos: client.otherPhotos ? client.otherPhotos.map(url => ({ url })) : [],
   } : {
     nom: "",
     cin: "",
@@ -65,6 +68,7 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
     telephone: "",
     adresse: "",
     photoCIN: undefined,
+    otherPhotos: [],
   };
 
   const form = useForm<ClientFormValues>({
@@ -73,11 +77,17 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
     mode: "onChange",
   });
   
+  const { control } = form;
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "otherPhotos"
+  });
+
   const photoCINRef = form.register("photoCIN");
 
   async function onSubmit(data: ClientFormValues) {
     setIsSubmitting(true);
-    const { photoCIN, ...clientDataWithoutPhoto } = data;
+    const { photoCIN, otherPhotos, ...clientDataWithoutPhoto } = data;
 
     const clientId = client?.id || doc(collection(firestore, 'clients')).id;
     const isNewClient = !client;
@@ -102,10 +112,13 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
             return;
         }
     }
+    
+    const photoUrls = otherPhotos ? otherPhotos.map(p => p.url).filter(Boolean) : [];
 
     const clientPayload = {
       ...clientDataWithoutPhoto,
       photoCIN: finalPhotoUrl,
+      otherPhotos: photoUrls,
       ...(isNewClient ? { createdAt: serverTimestamp() } : { createdAt: client.createdAt }),
     };
 
@@ -243,6 +256,56 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
           </FormDescription>
           <FormMessage />
         </FormItem>
+
+        <FormItem>
+          <FormLabel>Autres Photos</FormLabel>
+          <div className="space-y-2">
+            {fields.map((item, index) => (
+              <FormField
+                key={item.id}
+                control={control}
+                name={`otherPhotos.${index}.url`}
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex items-center gap-1">
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder="https://exemple.com/photo.jpg"
+                          className="h-9"
+                        />
+                      </FormControl>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        title="Supprimer l'URL"
+                        className="h-9 w-9 shrink-0 text-destructive"
+                        onClick={() => remove(index)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ))}
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => append({ url: '' })}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Ajouter une URL de photo
+            </Button>
+          </div>
+          <FormDescription>
+            Ajoutez des URLs pour d'autres photos pertinentes (ex: permis, passeport).
+          </FormDescription>
+        </FormItem>
+
         <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isSubmitting}>
           {isSubmitting ? 'Enregistrement...' : (client ? 'Mettre à jour le client' : 'Ajouter un client')}
         </Button>

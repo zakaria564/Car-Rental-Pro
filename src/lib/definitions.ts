@@ -33,6 +33,7 @@ export type Client = {
   createdAt: any; // Can be Timestamp
   permisNo?: string;
   permisDateDelivrance?: any;
+  otherPhotos?: string[];
 };
 
 export const damageTypes = {

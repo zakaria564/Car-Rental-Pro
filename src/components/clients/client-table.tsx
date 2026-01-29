@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -39,7 +38,7 @@ import type { Client } from "@/lib/definitions";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import ClientForm from "./client-form";
 import { ScrollArea } from "../ui/scroll-area";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "../ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../ui/alert-dialog";
 import { useFirebase } from "@/firebase";
 import { deleteDoc, doc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
@@ -55,36 +54,58 @@ function ClientDetails({ client }: { client: Client }) {
   const safePermisDate = client.permisDateDelivrance?.toDate ? format(client.permisDateDelivrance.toDate(), "dd/MM/yyyy", { locale: fr }) : 'N/A';
 
   return (
-    <div className="space-y-4 pt-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
-        <div className="space-y-1 text-sm">
-          <p><strong>Nom:</strong> {client.nom}</p>
-          <p><strong>CIN:</strong> {client.cin}</p>
-          <p><strong>Téléphone:</strong> {client.telephone}</p>
-          <p><strong>Adresse:</strong> {client.adresse}</p>
-          <p><strong>N° Permis:</strong> {client.permisNo || 'N/A'}</p>
-          <p><strong>Délivré le:</strong> {safePermisDate}</p>
+    <ScrollArea className="max-h-[70vh] pr-4">
+      <div className="space-y-4 pt-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
+          <div className="space-y-1 text-sm">
+            <p><strong>Nom:</strong> {client.nom}</p>
+            <p><strong>CIN:</strong> {client.cin}</p>
+            <p><strong>Téléphone:</strong> {client.telephone}</p>
+            <p><strong>Adresse:</strong> {client.adresse}</p>
+            <p><strong>N° Permis:</strong> {client.permisNo || 'N/A'}</p>
+            <p><strong>Délivré le:</strong> {safePermisDate}</p>
+          </div>
+          <div className="space-y-2">
+              <p className="text-sm font-medium">Photo de la CIN</p>
+              <div className="relative w-full aspect-[16/10] rounded-md overflow-hidden border bg-muted">
+                  {client.photoCIN && client.photoCIN.startsWith('http') ? (
+                      <Image 
+                          src={client.photoCIN} 
+                          alt={`CIN de ${client.nom}`} 
+                          fill 
+                          className="object-cover"
+                          data-ai-hint="id card"
+                      />
+                  ) : (
+                      <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                          Pas d'image
+                      </div>
+                  )}
+              </div>
+          </div>
         </div>
-        <div className="space-y-2">
-            <p className="text-sm font-medium">Photo de la CIN</p>
-            <div className="relative w-full aspect-[16/10] rounded-md overflow-hidden border bg-muted">
-                {client.photoCIN && client.photoCIN.startsWith('http') ? (
-                    <Image 
-                        src={client.photoCIN} 
-                        alt={`CIN de ${client.nom}`} 
-                        fill 
-                        className="object-cover"
-                        data-ai-hint="id card"
-                    />
-                ) : (
-                    <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                        Pas d'image
-                    </div>
-                )}
+        {client.otherPhotos && client.otherPhotos.length > 0 && (
+          <div className="space-y-2 pt-4 border-t">
+            <p className="text-sm font-medium">Autres Photos</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {client.otherPhotos.map((photoUrl, index) => (
+                photoUrl && (
+                  <a key={index} href={photoUrl} target="_blank" rel="noopener noreferrer" className="relative aspect-video block hover:opacity-80 transition-opacity">
+                      <Image
+                          src={photoUrl}
+                          alt={`Autre photo ${index + 1}`}
+                          fill
+                          className="rounded-md object-cover"
+                          data-ai-hint="client document"
+                      />
+                  </a>
+                )
+              ))}
             </div>
-        </div>
+          </div>
+        )}
       </div>
-    </div>
+    </ScrollArea>
   );
 }
 

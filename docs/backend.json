@@ -44,6 +44,14 @@
         "telephone": { "type": "string" },
         "adresse": { "type": "string" },
         "photoCIN": { "type": "string", "format": "uri" },
+        "otherPhotos": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri"
+          },
+          "description": "A list of other photo URLs for the client."
+        },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["nom", "cin", "telephone", "adresse"]
