@@ -18,9 +18,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import type { Payment, Rental } from "@/lib/definitions";
 import { useFirebase } from "@/firebase";
-import { collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { collection, doc, serverTimestamp, runTransaction } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
-import { FirestorePermissionError } from "@/firebase/errors";
 import React from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { CalendarIcon } from "lucide-react";
@@ -75,44 +74,55 @@ export default function PaymentForm({ payment, rentals, onFinished }: { payment:
     return rentals.find(r => r.id === selectedRentalId);
   }, [selectedRentalId, rentals]);
 
-  const onSubmit = (data: PaymentFormValues) => {
+  async function onSubmit(data: PaymentFormValues) {
     if (!firestore || !selectedRental) return;
     setIsSubmitting(true);
 
     const paymentId = payment?.id || doc(collection(firestore, 'payments')).id;
     const isNewPayment = !payment;
-
-    const paymentPayload = {
-      ...data,
-      clientName: selectedRental.locataire.nomPrenom,
-    };
-
+    const rentalRef = doc(firestore, 'rentals', selectedRental.id);
     const paymentRef = doc(firestore, 'payments', paymentId);
-    
-    setDoc(paymentRef, paymentPayload, { merge: !isNewPayment })
-      .then(() => {
+
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            const rentalDoc = await transaction.get(rentalRef);
+            if (!rentalDoc.exists()) {
+                throw "Contrat de location introuvable.";
+            }
+
+            const currentRentalData = rentalDoc.data() as Rental;
+            const currentPaidAmount = currentRentalData.location.montantPaye || 0;
+            const newPaidAmount = currentPaidAmount + data.amount;
+
+            // 1. Create the payment document payload
+            const paymentPayload = {
+              ...data,
+              clientName: selectedRental.locataire.nomPrenom,
+            };
+            
+            // 2. Set the new payment document
+            transaction.set(paymentRef, paymentPayload, { merge: !isNewPayment });
+
+            // 3. Update the rental document
+            transaction.update(rentalRef, { 'location.montantPaye': newPaidAmount });
+        });
+
         toast({
           title: isNewPayment ? "Paiement ajouté" : "Paiement mis à jour",
-          description: `Le paiement de ${formatCurrency(paymentPayload.amount, 'MAD')} a été enregistré.`,
+          description: `Le paiement de ${formatCurrency(data.amount, 'MAD')} a été enregistré.`,
         });
         onFinished();
-      })
-      .catch((serverError) => {
-        const permissionError = new FirestorePermissionError({
-          path: paymentRef.path,
-          operation: isNewPayment ? 'create' : 'update',
-          requestResourceData: paymentPayload
-        }, serverError as Error);
-        errorEmitter.emit('permission-error', permissionError);
-
+    } catch (error) {
+        console.error("Erreur de transaction:", error);
+        errorEmitter.emit('permission-error', new Error("Une erreur de permission ou de transaction est survenue."));
         toast({
           variant: "destructive",
           title: "Une erreur est survenue",
-          description: "Impossible de sauvegarder le paiement. Vérifiez vos permissions et réessayez.",
+          description: typeof error === 'string' ? error : "Impossible de sauvegarder le paiement. Vérifiez vos permissions et réessayez.",
         });
-      }).finally(() => {
+    } finally {
         setIsSubmitting(false);
-      });
+    }
   };
 
   return (
@@ -140,7 +150,7 @@ export default function PaymentForm({ payment, rentals, onFinished }: { payment:
               </Select>
               {selectedRental && (
                 <FormDescription>
-                  Client: {selectedRental.locataire.nomPrenom}. Montant total: {formatCurrency(selectedRental.location.montantAPayer, 'MAD')}
+                  Client: {selectedRental.locataire.nomPrenom}. Montant total: {formatCurrency(selectedRental.location.montantTotal, 'MAD')}
                 </FormDescription>
               )}
               <FormMessage />

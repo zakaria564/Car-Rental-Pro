@@ -460,7 +460,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                 receptionInspectionId: receptionInspectionId,
                 'location.dateFin': data.dateRetour,
                 'location.nbrJours': finalRentalDays,
-                'location.montantAPayer': finalAmountToPay,
+                'location.montantTotal': finalAmountToPay,
                 statut: 'terminee' as 'terminee',
             };
 
@@ -485,7 +485,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             const updatePayload = {
                 'location.dateFin': dateRange.to,
                 'location.nbrJours': finalRentalDays,
-                'location.montantAPayer': finalAmountToPay,
+                'location.montantTotal': finalAmountToPay,
             };
 
             await updateDoc(rentalRef, updatePayload);
@@ -554,7 +554,8 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                     prixParJour: selectedCar.prixParJour,
                     nbrJours: rentalDays,
                     depot: caution || 0,
-                    montantAPayer: totalAmount,
+                    montantTotal: totalAmount,
+                    montantPaye: 0,
                 },
                 statut: 'en_cours' as 'en_cours',
                 createdAt: serverTimestamp(),
@@ -1075,7 +1076,13 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             <CardContent className="space-y-2 text-sm">
                 <div className="flex justify-between"><span>Prix par jour :</span> <span className="font-medium">{formatCurrency(displayPricePerDay, 'MAD')}</span></div>
                 <div className="flex justify-between"><span>Durée de la location :</span> <span className="font-medium">{rentalDaysForUI} jour(s)</span></div>
-                <div className="flex justify-between font-semibold text-lg"><span>Montant à Payer :</span> <span>{formatCurrency(prixTotalForUI, 'MAD')}</span></div>
+                <div className="flex justify-between font-semibold"><span>Montant Total :</span> <span>{formatCurrency(prixTotalForUI, 'MAD')}</span></div>
+                 {mode !== 'new' && rental && (
+                    <>
+                        <div className="flex justify-between text-green-600"><span>Montant Payé :</span> <span className="font-medium">{formatCurrency(rental.location.montantPaye || 0, 'MAD')}</span></div>
+                        <div className="flex justify-between font-bold text-lg text-destructive"><span>Reste à Payer :</span> <span>{formatCurrency(prixTotalForUI - (rental.location.montantPaye || 0), 'MAD')}</span></div>
+                    </>
+                )}
             </CardContent>
         </Card>
 

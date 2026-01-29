@@ -137,7 +137,8 @@ export type Rental = {
     prixParJour: number;
     nbrJours: number;
     depot?: number;
-    montantAPayer: number;
+    montantTotal: number;
+    montantPaye?: number;
   };
   statut: 'en_cours' | 'terminee';
   createdAt: any; // Timestamp

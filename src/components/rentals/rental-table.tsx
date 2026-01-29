@@ -300,11 +300,13 @@ function RentalDetails({ rental }: { rental: Rental }) {
                             <div><strong>Début:</strong> {safeDebutDate ? format(safeDebutDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</div>
                             <div><strong>Fin Prévue:</strong> {safeFinDate ? format(safeFinDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</div>
                             <div><strong>Durée:</strong> {rental.location.nbrJours} jour(s)</div>
-                                {rental.statut !== 'terminee' && (
-                                <div><strong>Dépôt de Caution:</strong> {formatCurrency(rental.location.depot || 0, 'MAD')}</div>
-                            )}
+                            <div><strong>Dépôt de Caution:</strong> {formatCurrency(rental.location.depot || 0, 'MAD')}</div>
                         </div>
-                        <div className="font-bold text-base mt-auto pt-2 border-t"><strong>Prix Total:</strong> {formatCurrency(rental.location.montantAPayer, 'MAD')}</div>
+                        <div className="space-y-1 mt-auto pt-2 border-t">
+                            <div className="flex justify-between"><span>Montant Total:</span> <span className="font-medium">{formatCurrency(rental.location.montantTotal, 'MAD')}</span></div>
+                            <div className="flex justify-between text-green-600"><span>Montant Payé:</span> <span className="font-medium">{formatCurrency(rental.location.montantPaye || 0, 'MAD')}</span></div>
+                            <div className="flex justify-between font-bold"><span>Reste à Payer:</span> <span>{formatCurrency(rental.location.montantTotal - (rental.location.montantPaye || 0), 'MAD')}</span></div>
+                        </div>
                     </div>
                 </div>
 
@@ -507,13 +509,26 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       }
     },
     {
-      accessorKey: "location.montantAPayer",
-      header: () => <div className="text-right">Prix Total</div>,
+      accessorKey: "location.montantTotal",
+      header: () => <div className="text-right">Montant Total</div>,
       cell: ({ row }) => (
         <div className="text-right font-medium">
-          {formatCurrency(row.original.location.montantAPayer, 'MAD')}
+          {formatCurrency(row.original.location.montantTotal, 'MAD')}
         </div>
       ),
+    },
+    {
+      accessorKey: "location.montantPaye",
+      header: () => <div className="text-right">Reste à Payer</div>,
+      cell: ({ row }) => {
+          const rental = row.original;
+          const reste = rental.location.montantTotal - (rental.location.montantPaye || 0);
+          return (
+            <div className={cn("text-right font-medium", reste > 0 && "text-destructive")}>
+              {formatCurrency(reste, 'MAD')}
+            </div>
+          )
+      }
     },
     {
       accessorKey: "statut",
@@ -788,3 +803,4 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
 }
 
     
+

@@ -138,7 +138,8 @@
             "prixParJour": { "type": "number" },
             "nbrJours": { "type": "number" },
             "depot": { "type": "number" },
-            "montantAPayer": { "type": "number" }
+            "montantTotal": { "type": "number", "description": "Montant total de la location." },
+            "montantPaye": { "type": "number", "description": "Montant déjà payé par le client." }
           }
         },
         "statut": { "type": "string", "enum": ["en_cours", "terminee"] },
