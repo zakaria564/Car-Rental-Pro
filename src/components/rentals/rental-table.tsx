@@ -98,8 +98,9 @@ const InspectionDetailsView: React.FC<{ inspectionId: string, type: 'depart' | '
     const damagesForDiagram = React.useMemo(() => {
         if (!inspection?.damages) return {};
         return inspection.damages.reduce((acc, damage) => {
-            if (damage.partName) {
-                acc[damage.partName as keyof typeof acc] = damage.damageType;
+            const partId = damage.partName as keyof typeof acc;
+            if (partId && damageTypes[damage.damageType]) {
+                acc[partId] = damage.damageType;
             }
             return acc;
         }, {} as { [key: string]: DamageType });
@@ -128,9 +129,9 @@ const InspectionDetailsView: React.FC<{ inspectionId: string, type: 'depart' | '
         <div className="space-y-2">
             <h4 className="font-bold text-base">{inspection.type === 'depart' ? 'Livraison (Départ)' : 'Réception (Retour)'}</h4>
             <div className="space-y-1">
-                <div className="flex justify-between"><span><strong>Date:</strong></span> <span>{safeInspectionDate}</span></div>
-                <div className="flex justify-between"><span><strong>Kilométrage:</strong></span> <span>{inspection.kilometrage.toLocaleString()} km</span></div>
-                <div className="flex justify-between"><span><strong>Niveau Carburant:</strong></span> <span>{inspection.carburantNiveau * 100}%</span></div>
+                <div><strong>Date:</strong> {safeInspectionDate}</div>
+                <div><strong>Kilométrage:</strong> {inspection.kilometrage.toLocaleString()} km</div>
+                <div><strong>Niveau Carburant:</strong> {inspection.carburantNiveau * 100}%</div>
             </div>
              <div className="mt-2 text-xs">
                 <strong>Check-list des accessoires:</strong>
@@ -207,51 +208,48 @@ function RentalDetails({ rental }: { rental: Rental }) {
             </div>
             
             <div className="space-y-4 flex-grow">
-                 <div className="border p-3 rounded-md">
-                    <h3 className="font-bold text-base underline mb-2">LES PARTIES</h3>
-                     <div className="md:grid md:grid-cols-2 md:gap-x-4">
+                 <div className="md:grid md:grid-cols-2 md:gap-x-4 space-y-4 md:space-y-0">
+                    <div className="border p-3 rounded-md">
+                        <h3 className="font-bold text-base underline mb-2">LES PARTIES</h3>
                         <div className="space-y-1">
                             <h4 className="font-semibold">Le Locataire (Conducteur Principal) :</h4>
-                            <div className="flex justify-between"><span><strong>Nom:</strong></span> <span>{rental.locataire.nomPrenom}</span></div>
-                            <div className="flex justify-between"><span><strong>CIN/Passeport:</strong></span> <span>{rental.locataire.cin}</span></div>
-                            <div className="flex justify-between"><span><strong>Permis N°:</strong></span> <span>{rental.locataire.permisNo}</span></div>
-                            <div className="flex justify-between"><span><strong>Téléphone:</strong></span> <span>{rental.locataire.telephone}</span></div>
+                            <div><strong>Nom:</strong> {rental.locataire.nomPrenom}</div>
+                            <div><strong>CIN/Passeport:</strong> {rental.locataire.cin}</div>
+                            <div><strong>Permis N°:</strong> {rental.locataire.permisNo}</div>
+                            <div><strong>Téléphone:</strong> {rental.locataire.telephone}</div>
                         </div>
                         {rental.conducteur2 && (
-                        <div className="space-y-1 mt-2 md:mt-0">
+                        <div className="space-y-1 mt-2">
                             <h4 className="font-semibold">Deuxième Conducteur :</h4>
-                            <div className="flex justify-between"><span><strong>Nom:</strong></span> <span>{rental.conducteur2.nomPrenom}</span></div>
-                            <div className="flex justify-between"><span><strong>CIN/Passeport:</strong></span> <span>{rental.conducteur2.cin}</span></div>
-                            <div className="flex justify-between"><span><strong>Permis N°:</strong></span> <span>{rental.conducteur2.permisNo}</span></div>
+                            <div><strong>Nom:</strong> {rental.conducteur2.nomPrenom}</div>
+                            <div><strong>CIN/Passeport:</strong> {rental.conducteur2.cin}</div>
+                            <div><strong>Permis N°:</strong> {rental.conducteur2.permisNo}</div>
                         </div>
                         )}
                     </div>
-                </div>
-
-                 <div className="border p-3 rounded-md">
-                    <h3 className="font-bold text-base underline mb-2">DÉTAILS DE LA LOCATION</h3>
-                    <div className="md:grid md:grid-cols-2 md:gap-x-4">
-                         <div className="space-y-1">
+                    <div className="border p-3 rounded-md flex flex-col">
+                        <h3 className="font-bold text-base underline mb-2">DÉTAILS DE LA LOCATION</h3>
+                        <div className="space-y-1">
                             <h4 className="font-semibold">Véhicule Loué :</h4>
-                            <div className="flex justify-between"><span><strong>Marque/Modèle:</strong></span> <span>{rental.vehicule.marque}</span></div>
-                            <div className="flex justify-between"><span><strong>Immatriculation:</strong></span> <span>{rental.vehicule.immatriculation}</span></div>
-                            <div className="flex justify-between"><span><strong>Carburant:</strong></span> <span>{rental.vehicule.carburantType}</span></div>
-                            <div className="flex justify-between"><span><strong>Transmission:</strong></span> <span>{rental.vehicule.transmission}</span></div>
+                            <div><strong>Marque/Modèle:</strong> {rental.vehicule.marque}</div>
+                            <div><strong>Immatriculation:</strong> {rental.vehicule.immatriculation}</div>
+                            <div><strong>Carburant:</strong> {rental.vehicule.carburantType}</div>
+                            <div><strong>Transmission:</strong> {rental.vehicule.transmission}</div>
                         </div>
-                         <div className="space-y-1">
+                        <div className="space-y-1 mt-2">
                             <h4 className="font-semibold">Période &amp; Coût :</h4>
-                            <div className="flex justify-between"><span><strong>Début:</strong></span> <span>{safeDebutDate ? format(safeDebutDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</span></div>
-                            <div className="flex justify-between"><span><strong>Fin Prévue:</strong></span> <span>{safeFinDate ? format(safeFinDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</span></div>
-                            <div className="flex justify-between"><span><strong>Durée:</strong></span> <span>{rental.location.nbrJours} jour(s)</span></div>
-                             {rental.statut !== 'terminee' && (
-                                <div className="flex justify-between"><span><strong>Dépôt de Caution:</strong></span> <span>{formatCurrency(rental.location.depot || 0, 'MAD')}</span></div>
+                            <div><strong>Début:</strong> {safeDebutDate ? format(safeDebutDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</div>
+                            <div><strong>Fin Prévue:</strong> {safeFinDate ? format(safeFinDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</div>
+                            <div><strong>Durée:</strong> {rental.location.nbrJours} jour(s)</div>
+                                {rental.statut !== 'terminee' && (
+                                <div><strong>Dépôt de Caution:</strong> {formatCurrency(rental.location.depot || 0, 'MAD')}</div>
                             )}
-                            <div className="flex justify-between font-bold text-base mt-2 pt-2 border-t"><span>Prix Total:</span> <span>{formatCurrency(rental.location.montantAPayer, 'MAD')}</span></div>
                         </div>
+                        <div className="font-bold text-base mt-auto pt-2 border-t"><strong>Prix Total:</strong> {formatCurrency(rental.location.montantAPayer, 'MAD')}</div>
                     </div>
                 </div>
 
-                <div className="border p-3 rounded-md">
+                 <div className="border p-3 rounded-md">
                     <h3 className="font-bold text-base mb-2 underline">ÉTAT DU VÉHICULE</h3>
                     <div className="md:grid md:grid-cols-2 md:gap-x-4">
                         <div>
