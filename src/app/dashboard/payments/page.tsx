@@ -1,3 +1,4 @@
+
 'use client';
 import { DashboardHeader } from "@/components/dashboard-header";
 import PaymentTable from "@/components/payments/payment-table";
@@ -112,7 +113,7 @@ export default function PaymentsPage() {
              {loading ? (
                 <Skeleton className="h-28 w-full md:w-1/4" />
              ) : (
-                <div className="grid gap-4 md:grid-cols-4">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <StatCard title="Revenu du mois" value={formatCurrency(monthlyRevenue, 'MAD')} icon={DollarSign} />
                 </div>
              )}
