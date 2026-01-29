@@ -166,7 +166,8 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
       cell: ({ row }) => <div className="font-mono text-xs">{row.original.id?.substring(0, 8).toUpperCase()}</div>,
     },
     {
-      accessorKey: "locataire.nomPrenom",
+      id: "client",
+      accessorFn: (row) => row.locataire.nomPrenom,
       header: ({ column }) => (
         <Button
           variant="ghost"
@@ -176,7 +177,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       ),
-      cell: ({ row }) => <div className="font-medium">{row.original.locataire.nomPrenom}</div>,
+      cell: (info) => <div className="font-medium">{info.getValue() as string}</div>,
     },
     {
         accessorKey: "vehicule.marque",
@@ -296,9 +297,9 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
             <div className="flex items-center py-4 gap-2">
                 <Input
                 placeholder="Filtrer par client..."
-                value={(table.getColumn("locataire.nomPrenom")?.getFilterValue() as string) ?? ""}
+                value={(table.getColumn("client")?.getFilterValue() as string) ?? ""}
                 onChange={(event) =>
-                    table.getColumn("locataire.nomPrenom")?.setFilterValue(event.target.value)
+                    table.getColumn("client")?.setFilterValue(event.target.value)
                 }
                 className="max-w-sm"
                 />
