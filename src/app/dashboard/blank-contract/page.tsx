@@ -9,17 +9,19 @@ export default function BlankContractPage() {
   const handlePrint = () => {
     const printStyles = `
       @media print {
-        .no-print {
-          display: none !important;
+        body * {
+          visibility: hidden;
         }
-        body > *:not(#printable-area) {
-          display: none !important;
+        .no-print, .no-print * {
+           display: none !important;
+        }
+        #printable-area, #printable-area * {
+          visibility: visible;
         }
         #printable-area {
-          display: block !important;
           position: absolute;
-          top: 0;
           left: 0;
+          top: 0;
           width: 100%;
         }
       }
@@ -50,9 +52,10 @@ export default function BlankContractPage() {
     </div>
   );
   
-  const sideViewUrl = "https://image.noelshack.com/fichiers/2024/29/1/1721051373-side-view.png";
-  const frontViewUrl = "https://image.noelshack.com/fichiers/2024/29/1/1721051373-front-view.png";
-  const backViewUrl = "https://image.noelshack.com/fichiers/2024/29/1/1721051373-back-view.png";
+  const sideViewUrl = "https://i.pinimg.com/originals/a9/50/49/a950493b0a2931535450833a927a421a.png";
+  const frontViewUrl = "https://autohub.ma/wp-content/uploads/2023/07/car-front-view-outline-drawing-3-300x200.png";
+  const backViewUrl = "https://www.wizicar.com/wp-content/uploads/2021/04/car-back-view-outline-drawing-300x200.png";
+
 
   return (
     <div id="printable-area">
