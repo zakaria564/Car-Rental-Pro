@@ -120,7 +120,7 @@ export default function PaymentsPage() {
                             <DollarSign className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent className="flex-grow flex items-end justify-center pb-4">
-                            <div className="text-4xl font-bold">{formatCurrency(monthlyRevenue, 'MAD')}</div>
+                            <div className="text-3xl font-bold">{formatCurrency(monthlyRevenue, 'MAD')}</div>
                         </CardContent>
                     </Card>
                 </div>
