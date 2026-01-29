@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -61,8 +62,8 @@ function ClientDetails({ client }: { client: Client }) {
           <div className="space-y-1 text-sm">
             <p><strong>Nom:</strong> {client.nom}</p>
             <p><strong>CIN:</strong> {client.cin}</p>
-            <p><strong>Téléphone:</strong> {client.telephone}</p>
-            <p><strong>Adresse:</strong> {client.adresse}</p>
+            <p><strong>Téléphone:</strong> <a href={`tel:${client.telephone}`} className="underline text-primary hover:text-primary/80">{client.telephone}</a></p>
+            <p><strong>Adresse:</strong> <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(client.adresse)}`} target="_blank" rel="noopener noreferrer" className="underline text-primary hover:text-primary/80">{client.adresse}</a></p>
             <p><strong>N° Permis:</strong> {client.permisNo || 'N/A'}</p>
             <p><strong>Délivré le:</strong> {safePermisDate}</p>
           </div>
