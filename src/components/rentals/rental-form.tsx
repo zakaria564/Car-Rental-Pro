@@ -717,6 +717,9 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                                 numberOfMonths={2}
                                 locale={fr}
                                 disabled={date => mode === 'new' ? date < new Date(new Date().setHours(0,0,0,0)) : (rental?.location?.dateDebut ? date < getSafeDate(rental.location.dateDebut)! : false)}
+                                captionLayout="dropdown-nav"
+                                fromYear={new Date().getFullYear()}
+                                toYear={new Date().getFullYear() + 5}
                               />
                             </PopoverContent>
                           </Popover>
@@ -924,6 +927,9 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                                     initialFocus
                                     locale={fr}
                                     disabled={(date) => date < (getSafeDate(rental.location.dateDebut) || new Date())}
+                                    captionLayout="dropdown-nav"
+                                    fromYear={new Date().getFullYear() - 2}
+                                    toYear={new Date().getFullYear() + 1}
                                 />
                                 </PopoverContent>
                             </Popover>

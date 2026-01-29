@@ -194,6 +194,9 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
                     disabled={(date) => date > new Date()}
                     initialFocus
                     locale={fr}
+                    captionLayout="dropdown-nav"
+                    fromYear={1960}
+                    toYear={new Date().getFullYear()}
                   />
                 </PopoverContent>
               </Popover>

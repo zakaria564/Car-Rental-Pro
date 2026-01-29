@@ -222,6 +222,9 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                 }
                                 initialFocus
                                 locale={fr}
+                                captionLayout="dropdown-nav"
+                                fromYear={1990}
+                                toYear={new Date().getFullYear()}
                             />
                             </PopoverContent>
                         </Popover>
@@ -429,7 +432,16 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                 </FormControl>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus locale={fr}/>
+                                <Calendar 
+                                    mode="single" 
+                                    selected={field.value} 
+                                    onSelect={field.onChange} 
+                                    initialFocus 
+                                    locale={fr}
+                                    captionLayout="dropdown-nav"
+                                    fromYear={new Date().getFullYear() - 5}
+                                    toYear={new Date().getFullYear() + 10}
+                                />
                                 </PopoverContent>
                             </Popover>
                             <FormMessage />
@@ -455,7 +467,16 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                     </FormControl>
                                     </PopoverTrigger>
                                     <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus locale={fr}/>
+                                    <Calendar 
+                                        mode="single" 
+                                        selected={field.value} 
+                                        onSelect={field.onChange} 
+                                        initialFocus 
+                                        locale={fr}
+                                        captionLayout="dropdown-nav"
+                                        fromYear={new Date().getFullYear() - 5}
+                                        toYear={new Date().getFullYear() + 10}
+                                    />
                                     </PopoverContent>
                                 </Popover>
                                 <FormMessage />
