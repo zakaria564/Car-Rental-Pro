@@ -68,13 +68,19 @@ function ClientDetails({ client }: { client: Client }) {
         <div className="space-y-2">
             <p className="text-sm font-medium">Photo de la CIN</p>
             <div className="relative w-full aspect-[16/10] rounded-md overflow-hidden border bg-muted">
-                <Image 
-                    src={client.photoCIN} 
-                    alt={`CIN de ${client.nom}`} 
-                    fill 
-                    className="object-cover"
-                    data-ai-hint="id card"
-                />
+                {client.photoCIN && client.photoCIN.startsWith('http') ? (
+                    <Image 
+                        src={client.photoCIN} 
+                        alt={`CIN de ${client.nom}`} 
+                        fill 
+                        className="object-cover"
+                        data-ai-hint="id card"
+                    />
+                ) : (
+                    <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                        Pas d'image
+                    </div>
+                )}
             </div>
         </div>
       </div>

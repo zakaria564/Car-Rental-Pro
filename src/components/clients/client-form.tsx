@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -8,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -26,6 +26,7 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { format } from "date-fns";
 import React from "react";
+import Image from "next/image";
 
 
 const clientFormSchema = z.object({
@@ -81,11 +82,7 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
     const clientId = client?.id || doc(collection(firestore, 'clients')).id;
     const isNewClient = !client;
 
-    let finalPhotoUrl = client?.photoCIN;
-
-    if (!finalPhotoUrl && isNewClient) {
-        finalPhotoUrl = `https://picsum.photos/seed/${clientId}/400/250`;
-    }
+    let finalPhotoUrl = client?.photoCIN || "";
 
     if (photoCIN && photoCIN.length > 0 && photoCIN[0] instanceof File) {
         const file = photoCIN[0];
@@ -227,9 +224,23 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
         />
         <FormItem>
           <FormLabel>Photo de la CIN</FormLabel>
+          {client?.photoCIN && client.photoCIN.startsWith('http') && (
+            <div className="relative w-full aspect-[16/10] rounded-md overflow-hidden border bg-muted my-2">
+                <Image 
+                    src={client.photoCIN} 
+                    alt={`CIN de ${client.nom}`} 
+                    fill 
+                    className="object-cover"
+                    data-ai-hint="id card"
+                />
+            </div>
+          )}
           <FormControl>
              <PhotoFormField {...photoCINRef} />
           </FormControl>
+          <FormDescription>
+            {client?.photoCIN ? "Téléversez un nouveau fichier pour remplacer l'image actuelle." : "Ajoutez une photo de la carte d'identité."}
+          </FormDescription>
           <FormMessage />
         </FormItem>
         <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isSubmitting}>
@@ -239,4 +250,3 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
     </Form>
   );
 }
-
