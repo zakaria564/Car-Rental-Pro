@@ -49,6 +49,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import Image from "next/image";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 // New component for client details
 function ClientDetails({ client }: { client: Client }) {
@@ -70,13 +71,15 @@ function ClientDetails({ client }: { client: Client }) {
               <p className="text-sm font-medium">Photo de la CIN</p>
               <div className="relative w-full aspect-[16/10] rounded-md overflow-hidden border bg-muted">
                   {client.photoCIN && client.photoCIN.startsWith('http') ? (
-                      <Image 
-                          src={client.photoCIN} 
-                          alt={`CIN de ${client.nom}`} 
-                          fill 
-                          className="object-cover"
-                          data-ai-hint="id card"
-                      />
+                      <a href={client.photoCIN} target="_blank" rel="noopener noreferrer" className="block w-full h-full hover:opacity-80 transition-opacity">
+                        <Image 
+                            src={client.photoCIN} 
+                            alt={`CIN de ${client.nom}`} 
+                            fill 
+                            className="object-cover"
+                            data-ai-hint="id card"
+                        />
+                      </a>
                   ) : (
                       <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
                           Pas d'image
@@ -378,4 +381,3 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
     </>
   );
 }
-
