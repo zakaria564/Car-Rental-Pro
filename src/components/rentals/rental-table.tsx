@@ -54,7 +54,6 @@ import CarDamageDiagram, { carParts } from "./car-damage-diagram";
 import { Skeleton } from "../ui/skeleton";
 import { Logo } from "../logo";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
-import { Checkbox } from "../ui/checkbox";
 
 type RentalTableProps = {
   rentals: Rental[];
@@ -62,6 +61,16 @@ type RentalTableProps = {
   cars?: Car[];
   isDashboard?: boolean;
 };
+
+const ReadOnlyCheckbox = ({ checked }: { checked: boolean | undefined }) => (
+    <div
+        className="h-4 w-4 border border-black flex items-center justify-center"
+        style={{ printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' }}
+    >
+        {checked && <div className="h-2.5 w-2.5 bg-black" />}
+    </div>
+);
+
 
 const InspectionDetailsView: React.FC<{ inspectionId: string, type: 'depart' | 'retour' }> = ({ inspectionId, type }) => {
     const [inspection, setInspection] = React.useState<Inspection | null>(null);
@@ -135,12 +144,13 @@ const InspectionDetailsView: React.FC<{ inspectionId: string, type: 'depart' | '
             </div>
              <div className="mt-2 text-xs">
                 <strong>Check-list des accessoires:</strong>
-                <div className="grid grid-cols-2 gap-x-4">
-                    <div className="flex items-center gap-2"><Checkbox checked={inspection.roueSecours} readOnly disabled/> Roue de secours</div>
-                    <div className="flex items-center gap-2"><Checkbox checked={inspection.cric} readOnly disabled/> Cric & manivelle</div>
-                    <div className="flex items-center gap-2"><Checkbox checked={inspection.giletTriangle} readOnly disabled/> Gilet & triangle</div>
-                    <div className="flex items-center gap-2"><Checkbox checked={inspection.posteRadio} readOnly disabled/> Poste radio</div>
-                    <div className="flex items-center gap-2"><Checkbox checked={inspection.doubleCles} readOnly disabled/> Double des clés</div>
+                 <div className="grid grid-cols-2 gap-x-4">
+                    <div className="flex items-center gap-2"><ReadOnlyCheckbox checked={inspection.roueSecours} /> Roue de secours</div>
+                    <div className="flex items-center gap-2"><ReadOnlyCheckbox checked={inspection.cric} /> Cric & manivelle</div>
+                    <div className="flex items-center gap-2"><ReadOnlyCheckbox checked={inspection.giletTriangle} /> Gilet & triangle</div>
+                    <div className="flex items-center gap-2"><ReadOnlyCheckbox checked={inspection.posteRadio} /> Poste radio</div>
+                    <div className="flex items-center gap-2"><ReadOnlyCheckbox checked={inspection.doubleCles} /> Double des clés</div>
+                    <div className="flex items-center gap-2"><ReadOnlyCheckbox checked={inspection.lavage} /> Voiture propre</div>
                 </div>
             </div>
 
@@ -224,6 +234,7 @@ function RentalDetails({ rental }: { rental: Rental }) {
                             <div><strong>Nom:</strong> {rental.conducteur2.nomPrenom}</div>
                             <div><strong>CIN/Passeport:</strong> {rental.conducteur2.cin}</div>
                             <div><strong>Permis N°:</strong> {rental.conducteur2.permisNo}</div>
+                             <div><strong>Téléphone:</strong> {rental.conducteur2.telephone}</div>
                         </div>
                         )}
                     </div>
@@ -723,3 +734,5 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     </>
   );
 }
+
+    
