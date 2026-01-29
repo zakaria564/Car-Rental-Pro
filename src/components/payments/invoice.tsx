@@ -5,11 +5,11 @@ import { formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
-type PaymentReceiptProps = {
+type InvoiceProps = {
     payment: Payment;
 };
 
-export const PaymentReceipt: React.FC<PaymentReceiptProps> = ({ payment }) => {
+export const Invoice: React.FC<InvoiceProps> = ({ payment }) => {
     if (!payment) return null;
 
     const safePaymentDate = payment.paymentDate?.toDate ? format(payment.paymentDate.toDate(), "dd/MM/yyyy", { locale: fr }) : 'N/A';
@@ -17,7 +17,7 @@ export const PaymentReceipt: React.FC<PaymentReceiptProps> = ({ payment }) => {
     const amountInWords = `${payment.amount.toLocaleString('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2})} Dirhams`;
 
     return (
-        <div id="printable-receipt" className="p-4 border rounded-md font-sans text-sm bg-white text-black">
+        <div id="printable-invoice" className="p-4 border rounded-md font-sans text-sm bg-white text-black">
             <div className="flex justify-between items-start mb-6">
                 <div className="flex items-center gap-3">
                     <Logo />
@@ -30,7 +30,7 @@ export const PaymentReceipt: React.FC<PaymentReceiptProps> = ({ payment }) => {
                     </div>
                 </div>
                 <div className="text-right">
-                    <h1 className="font-bold text-xl uppercase">Reçu de Paiement</h1>
+                    <h1 className="font-bold text-xl uppercase">Facture</h1>
                     <p>N°: {payment.id.substring(0, 8).toUpperCase()}</p>
                     <p>Date: {safePaymentDate}</p>
                 </div>
@@ -38,13 +38,13 @@ export const PaymentReceipt: React.FC<PaymentReceiptProps> = ({ payment }) => {
 
             <div className="space-y-4 my-8">
                  <p>
-                    <span className="font-semibold">Reçu de :</span> {payment.clientName}
+                    <span className="font-semibold">Facturé à :</span> {payment.clientName}
                 </p>
                 <p>
-                    <span className="font-semibold">La somme de :</span> {amountInWords} ({formatCurrency(payment.amount, 'MAD')}).
+                    <span className="font-semibold">Montant payé :</span> {amountInWords} ({formatCurrency(payment.amount, 'MAD')}).
                 </p>
                 <p>
-                    <span className="font-semibold">Pour le paiement partiel/total de la location liée au contrat N° :</span> {payment.rentalId.substring(0, 8).toUpperCase()}
+                    <span className="font-semibold">Description :</span> Paiement pour la location (Contrat N° {payment.rentalId.substring(0, 8).toUpperCase()})
                 </p>
                  <p>
                     <span className="font-semibold">Mode de paiement :</span> {payment.paymentMethod}

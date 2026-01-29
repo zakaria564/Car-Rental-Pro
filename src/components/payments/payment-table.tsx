@@ -12,7 +12,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ArrowUpDown, MoreHorizontal, Printer } from "lucide-react";
+import { ArrowUpDown, MoreHorizontal, Printer, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -37,7 +37,7 @@ import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
-import { PaymentReceipt } from "./payment-receipt";
+import { Invoice } from "./invoice";
 
 export default function PaymentTable({ payments }: { payments: Payment[] }) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -45,7 +45,7 @@ export default function PaymentTable({ payments }: { payments: Payment[] }) {
   const { firestore } = useFirebase();
   const { toast } = useToast();
   const [selectedPayment, setSelectedPayment] = React.useState<Payment | null>(null);
-  const [isReceiptOpen, setIsReceiptOpen] = React.useState(false);
+  const [isInvoiceOpen, setIsInvoiceOpen] = React.useState(false);
 
   const handleDeletePayment = async (paymentId: string) => {
     if (!firestore) return;
@@ -71,8 +71,8 @@ export default function PaymentTable({ payments }: { payments: Payment[] }) {
     }
   };
 
-  const handlePrintReceipt = () => {
-    const printContent = document.getElementById('printable-receipt');
+  const handlePrintInvoice = () => {
+    const printContent = document.getElementById('printable-invoice');
     if (!printContent) return;
 
     const printWindow = window.open('', '', 'height=600,width=800');
@@ -94,7 +94,7 @@ export default function PaymentTable({ payments }: { payments: Payment[] }) {
       }
     `;
 
-    printWindow.document.write('<html><head><title>Reçu de Paiement</title>');
+    printWindow.document.write('<html><head><title>Facture</title>');
     
     Array.from(document.styleSheets).forEach(sheet => {
         if (sheet.href) {
@@ -192,10 +192,10 @@ export default function PaymentTable({ payments }: { payments: Payment[] }) {
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 <DropdownMenuItem onClick={() => {
                   setSelectedPayment(payment);
-                  setIsReceiptOpen(true);
+                  setIsInvoiceOpen(true);
                 }}>
-                  <Printer className="mr-2 h-4 w-4" />
-                  Reçu de paiement
+                  <FileText className="mr-2 h-4 w-4" />
+                  Voir la facture
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                  <AlertDialogTrigger asChild>
@@ -318,20 +318,20 @@ export default function PaymentTable({ payments }: { payments: Payment[] }) {
             </Button>
             </div>
         </div>
-        <Dialog open={isReceiptOpen} onOpenChange={(open) => {
-            setIsReceiptOpen(open);
+        <Dialog open={isInvoiceOpen} onOpenChange={(open) => {
+            setIsInvoiceOpen(open);
             if (!open) setSelectedPayment(null);
             }}>
             {selectedPayment && (
                 <DialogContent className="sm:max-w-2xl">
                     <DialogHeader>
-                        <DialogTitle>Reçu de paiement N° {selectedPayment.id?.substring(0,8).toUpperCase()}</DialogTitle>
+                        <DialogTitle>Facture N° {selectedPayment.id?.substring(0,8).toUpperCase()}</DialogTitle>
                     </DialogHeader>
-                    <PaymentReceipt payment={selectedPayment} />
+                    <Invoice payment={selectedPayment} />
                     <DialogFooter className="no-print">
-                    <Button variant="outline" onClick={handlePrintReceipt}>
+                    <Button variant="outline" onClick={handlePrintInvoice}>
                         <Printer className="mr-2 h-4 w-4"/>
-                        Imprimer le reçu
+                        Imprimer la facture
                     </Button>
                     </DialogFooter>
                 </DialogContent>
