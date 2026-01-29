@@ -148,6 +148,23 @@ const DeprecatedInspectionView: React.FC<{ data: any, type: 'depart' | 'retour' 
                 <strong className="block mb-1 font-semibold">Schéma des dommages:</strong>
                 <CarDamageDiagram damages={data.dommages || {}} onDamagesChange={() => {}} readOnly showLegend={false} />
             </div>
+            {data.photos && data.photos.length > 0 && (
+                <div className="mt-2 no-print">
+                    <strong className="text-xs font-semibold">Photos ({type === 'depart' ? 'Départ' : 'Retour'}):</strong>
+                    <div className="grid grid-cols-3 gap-2 mt-1">
+                        {data.photos.map((photoUrl: string, index: number) => (
+                            <a key={index} href={photoUrl} target="_blank" rel="noopener noreferrer" className="relative aspect-square block hover:opacity-80 transition-opacity">
+                                <Image
+                                    src={photoUrl}
+                                    alt={`Photo ${type} ${index + 1}`}
+                                    fill
+                                    className="rounded-md object-cover"
+                                />
+                            </a>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
@@ -254,6 +271,23 @@ const InspectionDetailsView: React.FC<{ inspectionId: string, type: 'depart' | '
                 <strong className="block mb-1 font-semibold">Schéma des dommages:</strong>
                 <CarDamageDiagram damages={damagesForDiagram} onDamagesChange={() => {}} readOnly showLegend={false} />
             </div>
+            {inspection.photos && inspection.photos.length > 0 && (
+                <div className="mt-2 no-print">
+                    <strong className="text-xs font-semibold">Photos ({type === 'depart' ? 'Départ' : 'Retour'}):</strong>
+                    <div className="grid grid-cols-3 gap-2 mt-1">
+                        {inspection.photos.map((photoUrl, index) => (
+                            <a key={index} href={photoUrl} target="_blank" rel="noopener noreferrer" className="relative aspect-square block hover:opacity-80 transition-opacity">
+                                <Image
+                                    src={photoUrl}
+                                    alt={`Photo ${type} ${index + 1}`}
+                                    fill
+                                    className="rounded-md object-cover"
+                                />
+                            </a>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
