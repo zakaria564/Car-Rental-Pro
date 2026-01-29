@@ -181,7 +181,7 @@ export default function CarCard({ car }: { car: Car }) {
             src={car.photoURL}
             alt={`${car.marque} ${car.modele}`}
             fill
-            className="object-contain"
+            className="object-cover"
             data-ai-hint="car photo"
         />
       </div>
