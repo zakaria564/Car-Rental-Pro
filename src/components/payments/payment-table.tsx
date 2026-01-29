@@ -37,7 +37,7 @@ import { Invoice } from "./invoice";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { useFirebase } from "@/firebase";
-import { doc, runTransaction } from "firebase/firestore";
+import { doc, runTransaction, writeBatch, query, where, getDocs, collection } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 
@@ -132,6 +132,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
   const [selectedRentalForHistory, setSelectedRentalForHistory] = React.useState<Rental | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = React.useState(false);
   const [paymentToDelete, setPaymentToDelete] = React.useState<Payment | null>(null);
+  const [rentalToDelete, setRentalToDelete] = React.useState<Rental | null>(null);
   const { toast } = useToast();
   const { firestore } = useFirebase();
 
@@ -142,8 +143,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
     if (from && to && rental.location.prixParJour > 0) {
         const days = differenceInCalendarDays(startOfDay(to), startOfDay(from));
         // If rental is for one day, diff is 0, so we need to add 1.
-        const rentalDays = days >= 0 ? days + 1 : 1;
-        return rentalDays * rental.location.prixParJour;
+        return (days >= 0 ? days + 1 : 1) * rental.location.prixParJour;
     }
     // Fallback to stored total or older calculation method for data consistency
     return rental.location.montantTotal ?? (rental.location.nbrJours || 0) * (rental.location.prixParJour || 0);
@@ -193,6 +193,47 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
         setPaymentToDelete(null);
     }
   };
+
+  const handleDeleteRentalAndPayments = async (rental: Rental) => {
+    if (!firestore || !rental?.id) return;
+
+    const rentalRef = doc(firestore, 'rentals', rental.id);
+    const paymentsQuery = query(collection(firestore, 'payments'), where("rentalId", "==", rental.id));
+
+    try {
+        const batch = writeBatch(firestore);
+
+        const paymentsSnapshot = await getDocs(paymentsQuery);
+        paymentsSnapshot.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+
+        batch.delete(rentalRef);
+
+        await batch.commit();
+
+        toast({
+            title: "Contrat supprimé",
+            description: "Le contrat et tous ses paiements associés ont été supprimés.",
+        });
+
+    } catch (serverError: any) {
+        const permissionError = new FirestorePermissionError({
+            path: rentalRef.path,
+            operation: 'delete',
+        }, serverError);
+        errorEmitter.emit('permission-error', permissionError);
+
+        toast({
+          variant: "destructive",
+          title: "Une erreur est survenue",
+          description: serverError.message || "Impossible de supprimer le contrat et ses paiements.",
+        });
+    } finally {
+        setRentalToDelete(null);
+    }
+  };
+
 
   const handlePrintInvoice = () => {
     const printContent = document.getElementById('printable-invoice');
@@ -375,6 +416,14 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
                   <History className="mr-2 h-4 w-4" />
                   Historique des paiements
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                    className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                    onSelect={() => setRentalToDelete(rental)}
+                >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Supprimer le contrat
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
         );
@@ -530,6 +579,28 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
                         <AlertDialogCancel>Annuler</AlertDialogCancel>
                         <AlertDialogAction 
                             onClick={() => handleDeletePayment(paymentToDelete)} 
+                            className="bg-destructive hover:bg-destructive/90"
+                        >
+                            Supprimer
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            )}
+        </AlertDialog>
+
+        <AlertDialog open={!!rentalToDelete} onOpenChange={(open) => !open && setRentalToDelete(null)}>
+            {rentalToDelete && (
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Supprimer ce contrat ?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Cette action est irréversible. Le contrat pour {rentalToDelete.locataire.nomPrenom} et <strong>tous</strong> ses paiements associés seront définitivement supprimés.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                        <AlertDialogAction 
+                            onClick={() => handleDeleteRentalAndPayments(rentalToDelete)} 
                             className="bg-destructive hover:bg-destructive/90"
                         >
                             Supprimer
