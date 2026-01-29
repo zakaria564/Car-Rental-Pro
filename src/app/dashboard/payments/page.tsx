@@ -24,6 +24,7 @@ export default function PaymentsPage() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
+  const [rentalIdForNewPayment, setRentalIdForNewPayment] = React.useState<string | null>(null);
   let firestore: any;
 
   try {
@@ -83,6 +84,18 @@ export default function PaymentsPage() {
     };
   }, [firestore]);
   
+  const handleAddPaymentForRental = (rentalId: string) => {
+    setRentalIdForNewPayment(rentalId);
+    setIsSheetOpen(true);
+  };
+
+  const handleSheetOpenChange = (open: boolean) => {
+    setIsSheetOpen(open);
+    if (!open) {
+      setRentalIdForNewPayment(null);
+    }
+  };
+
   const monthlyRevenue = React.useMemo(() => {
     const now = new Date();
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -100,10 +113,10 @@ export default function PaymentsPage() {
   }, [payments]);
 
   return (
-    <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+    <Sheet open={isSheetOpen} onOpenChange={handleSheetOpenChange}>
         <DashboardHeader title="Paiements" description="Gérez et suivez tous les paiements de location.">
             <SheetTrigger asChild>
-                <Button className="bg-primary hover:bg-primary/90">
+                <Button className="bg-primary hover:bg-primary/90" onClick={() => setRentalIdForNewPayment(null)}>
                     <PlusCircle className="mr-2 h-4 w-4" /> Ajouter un paiement
                 </Button>
             </SheetTrigger>
@@ -113,13 +126,13 @@ export default function PaymentsPage() {
              {loading ? (
                 <Skeleton className="h-40 w-full" />
              ) : (
-                <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
-                    <Card className="h-40 flex flex-col">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    <Card className="col-span-1 md:col-span-2 lg:col-span-1 h-40 flex flex-col">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Revenu du mois</CardTitle>
                             <DollarSign className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
-                        <CardContent className="flex-grow flex items-end justify-center pb-4">
+                        <CardContent className="flex-grow flex items-center justify-center pb-4">
                             <div className="text-2xl font-bold">{formatCurrency(monthlyRevenue, 'MAD')}</div>
                         </CardContent>
                     </Card>
@@ -140,7 +153,7 @@ export default function PaymentsPage() {
                 <AlertDescription>{error}</AlertDescription>
             </Alert>
         ) : (
-            <PaymentTable payments={payments} />
+            <PaymentTable payments={payments} onAddPaymentForRental={handleAddPaymentForRental} />
         )}
 
         <SheetContent className="sm:max-w-md">
@@ -148,7 +161,12 @@ export default function PaymentsPage() {
                 <SheetTitle>Ajouter un nouveau paiement</SheetTitle>
             </SheetHeader>
             <ScrollArea className="h-full pr-4">
-                <PaymentForm payment={null} rentals={rentals} onFinished={() => setIsSheetOpen(false)} />
+                <PaymentForm 
+                  payment={null} 
+                  rentals={rentals} 
+                  onFinished={() => setIsSheetOpen(false)}
+                  preselectedRentalId={rentalIdForNewPayment}
+                />
             </ScrollArea>
         </SheetContent>
     </Sheet>

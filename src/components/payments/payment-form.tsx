@@ -39,7 +39,12 @@ const paymentFormSchema = z.object({
 
 type PaymentFormValues = z.infer<typeof paymentFormSchema>;
 
-export default function PaymentForm({ payment, rentals, onFinished }: { payment: Payment | null, rentals: Rental[], onFinished: () => void }) {
+export default function PaymentForm({ payment, rentals, onFinished, preselectedRentalId }: { 
+    payment: Payment | null, 
+    rentals: Rental[], 
+    onFinished: () => void,
+    preselectedRentalId?: string | null
+}) {
   const { toast } = useToast();
   const { firestore } = useFirebase();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -51,24 +56,41 @@ export default function PaymentForm({ payment, rentals, onFinished }: { payment:
     return isNaN(parsed.getTime()) ? undefined : parsed;
   };
 
-  const defaultValues = React.useMemo(() => {
-    return payment ? {
-      ...payment,
-      paymentDate: getSafeDate(payment.paymentDate),
-    } : {
-      rentalId: "",
-      amount: undefined,
-      paymentDate: new Date(),
-      paymentMethod: "Especes" as const,
-      status: "complete" as const,
-    }
-  }, [payment]);
-
   const form = useForm<PaymentFormValues>({
     resolver: zodResolver(paymentFormSchema),
     mode: "onChange",
-    defaultValues: defaultValues as any,
   });
+
+  React.useEffect(() => {
+    if (payment) {
+        form.reset({
+            ...payment,
+            paymentDate: getSafeDate(payment.paymentDate),
+        });
+        return;
+    }
+
+    let defaultAmount: number | undefined = undefined;
+    if (preselectedRentalId) {
+        const selectedRental = rentals.find(r => r.id === preselectedRentalId);
+        if (selectedRental) {
+            const total = selectedRental.location.montantTotal ?? (selectedRental.location.nbrJours || 0) * (selectedRental.location.prixParJour || 0);
+            const paid = selectedRental.location.montantPaye || 0;
+            const remaining = total - paid;
+            if (remaining > 0) {
+                defaultAmount = remaining;
+            }
+        }
+    }
+
+    form.reset({
+        rentalId: preselectedRentalId || "",
+        amount: defaultAmount,
+        paymentDate: new Date(),
+        paymentMethod: "Especes" as const,
+        status: "complete" as const,
+    });
+  }, [payment, preselectedRentalId, rentals, form]);
 
   const selectedRentalId = form.watch("rentalId");
   const selectedRental = React.useMemo(() => {
@@ -147,7 +169,7 @@ export default function PaymentForm({ payment, rentals, onFinished }: { payment:
           render={({ field }) => (
             <FormItem>
               <FormLabel>Contrat de location</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!payment}>
+              <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value} disabled={!!payment}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Sélectionner un contrat" />

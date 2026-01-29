@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -12,7 +13,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ArrowUpDown, MoreHorizontal, Printer, FileText } from "lucide-react";
+import { ArrowUpDown, MoreHorizontal, Printer, FileText, DollarSign } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -40,7 +41,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Invoice } from "./invoice";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-export default function PaymentTable({ payments }: { payments: Payment[] }) {
+export default function PaymentTable({ payments, onAddPaymentForRental }: { payments: Payment[], onAddPaymentForRental: (rentalId: string) => void }) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const { firestore } = useFirebase();
@@ -200,6 +201,10 @@ export default function PaymentTable({ payments }: { payments: Payment[] }) {
                 }}>
                   <FileText className="mr-2 h-4 w-4" />
                   Voir la facture
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onAddPaymentForRental(payment.rentalId)}>
+                  <DollarSign className="mr-2 h-4 w-4" />
+                  <span>Encaisser un paiement</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                  <AlertDialogTrigger asChild>
