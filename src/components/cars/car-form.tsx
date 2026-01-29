@@ -23,19 +23,14 @@ import { collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import React from "react";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { CalendarIcon } from "lucide-react";
-import { Calendar } from "../ui/calendar";
-import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { fr } from "date-fns/locale";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 import { Textarea } from "../ui/textarea";
 
 const carFormSchema = z.object({
   marque: z.string().min(2, "La marque doit comporter au moins 2 caractères."),
   modele: z.string().min(1, "Le modèle est requis."),
-  dateMiseEnCirculation: z.date({
+  dateMiseEnCirculation: z.coerce.date({
     required_error: "La date de mise en circulation est requise.",
   }),
   immat: z.string().min(5, "La plaque d'immatriculation semble trop courte."),
@@ -50,8 +45,8 @@ const carFormSchema = z.object({
   etat: z.enum(["new", "good", "fair", "poor"]),
   disponible: z.boolean().default(true),
   photoURL: z.string().url("Veuillez entrer une URL valide.").optional().or(z.literal('')),
-  dateExpirationAssurance: z.date().optional().nullable(),
-  dateProchaineVisiteTechnique: z.date().optional().nullable(),
+  dateExpirationAssurance: z.coerce.date().optional().nullable(),
+  dateProchaineVisiteTechnique: z.coerce.date().optional().nullable(),
   anneeVignette: z.coerce.number().optional().nullable(),
   maintenanceHistory: z.string().optional().nullable(),
 });
@@ -188,49 +183,21 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                     )}
                     />
                     <FormField
-                    control={form.control}
-                    name="dateMiseEnCirculation"
-                    render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                        <FormLabel>Date de mise en circulation</FormLabel>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                            <FormControl>
-                                <Button
-                                variant={"outline"}
-                                className={cn(
-                                    "w-full pl-3 text-left font-normal",
-                                    !field.value && "text-muted-foreground"
-                                )}
-                                >
-                                {field.value ? (
-                                    format(field.value, "PPP", { locale: fr })
-                                ) : (
-                                    <span>Choisir une date</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                            </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                                mode="single"
-                                selected={field.value}
-                                onSelect={field.onChange}
-                                disabled={(date) =>
-                                date > new Date() || date < new Date("1990-01-01")
-                                }
-                                initialFocus
-                                locale={fr}
-                                captionLayout="dropdown-nav"
-                                fromYear={1990}
-                                toYear={new Date().getFullYear()}
+                      control={form.control}
+                      name="dateMiseEnCirculation"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Date de mise en circulation</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="date"
+                              value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd") : ""}
+                              onChange={(e) => field.onChange(e.target.value ? e.target.valueAsDate : null)}
                             />
-                            </PopoverContent>
-                        </Popover>
-                        <FormMessage />
+                          </FormControl>
+                          <FormMessage />
                         </FormItem>
-                    )}
+                      )}
                     />
                     <FormField
                     control={form.control}
@@ -417,34 +384,16 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                         control={form.control}
                         name="dateExpirationAssurance"
                         render={({ field }) => (
-                            <FormItem className="flex flex-col">
-                            <FormLabel>Date d'expiration de l'assurance</FormLabel>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                <FormControl>
-                                    <Button
-                                    variant={"outline"}
-                                    className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
-                                    >
-                                    {field.value ? (format(field.value, "PPP", { locale: fr })) : (<span>Choisir une date</span>)}
-                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                    </Button>
-                                </FormControl>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar 
-                                    mode="single" 
-                                    selected={field.value} 
-                                    onSelect={field.onChange} 
-                                    initialFocus 
-                                    locale={fr}
-                                    captionLayout="dropdown-nav"
-                                    fromYear={new Date().getFullYear() - 5}
-                                    toYear={new Date().getFullYear() + 10}
+                            <FormItem>
+                              <FormLabel>Date d'expiration de l'assurance</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="date"
+                                  value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd") : ""}
+                                  onChange={(e) => field.onChange(e.target.value ? e.target.valueAsDate : null)}
                                 />
-                                </PopoverContent>
-                            </Popover>
-                            <FormMessage />
+                              </FormControl>
+                              <FormMessage />
                             </FormItem>
                         )}
                         />
@@ -452,34 +401,16 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                             control={form.control}
                             name="dateProchaineVisiteTechnique"
                             render={({ field }) => (
-                                <FormItem className="flex flex-col">
-                                <FormLabel>Date de la prochaine visite technique</FormLabel>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                    <FormControl>
-                                        <Button
-                                        variant={"outline"}
-                                        className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
-                                        >
-                                        {field.value ? (format(field.value, "PPP", { locale: fr })) : (<span>Choisir une date</span>)}
-                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                        </Button>
-                                    </FormControl>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar 
-                                        mode="single" 
-                                        selected={field.value} 
-                                        onSelect={field.onChange} 
-                                        initialFocus 
-                                        locale={fr}
-                                        captionLayout="dropdown-nav"
-                                        fromYear={new Date().getFullYear() - 5}
-                                        toYear={new Date().getFullYear() + 10}
+                                <FormItem>
+                                  <FormLabel>Date de la prochaine visite technique</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      type="date"
+                                      value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd") : ""}
+                                      onChange={(e) => field.onChange(e.target.value ? e.target.valueAsDate : null)}
                                     />
-                                    </PopoverContent>
-                                </Popover>
-                                <FormMessage />
+                                  </FormControl>
+                                  <FormMessage />
                                 </FormItem>
                             )}
                         />
@@ -530,4 +461,3 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
   );
 }
 
-    

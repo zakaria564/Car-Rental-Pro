@@ -78,7 +78,7 @@ const baseSchema = z.object({
   dommagesRetourNotes: z.string().optional(),
   dommagesRetour: z.record(z.string(), damageTypeEnum).optional(),
   photosRetour: z.array(z.object({ url: z.string().url("Veuillez entrer une URL valide.").or(z.literal('')) })).optional(),
-  dateRetour: z.date().optional(),
+  dateRetour: z.coerce.date().optional(),
 });
 
 // A robust function to convert Firestore Timestamps or other formats to a JS Date object.
@@ -125,7 +125,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                 required_error: "Le kilométrage de retour est requis.",
                 invalid_type_error: "Veuillez entrer un nombre valide.",
             }).int().positive("Le kilométrage de retour doit être un nombre positif."),
-            dateRetour: z.date({
+            dateRetour: z.coerce.date({
                 required_error: "La date de retour effective est requise."
             })
         }).refine(data => {
@@ -898,44 +898,21 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                   <AccordionContent className="space-y-4 px-1">
                       <p className="text-sm text-muted-foreground">Remplissez cette section lors du retour du véhicule.</p>
                        <FormField
-                        control={form.control}
-                        name="dateRetour"
-                        render={({ field }) => (
-                            <FormItem className="flex flex-col">
-                            <FormLabel>Date de retour effective</FormLabel>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                <FormControl>
-                                    <Button
-                                    variant={"outline"}
-                                    className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
-                                    >
-                                    {field.value ? (
-                                        format(field.value, "PPP", { locale: fr })
-                                    ) : (
-                                        <span>Choisir une date</span>
-                                    )}
-                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                    </Button>
-                                </FormControl>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                    mode="single"
-                                    selected={field.value}
-                                    onSelect={field.onChange}
-                                    initialFocus
-                                    locale={fr}
-                                    disabled={(date) => date < (getSafeDate(rental.location.dateDebut) || new Date())}
-                                    captionLayout="dropdown-nav"
-                                    fromYear={new Date().getFullYear() - 2}
-                                    toYear={new Date().getFullYear() + 1}
+                          control={form.control}
+                          name="dateRetour"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Date de retour effective</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="date"
+                                  value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd") : ""}
+                                  onChange={(e) => field.onChange(e.target.value ? e.target.valueAsDate : null)}
                                 />
-                                </PopoverContent>
-                            </Popover>
-                            <FormMessage />
+                              </FormControl>
+                              <FormMessage />
                             </FormItem>
-                        )}
+                          )}
                         />
                       <FormField
                         control={form.control}
@@ -1102,4 +1079,3 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
   );
 }
 
-    

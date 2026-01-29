@@ -22,17 +22,13 @@ import { useFirebase } from "@/firebase";
 import { collection, doc, serverTimestamp, runTransaction } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import React from "react";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { CalendarIcon } from "lucide-react";
-import { Calendar } from "../ui/calendar";
 import { cn, formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
-import { fr } from "date-fns/locale";
 
 const paymentFormSchema = z.object({
   rentalId: z.string().min(1, "Veuillez sélectionner un contrat de location."),
   amount: z.coerce.number().positive("Le montant doit être un nombre positif."),
-  paymentDate: z.date({ required_error: "La date de paiement est requise." }),
+  paymentDate: z.coerce.date({ required_error: "La date de paiement est requise." }),
   paymentMethod: z.enum(["Especes", "Carte bancaire", "Virement", "Avance"], { required_error: "La méthode de paiement est requise." }),
   status: z.enum(["complete", "en_attente"], { required_error: "Le statut est requis." }),
 });
@@ -223,34 +219,16 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
           control={form.control}
           name="paymentDate"
           render={({ field }) => (
-              <FormItem className="flex flex-col">
-              <FormLabel>Date du paiement</FormLabel>
-              <Popover>
-                  <PopoverTrigger asChild>
-                  <FormControl>
-                      <Button
-                      variant={"outline"}
-                      className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
-                      >
-                      {field.value ? (format(field.value, "PPP", { locale: fr })) : (<span>Choisir une date</span>)}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                  </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar 
-                    mode="single" 
-                    selected={field.value} 
-                    onSelect={field.onChange} 
-                    initialFocus 
-                    locale={fr}
-                    captionLayout="dropdown-nav"
-                    fromYear={2020}
-                    toYear={new Date().getFullYear() + 1}
+              <FormItem>
+                <FormLabel>Date du paiement</FormLabel>
+                <FormControl>
+                  <Input
+                    type="date"
+                    value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd") : ""}
+                    onChange={(e) => field.onChange(e.target.value ? e.target.valueAsDate : null)}
                   />
-                  </PopoverContent>
-              </Popover>
-              <FormMessage />
+                </FormControl>
+                <FormMessage />
               </FormItem>
           )}
         />
@@ -306,4 +284,3 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
   );
 }
 
-    

@@ -23,12 +23,7 @@ import { useFirebase } from "@/firebase";
 import { addDoc, collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { Calendar } from "../ui/calendar";
-import { CalendarIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { fr } from "date-fns/locale";
 import React from "react";
 
 
@@ -36,7 +31,7 @@ const clientFormSchema = z.object({
   nom: z.string().min(2, "Le nom doit comporter au moins 2 caractères."),
   cin: z.string().min(5, "La CIN semble trop courte."),
   permisNo: z.string().min(5, "Le numéro de permis semble trop court."),
-  permisDateDelivrance: z.date().optional().nullable(),
+  permisDateDelivrance: z.coerce.date().optional().nullable(),
   telephone: z.string().min(10, "Le numéro de téléphone semble incorrect."),
   adresse: z.string().min(10, "L'adresse est trop courte."),
   photoCIN: z.any().optional(),
@@ -165,41 +160,15 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
           control={form.control}
           name="permisDateDelivrance"
           render={({ field }) => (
-            <FormItem className="flex flex-col">
+            <FormItem>
               <FormLabel>Date de délivrance du permis</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground"
-                      )}
-                    >
-                      {field.value ? (
-                        format(field.value, "PPP", { locale: fr })
-                      ) : (
-                        <span>Choisir une date</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    disabled={(date) => date > new Date()}
-                    initialFocus
-                    locale={fr}
-                    captionLayout="dropdown-nav"
-                    fromYear={1960}
-                    toYear={new Date().getFullYear()}
-                  />
-                </PopoverContent>
-              </Popover>
+              <FormControl>
+                <Input
+                  type="date"
+                  value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd") : ""}
+                  onChange={(e) => field.onChange(e.target.value ? e.target.valueAsDate : null)}
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -245,4 +214,3 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
   );
 }
 
-    
