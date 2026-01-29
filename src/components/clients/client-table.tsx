@@ -14,7 +14,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { PlusCircle, ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react";
+import { PlusCircle, ArrowUpDown, ChevronDown, MoreHorizontal, User } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -36,7 +36,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Client } from "@/lib/definitions";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import ClientForm from "./client-form";
 import { ScrollArea } from "../ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "../ui/alert-dialog";
@@ -45,6 +45,43 @@ import { deleteDoc, doc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../ui/dialog";
+import Image from "next/image";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+
+// New component for client details
+function ClientDetails({ client }: { client: Client }) {
+  const safePermisDate = client.permisDateDelivrance?.toDate ? format(client.permisDateDelivrance.toDate(), "dd/MM/yyyy", { locale: fr }) : 'N/A';
+
+  return (
+    <div className="space-y-4 pt-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
+        <div className="space-y-1 text-sm">
+          <p><strong>Nom:</strong> {client.nom}</p>
+          <p><strong>CIN:</strong> {client.cin}</p>
+          <p><strong>Téléphone:</strong> {client.telephone}</p>
+          <p><strong>Adresse:</strong> {client.adresse}</p>
+          <p><strong>N° Permis:</strong> {client.permisNo || 'N/A'}</p>
+          <p><strong>Délivré le:</strong> {safePermisDate}</p>
+        </div>
+        <div className="space-y-2">
+            <p className="text-sm font-medium">Photo de la CIN</p>
+            <div className="relative w-full aspect-[16/10] rounded-md overflow-hidden border bg-muted">
+                <Image 
+                    src={client.photoCIN} 
+                    alt={`CIN de ${client.nom}`} 
+                    fill 
+                    className="object-cover"
+                    data-ai-hint="id card"
+                />
+            </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 export default function ClientTable({ clients }: { clients: Client[] }) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -52,6 +89,7 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = React.useState(false);
   const [selectedClient, setSelectedClient] = React.useState<Client | null>(null);
   const { firestore } = useFirebase();
   const { toast } = useToast();
@@ -63,7 +101,7 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
         const permissionError = new FirestorePermissionError({
             path: clientDocRef.path,
             operation: 'delete'
-        }, serverError);
+        }, serverError as Error);
         errorEmitter.emit('permission-error', permissionError);
         toast({
             variant: "destructive",
@@ -103,6 +141,7 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
     {
       accessorKey: "adresse",
       header: "Adresse",
+      cell: ({ row }) => <div className="truncate max-w-[200px]">{row.getValue("adresse") as string}</div>,
     },
     {
       id: "actions",
@@ -120,6 +159,10 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => { setSelectedClient(client); setIsDetailsOpen(true); }}>
+                  <User className="mr-2 h-4 w-4" />
+                  Voir les informations
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => { setSelectedClient(client); setIsSheetOpen(true); }}>
                   Modifier
                 </DropdownMenuItem>
@@ -166,128 +209,144 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
   });
 
   return (
-    <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-      <div className="w-full">
-        <div className="flex items-center py-4 gap-2">
-          <Input
-            placeholder="Filtrer par nom..."
-            value={(table.getColumn("nom")?.getFilterValue() as string) ?? ""}
-            onChange={(event) =>
-              table.getColumn("nom")?.setFilterValue(event.target.value)
-            }
-            className="max-w-sm"
-          />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="ml-auto">
-                Colonnes <ChevronDown className="ml-2 h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {table
-                .getAllColumns()
-                .filter((column) => column.getCanHide())
-                .map((column) => {
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      className="capitalize"
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) =>
-                        column.toggleVisibility(!!value)
-                      }
-                    >
-                      {column.id}
-                    </DropdownMenuCheckboxItem>
-                  );
-                })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <SheetTrigger asChild>
-            <Button className="bg-primary hover:bg-primary/90" onClick={() => setSelectedClient(null)}>
-              <PlusCircle className="mr-2 h-4 w-4" /> Ajouter un client
-            </Button>
-          </SheetTrigger>
-        </div>
-        <div className="rounded-md border bg-card">
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => {
+    <>
+      <Sheet open={isSheetOpen} onOpenChange={(open) => {
+        setIsSheetOpen(open);
+        if (!open) setSelectedClient(null);
+      }}>
+        <div className="w-full">
+          <div className="flex items-center py-4 gap-2">
+            <Input
+              placeholder="Filtrer par nom..."
+              value={(table.getColumn("nom")?.getFilterValue() as string) ?? ""}
+              onChange={(event) =>
+                table.getColumn("nom")?.setFilterValue(event.target.value)
+              }
+              className="max-w-sm"
+            />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="ml-auto">
+                  Colonnes <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {table
+                  .getAllColumns()
+                  .filter((column) => column.getCanHide())
+                  .map((column) => {
                     return (
-                      <TableHead key={header.id}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                      </TableHead>
+                      <DropdownMenuCheckboxItem
+                        key={column.id}
+                        className="capitalize"
+                        checked={column.getIsVisible()}
+                        onCheckedChange={(value) =>
+                          column.toggleVisibility(!!value)
+                        }
+                      >
+                        {column.id === 'adresse' ? 'Adresse' : column.id}
+                      </DropdownMenuCheckboxItem>
                     );
                   })}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() && "selected"}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </TableCell>
-                    ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <SheetTrigger asChild>
+              <Button className="bg-primary hover:bg-primary/90" onClick={() => setSelectedClient(null)}>
+                <PlusCircle className="mr-2 h-4 w-4" /> Ajouter un client
+              </Button>
+            </SheetTrigger>
+          </div>
+          <div className="rounded-md border bg-card">
+            <Table>
+              <TableHeader>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => {
+                      return (
+                        <TableHead key={header.id}>
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
+                        </TableHead>
+                      );
+                    })}
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className="h-24 text-center"
-                  >
-                    Aucun résultat.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                ))}
+              </TableHeader>
+              <TableBody>
+                {table.getRowModel().rows?.length ? (
+                  table.getRowModel().rows.map((row) => (
+                    <TableRow
+                      key={row.id}
+                      data-state={row.getIsSelected() && "selected"}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id}>
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell
+                      colSpan={columns.length}
+                      className="h-24 text-center"
+                    >
+                      Aucun résultat.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          <div className="flex items-center justify-end space-x-2 py-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              Précédent
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              Suivant
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center justify-end space-x-2 py-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            Précédent
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Suivant
-          </Button>
-        </div>
-      </div>
-      <SheetContent>
-        <SheetHeader>
-          <SheetTitle>{selectedClient ? "Modifier le client" : "Ajouter un nouveau client"}</SheetTitle>
-        </SheetHeader>
-        <ScrollArea className="h-full pr-6">
-            <ClientForm client={selectedClient} onFinished={() => setIsSheetOpen(false)} />
-        </ScrollArea>
-      </SheetContent>
-    </Sheet>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>{selectedClient ? "Modifier le client" : "Ajouter un nouveau client"}</SheetTitle>
+          </SheetHeader>
+          <ScrollArea className="h-full pr-6">
+              <ClientForm client={selectedClient} onFinished={() => setIsSheetOpen(false)} />
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
+
+      <Dialog open={isDetailsOpen} onOpenChange={(open) => {
+        setIsDetailsOpen(open);
+        if (!open) setSelectedClient(null);
+      }}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Détails du client</DialogTitle>
+            {selectedClient && <DialogDescription>Informations complètes pour {selectedClient.nom}.</DialogDescription>}
+          </DialogHeader>
+          {selectedClient && <ClientDetails client={selectedClient} />}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
-
-    
