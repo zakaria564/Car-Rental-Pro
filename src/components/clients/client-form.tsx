@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm, useFieldArray } from "react-hook-form";
@@ -86,68 +87,63 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
   const photoCINRef = form.register("photoCIN");
 
   async function onSubmit(data: ClientFormValues) {
+    if (!firestore || !storage) return;
     setIsSubmitting(true);
-    const { photoCIN, otherPhotos, ...clientDataWithoutPhoto } = data;
-
+    
     const clientId = client?.id || doc(collection(firestore, 'clients')).id;
     const isNewClient = !client;
-
-    let finalPhotoUrl = client?.photoCIN || "";
-
-    if (photoCIN && photoCIN.length > 0 && photoCIN[0] instanceof File) {
-        const file = photoCIN[0];
-        const storageRef = ref(storage, `clients/${clientId}/cin_${Date.now()}_${file.name}`);
-        
-        try {
-            const uploadResult = await uploadBytes(storageRef, file);
-            finalPhotoUrl = await getDownloadURL(uploadResult.ref);
-        } catch (e) {
-            console.error(e);
-            toast({
-              variant: "destructive",
-              title: "Erreur de téléversement",
-              description: "Impossible d'enregistrer l'image. Veuillez réessayer.",
-            });
-            setIsSubmitting(false);
-            return;
-        }
-    }
-    
-    const photoUrls = otherPhotos ? otherPhotos.map(p => p.url).filter(Boolean) : [];
-
-    const clientPayload = {
-      ...clientDataWithoutPhoto,
-      photoCIN: finalPhotoUrl,
-      otherPhotos: photoUrls,
-      ...(isNewClient ? { createdAt: serverTimestamp() } : { createdAt: client.createdAt }),
-    };
-
     const clientRef = doc(firestore, 'clients', clientId);
 
-    setDoc(clientRef, clientPayload, { merge: !isNewClient })
-      .then(() => {
+    try {
+        const { photoCIN, otherPhotos, ...clientDataWithoutPhoto } = data;
+
+        let finalPhotoUrl = client?.photoCIN || "";
+
+        // 1. Handle file upload if a new file is provided
+        if (photoCIN && photoCIN.length > 0 && photoCIN[0] instanceof File) {
+            const file = photoCIN[0];
+            const storageRef = ref(storage, `clients/${clientId}/cin_${Date.now()}_${file.name}`);
+            const uploadResult = await uploadBytes(storageRef, file);
+            finalPhotoUrl = await getDownloadURL(uploadResult.ref);
+        }
+
+        // 2. Prepare the payload for Firestore
+        const photoUrls = otherPhotos ? otherPhotos.map(p => p.url).filter(Boolean) : [];
+
+        const clientPayload = {
+          ...clientDataWithoutPhoto,
+          photoCIN: finalPhotoUrl,
+          otherPhotos: photoUrls,
+          ...(isNewClient ? { createdAt: serverTimestamp() } : { createdAt: client.createdAt }),
+        };
+
+        // 3. Save to Firestore
+        await setDoc(clientRef, clientPayload, { merge: !isNewClient });
+
         toast({
           title: isNewClient ? "Client ajouté" : "Client mis à jour",
           description: "Les informations du client ont été sauvegardées avec succès.",
         });
         onFinished();
-      })
-      .catch(serverError => {
+
+    } catch (serverError: any) {
+        console.error("Erreur de sauvegarde du client:", serverError);
+        
+        // Create and emit a permission error for debugging
         const permissionError = new FirestorePermissionError({
             path: clientRef.path,
             operation: isNewClient ? 'create' : 'update',
-            requestResourceData: clientPayload
-        }, serverError as Error);
+        }, serverError);
         errorEmitter.emit('permission-error', permissionError);
+
         toast({
             variant: "destructive",
             title: "Erreur de sauvegarde",
-            description: "Impossible d'enregistrer les informations du client."
+            description: "Impossible d'enregistrer les informations du client. " + (serverError.message || "Veuillez vérifier votre connexion et vos permissions."),
         });
-      })
-      .finally(() => {
+    } finally {
         setIsSubmitting(false);
-      });
+    }
   }
 
   return (
@@ -199,11 +195,11 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
             <FormItem>
               <FormLabel>Date de délivrance du permis</FormLabel>
               <FormControl>
-                <Input
-                  type="date"
-                  value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd") : ""}
-                  onChange={(e) => field.onChange(e.target.value ? e.target.valueAsDate : null)}
-                />
+                 <Input
+                    type="date"
+                    value={field.value ? format(new Date(field.value), "yyyy-MM-dd") : ""}
+                    onChange={(e) => field.onChange(e.target.valueAsDate)}
+                    />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -313,3 +309,5 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
     </Form>
   );
 }
+
+    
