@@ -15,8 +15,8 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import PaymentForm from "@/components/payments/payment-form";
-import { StatCard } from "@/components/stat-card";
 import { formatCurrency } from "@/lib/utils";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function PaymentsPage() {
   const [payments, setPayments] = React.useState<Payment[]>([]);
@@ -111,10 +111,18 @@ export default function PaymentsPage() {
         
         <div className="mb-4">
              {loading ? (
-                <Skeleton className="h-28 w-full md:w-1/4" />
+                <Skeleton className="h-40 w-full" />
              ) : (
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <StatCard title="Revenu du mois" value={formatCurrency(monthlyRevenue, 'MAD')} icon={DollarSign} />
+                    <Card className="h-40 flex flex-col">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Revenu du mois</CardTitle>
+                            <DollarSign className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent className="flex-grow flex items-end justify-center pb-4">
+                            <div className="text-4xl font-bold">{formatCurrency(monthlyRevenue, 'MAD')}</div>
+                        </CardContent>
+                    </Card>
                 </div>
              )}
         </div>
