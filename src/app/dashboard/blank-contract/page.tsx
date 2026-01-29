@@ -4,7 +4,6 @@ import { Logo } from '@/components/logo';
 import { Button } from '@/components/ui/button';
 import { Printer } from 'lucide-react';
 import React from 'react';
-import Image from 'next/image';
 
 export default function BlankContractPage() {
   const handlePrint = () => {
@@ -179,27 +178,19 @@ export default function BlankContractPage() {
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-center">
                     <div className="text-center">
-                        <div className="relative w-full h-16">
-                            <Image src={sideViewUrl} alt="Côté Gauche" fill className="object-contain" />
-                        </div>
+                        <img src={sideViewUrl} alt="Côté Gauche" className="w-full h-16 object-contain" />
                         <p className="text-xs font-semibold mt-1">Côté Gauche</p>
                     </div>
                     <div className="text-center">
-                        <div className="relative w-full h-16">
-                            <Image src={frontViewUrl} alt="Avant" fill className="object-contain" />
-                        </div>
+                        <img src={frontViewUrl} alt="Avant" className="w-full h-16 object-contain" />
                         <p className="text-xs font-semibold mt-1">Avant</p>
                     </div>
                     <div className="text-center">
-                        <div className="relative w-full h-16">
-                            <Image src={backViewUrl} alt="Arrière" fill className="object-contain" />
-                        </div>
+                        <img src={backViewUrl} alt="Arrière" className="w-full h-16 object-contain" />
                         <p className="text-xs font-semibold mt-1">Arrière</p>
                     </div>
                     <div className="text-center">
-                        <div className="relative w-full h-16">
-                            <Image src={sideViewUrl} alt="Côté Droit" fill className="object-contain" style={{ transform: 'scaleX(-1)' }}/>
-                        </div>
+                        <img src={sideViewUrl} alt="Côté Droit" className="w-full h-16 object-contain" style={{ transform: 'scaleX(-1)' }}/>
                         <p className="text-xs font-semibold mt-1">Côté Droit</p>
                     </div>
                 </div>
