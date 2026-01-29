@@ -1,3 +1,4 @@
+'use client';
 import React from 'react';
 import type { Payment } from '@/lib/definitions';
 import { Logo } from '../logo';
