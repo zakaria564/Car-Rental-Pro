@@ -23,7 +23,7 @@ import { collection, doc, serverTimestamp, runTransaction } from "firebase/fires
 import { errorEmitter } from "@/firebase/error-emitter";
 import React from "react";
 import { cn, formatCurrency } from "@/lib/utils";
-import { format } from "date-fns";
+import { format, differenceInCalendarDays, startOfDay } from "date-fns";
 
 const paymentFormSchema = z.object({
   rentalId: z.string().min(1, "Veuillez sélectionner un contrat de location."),
@@ -35,6 +35,28 @@ const paymentFormSchema = z.object({
 
 type PaymentFormValues = z.infer<typeof paymentFormSchema>;
 
+
+const getSafeDate = (date: any): Date | null => {
+    if (!date) return null;
+    if (date.toDate) return date.toDate(); // Firestore Timestamp
+    if (date instanceof Date) return date;
+    const parsed = new Date(date);
+    return isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const calculateTotal = (rental: Rental): number => {
+    const from = getSafeDate(rental.location.dateDebut);
+    const to = getSafeDate(rental.location.dateFin);
+
+    if (from && to && rental.location.prixParJour > 0) {
+        const daysDiff = differenceInCalendarDays(startOfDay(to), startOfDay(from));
+        const rentalDays = daysDiff < 1 ? 1 : daysDiff;
+        return rentalDays * rental.location.prixParJour;
+    }
+    return rental.location.montantTotal ?? (rental.location.nbrJours || 0) * (rental.location.prixParJour || 0);
+};
+
+
 export default function PaymentForm({ payment, rentals, onFinished, preselectedRentalId }: { 
     payment: Payment | null, 
     rentals: Rental[], 
@@ -45,13 +67,6 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
   const { firestore } = useFirebase();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-  const getSafeDate = (date: any): Date | undefined => {
-    if (!date) return undefined;
-    if (date.toDate) return date.toDate(); // Firestore Timestamp
-    const parsed = new Date(date);
-    return isNaN(parsed.getTime()) ? undefined : parsed;
-  };
-
   const form = useForm<PaymentFormValues>({
     resolver: zodResolver(paymentFormSchema),
     mode: "onChange",
@@ -61,7 +76,7 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
     if (payment) {
         form.reset({
             ...payment,
-            paymentDate: getSafeDate(payment.paymentDate),
+            paymentDate: getSafeDate(payment.paymentDate) ?? new Date(),
         });
         return;
     }
@@ -70,7 +85,7 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
     if (preselectedRentalId) {
         const selectedRental = rentals.find(r => r.id === preselectedRentalId);
         if (selectedRental) {
-            const total = selectedRental.location.montantTotal ?? (selectedRental.location.nbrJours || 0) * (selectedRental.location.prixParJour || 0);
+            const total = calculateTotal(selectedRental);
             const paid = selectedRental.location.montantPaye || 0;
             const remaining = total - paid;
             if (remaining > 0) {
@@ -95,10 +110,8 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
 
   const financialSummary = React.useMemo(() => {
     if (!selectedRental) return { total: 0, paye: 0, reste: 0 };
-
-    const total = selectedRental.location.montantTotal ?? 
-                  (selectedRental.location.nbrJours || 0) * (selectedRental.location.prixParJour || 0);
     
+    const total = calculateTotal(selectedRental);
     const paye = selectedRental.location.montantPaye || 0;
     const reste = total - paye;
 
@@ -284,3 +297,4 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
   );
 }
 
+    
