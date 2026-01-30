@@ -413,8 +413,8 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
                   </DropdownMenuItem>
                 }
                 <DropdownMenuItem onClick={() => openHistory(rental)}>
-                  <History className="mr-2 h-4 w-4" />
-                  Historique des paiements
+                  <FileText className="mr-2 h-4 w-4" />
+                  Voir facture
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -614,6 +614,8 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
 }
 
 
+
+    
 
     
 
