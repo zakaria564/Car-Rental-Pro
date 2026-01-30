@@ -55,6 +55,7 @@ function CarDetails({ car }: { car: Car }) {
                     <div><strong>Modèle:</strong> {car.modele}</div>
                     <div><strong>Mise en circulation:</strong> {car.dateMiseEnCirculation?.toDate ? format(car.dateMiseEnCirculation.toDate(), 'dd/MM/yyyy', { locale: fr }) : 'N/A'}</div>
                     <div><strong>Immatriculation:</strong> {car.immat}</div>
+                    {car.immatWW && <div><strong>Immatriculation WW:</strong> {car.immatWW}</div>}
                     <div><strong>N° de châssis:</strong> {car.numChassis}</div>
                     <div><strong>Couleur:</strong> {car.couleur}</div>
                     <div><strong>Kilométrage:</strong> {car.kilometrage.toLocaleString()} km</div>

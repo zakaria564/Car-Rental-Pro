@@ -8,6 +8,7 @@
         "marque": { "type": "string", "description": "Brand of the car." },
         "modele": { "type": "string", "description": "Model of the car." },
         "immat": { "type": "string", "description": "License plate." },
+        "immatWW": { "type": "string", "description": "Temporary license plate (WW)." },
         "numChassis": { "type": "string", "description": "Chassis number (VIN)." },
         "prixParJour": { "type": "number", "description": "Price per day." },
         "etat": {

@@ -35,6 +35,7 @@ const carFormSchema = z.object({
     required_error: "La date de mise en circulation est requise.",
   }),
   immat: z.string().min(5, "La plaque d'immatriculation semble trop courte."),
+  immatWW: z.string().optional().nullable(),
   numChassis: z.string().min(17, "Le numéro de châssis doit comporter 17 caractères.").max(17, "Le numéro de châssis doit comporter 17 caractères."),
   kilometrage: z.coerce.number().int("Le kilométrage doit être un nombre entier.").min(0, "Le kilométrage ne peut être négatif."),
   couleur: z.string().min(3, "La couleur est requise."),
@@ -75,12 +76,14 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
       dateExpirationAssurance: getSafeDate(car.dateExpirationAssurance),
       dateProchaineVisiteTechnique: getSafeDate(car.dateProchaineVisiteTechnique),
       anneeVignette: car.anneeVignette ?? undefined,
-      maintenanceHistory: car.maintenanceHistory ?? ""
+      maintenanceHistory: car.maintenanceHistory ?? "",
+      immatWW: car.immatWW ?? "",
     } : {
       marque: "",
       modele: "",
       dateMiseEnCirculation: new Date(),
       immat: "",
+      immatWW: "",
       numChassis: "",
       kilometrage: 0,
       couleur: "",
@@ -241,7 +244,20 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                         <FormItem>
                         <FormLabel>Plaque d'immatriculation</FormLabel>
                         <FormControl>
-                            <Input placeholder="12345 - أ - 1 | WW..." {...field} />
+                            <Input placeholder="12345 - أ - 1" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="immatWW"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Immatriculation WW (temporaire)</FormLabel>
+                        <FormControl>
+                            <Input placeholder="WW 123456" {...field} value={field.value ?? ''} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
