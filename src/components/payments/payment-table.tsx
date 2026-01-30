@@ -50,17 +50,17 @@ const getSafeDate = (date: any): Date | null => {
     return isNaN(d.getTime()) ? null : d;
 };
 
-// New component for the payment history dialog
-const PaymentHistoryDialog = ({ rental, payments, onPrintInvoice, onDeletePaymentClick }: {
+
+const RentalStatementDialog = ({ rental, payments, onDeletePaymentClick, onPrintClick }: {
   rental: Rental;
   payments: Payment[];
-  onPrintInvoice: (payment: Payment) => void;
   onDeletePaymentClick: (payment: Payment) => void;
+  onPrintClick: () => void;
 }) => {
   return (
     <DialogContent className="sm:max-w-2xl">
       <DialogHeader>
-        <DialogTitle>Historique des paiements</DialogTitle>
+        <DialogTitle>Relevé de compte</DialogTitle>
         <DialogDescription>
           Contrat {rental.id.substring(0,8).toUpperCase()} pour {rental.locataire.nomPrenom}
         </DialogDescription>
@@ -90,12 +90,6 @@ const PaymentHistoryDialog = ({ rental, payments, onPrintInvoice, onDeletePaymen
                           </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => onPrintInvoice(p)}>
-                              <FileText className="mr-2 h-4 w-4" />
-                              Voir la facture
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
                           <DropdownMenuItem 
                               className="text-destructive focus:text-destructive focus:bg-destructive/10"
                               onSelect={() => onDeletePaymentClick(p)}
@@ -115,6 +109,12 @@ const PaymentHistoryDialog = ({ rental, payments, onPrintInvoice, onDeletePaymen
           </TableBody>
         </Table>
       </div>
+       <DialogFooter>
+        <Button variant="outline" onClick={onPrintClick}>
+          <Printer className="mr-2 h-4 w-4"/>
+          Imprimer le relevé
+        </Button>
+      </DialogFooter>
     </DialogContent>
   )
 };
@@ -127,10 +127,9 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   
-  const [selectedPaymentForInvoice, setSelectedPaymentForInvoice] = React.useState<Payment | null>(null);
-  const [isInvoiceOpen, setIsInvoiceOpen] = React.useState(false);
-  const [selectedRentalForHistory, setSelectedRentalForHistory] = React.useState<Rental | null>(null);
-  const [isHistoryOpen, setIsHistoryOpen] = React.useState(false);
+  const [statementRental, setStatementRental] = React.useState<Rental | null>(null);
+  const [isStatementOpen, setIsStatementOpen] = React.useState(false);
+
   const [paymentToDelete, setPaymentToDelete] = React.useState<Payment | null>(null);
   const [rentalToDelete, setRentalToDelete] = React.useState<Rental | null>(null);
   const { toast } = useToast();
@@ -142,10 +141,8 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
 
     if (from && to && rental.location.prixParJour > 0) {
         const days = differenceInCalendarDays(startOfDay(to), startOfDay(from));
-        // If rental is for one day, diff is 0, so we need to add 1.
         return (days >= 0 ? days + 1 : 1) * rental.location.prixParJour;
     }
-    // Fallback to stored total or older calculation method for data consistency
     return rental.location.montantTotal ?? (rental.location.nbrJours || 0) * (rental.location.prixParJour || 0);
   };
 
@@ -285,14 +282,9 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
     };
   };
   
-  const openInvoice = (payment: Payment) => {
-    setSelectedPaymentForInvoice(payment);
-    setIsInvoiceOpen(true);
-  }
-  
-  const openHistory = (rental: Rental) => {
-    setSelectedRentalForHistory(rental);
-    setIsHistoryOpen(true);
+  const openStatement = (rental: Rental) => {
+    setStatementRental(rental);
+    setIsStatementOpen(true);
   }
 
   const columns: ColumnDef<Rental>[] = [
@@ -412,9 +404,9 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
                     <span>Encaisser un paiement</span>
                   </DropdownMenuItem>
                 }
-                <DropdownMenuItem onClick={() => openHistory(rental)}>
+                <DropdownMenuItem onClick={() => openStatement(rental)}>
                   <FileText className="mr-2 h-4 w-4" />
-                  Voir facture
+                  Voir le relevé
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -529,42 +521,32 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
             </div>
         </div>
         
-        <Dialog open={isHistoryOpen} onOpenChange={(open) => {
-            setIsHistoryOpen(open);
-            if (!open) setSelectedRentalForHistory(null);
+        <Dialog open={isStatementOpen} onOpenChange={(open) => {
+            setIsStatementOpen(open);
+            if (!open) setStatementRental(null);
         }}>
-          {selectedRentalForHistory && (
-            <PaymentHistoryDialog 
-              rental={selectedRentalForHistory} 
-              payments={payments.filter(p => p.rentalId === selectedRentalForHistory.id)}
-              onPrintInvoice={openInvoice}
-              onDeletePaymentClick={setPaymentToDelete}
-            />
+          {statementRental && (
+             <>
+                {/* This is the hidden printable component */}
+                <div className="hidden">
+                    <Invoice 
+                        rental={statementRental} 
+                        payments={payments.filter(p => p.rentalId === statementRental.id)}
+                        totalAmount={calculateTotal(statementRental)}
+                    />
+                </div>
+
+                {/* This is the visible dialog */}
+                <RentalStatementDialog 
+                    rental={statementRental} 
+                    payments={payments.filter(p => p.rentalId === statementRental.id)}
+                    onDeletePaymentClick={setPaymentToDelete}
+                    onPrintClick={handlePrintInvoice}
+                />
+            </>
           )}
         </Dialog>
-        
-        <Dialog open={isInvoiceOpen} onOpenChange={(open) => {
-            setIsInvoiceOpen(open);
-            if (!open) setSelectedPaymentForInvoice(null);
-            }}>
-            {selectedPaymentForInvoice && (
-                <DialogContent className="sm:max-w-3xl">
-                    <DialogHeader className="no-print">
-                        <DialogTitle>Facture N° {selectedPaymentForInvoice.id?.substring(0,8).toUpperCase()}</DialogTitle>
-                    </DialogHeader>
-                    <ScrollArea className="h-[75vh]">
-                      <Invoice payment={selectedPaymentForInvoice} />
-                    </ScrollArea>
-                    <DialogFooter className="no-print">
-                    <Button variant="outline" onClick={handlePrintInvoice}>
-                        <Printer className="mr-2 h-4 w-4"/>
-                        Imprimer la facture
-                    </Button>
-                    </DialogFooter>
-                </DialogContent>
-            )}
-        </Dialog>
-        
+
         <AlertDialog open={!!paymentToDelete} onOpenChange={(open) => !open && setPaymentToDelete(null)}>
             {paymentToDelete && (
                 <AlertDialogContent>
@@ -612,11 +594,3 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
     </>
   );
 }
-
-
-
-    
-
-    
-
-    

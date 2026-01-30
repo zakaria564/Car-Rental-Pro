@@ -1,28 +1,34 @@
 'use client';
 import React from 'react';
-import type { Payment } from '@/lib/definitions';
+import type { Payment, Rental } from '@/lib/definitions';
 import { Logo } from '../logo';
 import { formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 
 type InvoiceProps = {
-    payment: Payment;
+    rental: Rental;
+    payments: Payment[];
+    totalAmount: number;
 };
 
-export const Invoice: React.FC<InvoiceProps> = ({ payment }) => {
-    if (!payment) return null;
-
-    const safePaymentDate = payment.paymentDate?.toDate ? format(payment.paymentDate.toDate(), "dd/MM/yyyy", { locale: fr }) : 'N/A';
+export const Invoice: React.FC<InvoiceProps> = ({ rental, payments, totalAmount }) => {
+    if (!rental) return null;
     
-    // A simple (and not 100% accurate) way to convert number to words for demonstration
-    // In a real app, a proper library should be used.
+    const today = new Date();
+    const safeDebutDate = rental.location.dateDebut?.toDate ? format(rental.location.dateDebut.toDate(), "dd/MM/yy", { locale: fr }) : 'N/A';
+    const safeFinDate = rental.location.dateFin?.toDate ? format(rental.location.dateFin.toDate(), "dd/MM/yy", { locale: fr }) : 'N/A';
+
+    const totalPaid = payments.reduce((acc, p) => acc + p.amount, 0);
+    const balance = totalAmount - totalPaid;
+
     const numberToWords = (num: number) => {
         // This is a placeholder. A real implementation is complex.
         return `${num.toLocaleString('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2})} Dirhams`;
     };
 
-    const amountInWords = numberToWords(payment.amount);
+    const amountInWords = numberToWords(totalAmount);
 
     return (
         <div id="printable-invoice" className="p-8 font-sans text-sm bg-white text-black min-h-[280mm] flex flex-col">
@@ -40,44 +46,66 @@ export const Invoice: React.FC<InvoiceProps> = ({ payment }) => {
                     </div>
                 </div>
                 <div className="text-right">
-                    <h1 className="font-bold text-3xl uppercase text-gray-800">Facture</h1>
-                    <p className="text-gray-600">N°: <span className="font-mono">{payment.id.substring(0, 8).toUpperCase()}</span></p>
-                    <p className="text-gray-600">Date: {safePaymentDate}</p>
+                    <h1 className="font-bold text-3xl uppercase text-gray-800">Facture / Relevé</h1>
+                    <p className="text-gray-600">Contrat N°: <span className="font-mono">{rental.id.substring(0, 8).toUpperCase()}</span></p>
+                    <p className="text-gray-600">Date: {format(today, "dd/MM/yyyy", { locale: fr })}</p>
                 </div>
             </header>
 
             {/* Client Info */}
-            <section className="my-10">
-                <h3 className="font-semibold text-gray-800 mb-2">Facturé à :</h3>
-                <p className="text-lg font-medium">{payment.clientName}</p>
+            <section className="my-10 grid grid-cols-2 gap-8">
+                 <div>
+                    <h3 className="font-semibold text-gray-800 mb-2">Facturé à :</h3>
+                    <p className="text-lg font-medium">{rental.locataire.nomPrenom}</p>
+                    <p>CIN: {rental.locataire.cin}</p>
+                </div>
+                <div className="text-right">
+                    <h3 className="font-semibold text-gray-800 mb-2">Détails de la location :</h3>
+                    <p>{rental.vehicule.marque}</p>
+                    <p>Du {safeDebutDate} au {safeFinDate}</p>
+                </div>
             </section>
 
             {/* Invoice Body */}
             <section className="flex-grow">
-                 <table className="w-full text-left">
-                    <thead>
-                        <tr className="bg-gray-100" style={{printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact'}}>
-                            <th className="p-3 font-semibold">Description</th>
-                            <th className="p-3 font-semibold text-right">Montant</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr className="border-b">
-                            <td className="p-3">
-                                <p>Paiement pour la location de véhicule.</p>
-                                <p className="text-xs text-gray-500">Référence Contrat: {payment.rentalId.substring(0, 8).toUpperCase()}</p>
-                                <p className="text-xs text-gray-500">Mode de paiement: {payment.paymentMethod}</p>
-                            </td>
-                            <td className="p-3 text-right font-medium">{formatCurrency(payment.amount, 'MAD')}</td>
-                        </tr>
-                    </tbody>
-                </table>
+                 <h3 className="font-semibold text-gray-800 mb-2">Historique des paiements :</h3>
+                 {payments.length > 0 ? (
+                    <Table>
+                        <TableHeader>
+                            <TableRow className="bg-gray-100" style={{printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact'}}>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Méthode</TableHead>
+                                <TableHead className="text-right">Montant</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {payments.map(p => (
+                                <TableRow key={p.id}>
+                                    <TableCell>{p.paymentDate?.toDate ? format(p.paymentDate.toDate(), "dd/MM/yyyy", { locale: fr }) : 'N/A'}</TableCell>
+                                    <TableCell>{p.paymentMethod}</TableCell>
+                                    <TableCell className="text-right">{formatCurrency(p.amount, 'MAD')}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                 ) : (
+                    <div className="text-sm text-gray-500 py-4 text-center border rounded-md">Aucun paiement enregistré pour ce contrat.</div>
+                 )}
+
 
                 <div className="mt-8 flex justify-end">
-                    <div className="w-full max-w-xs">
-                        <div className="flex justify-between text-lg font-semibold py-2 border-b">
-                            <span>Total : </span>
-                            <span>{formatCurrency(payment.amount, 'MAD')}</span>
+                    <div className="w-full max-w-sm space-y-2">
+                         <div className="flex justify-between">
+                            <span>Total de la location :</span>
+                            <span className="font-medium">{formatCurrency(totalAmount, 'MAD')}</span>
+                        </div>
+                         <div className="flex justify-between">
+                            <span>Total payé :</span>
+                            <span className="font-medium text-green-600">{formatCurrency(totalPaid, 'MAD')}</span>
+                        </div>
+                        <div className="flex justify-between text-lg font-semibold py-2 border-t text-destructive">
+                            <span>Solde à payer :</span>
+                            <span>{formatCurrency(balance, 'MAD')}</span>
                         </div>
                     </div>
                 </div>
