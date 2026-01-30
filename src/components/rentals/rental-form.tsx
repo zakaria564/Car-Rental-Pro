@@ -340,7 +340,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
     }
   }, [selectedCarId, cars, mode, setValue]);
 
-  const availableCars = cars.filter(car => car.disponible || (rental && car.id === rental.vehicule.carId));
+  const availableCars = cars.filter(car => car.disponibilite === 'disponible' || (rental && car.id === rental.vehicule.carId));
 
   const selectedCarForUI = React.useMemo(() => {
     return cars.find(car => car.id === selectedCarId);
@@ -465,7 +465,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             };
 
             batch.update(rentalRef, updatePayload);
-            batch.update(carDocRef, { kilometrage: data.kilometrageRetour });
+            batch.update(carDocRef, { kilometrage: data.kilometrageRetour, disponibilite: 'disponible' });
 
             await batch.commit();
             toast({
@@ -520,6 +520,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             const newRentalRef = doc(collection(firestore, 'rentals'));
             
             const livraisonInspectionId = handleInspection(newRentalRef.id, selectedCar.id, 'depart', data, batch);
+            const carRef = doc(firestore, 'cars', selectedCar.id);
 
             const rentalPayload: Omit<Rental, 'id'> & {createdAt: any} = {
                 locataire: {
@@ -565,6 +566,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             };
             
             batch.set(newRentalRef, rentalPayload);
+            batch.update(carRef, { disponibilite: 'louee' });
             
             await batch.commit();
             toast({

@@ -16,7 +16,7 @@ export type Car = {
   numChassis: string;
   etat: 'new' | 'good' | 'fair' | 'poor';
   photoURL: string;
-  disponible: boolean;
+  disponibilite: 'disponible' | 'louee' | 'maintenance';
   prixParJour: number;
   createdAt: any; // Can be Timestamp
   dateMiseEnCirculation: any; // Can be Timestamp

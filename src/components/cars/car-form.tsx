@@ -98,7 +98,6 @@ const carFormSchema = z.object({
   transmission: z.enum(['Manuelle', 'Automatique']),
   prixParJour: z.coerce.number().min(1, "Le prix doit être supérieur à 0."),
   etat: z.enum(["new", "good", "fair", "poor"]),
-  disponible: z.boolean().default(true),
   photoURL: z.string().url("Veuillez entrer une URL valide.").optional().or(z.literal('')),
   dateExpirationAssurance: z.coerce.date().optional().nullable(),
   dateProchaineVisiteTechnique: z.coerce.date().optional().nullable(),
@@ -164,7 +163,6 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
       transmission: "Manuelle" as const,
       prixParJour: 250,
       etat: "new" as const,
-      disponible: true,
       photoURL: "",
       dateExpirationAssurance: null,
       dateProchaineVisiteTechnique: null,
@@ -242,6 +240,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
       ...data,
       createdAt: car?.createdAt || serverTimestamp(),
       photoURL: data.photoURL || `https://picsum.photos/seed/${carId}/600/400`,
+      disponibilite: car?.disponibilite || 'disponible',
     };
 
     const carRef = doc(firestore, 'cars', carId);

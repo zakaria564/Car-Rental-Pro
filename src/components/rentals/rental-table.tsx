@@ -528,6 +528,11 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       });
       
       batch.delete(rentalDocRef);
+      
+      // Also set the car back to available
+      const carRef = doc(firestore, 'cars', rental.vehicule.carId);
+      batch.update(carRef, { disponibilite: 'disponible' });
+
 
       await batch.commit();
 

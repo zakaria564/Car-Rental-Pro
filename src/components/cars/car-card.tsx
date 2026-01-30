@@ -2,14 +2,14 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { Wrench, Pencil, Trash2, FileText, TriangleAlert, Gauge, Fuel, Cog } from "lucide-react";
+import { Wrench, Pencil, Trash2, FileText, TriangleAlert, Gauge, Fuel, Cog, Construction } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
   Card,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { Car, Maintenance } from "@/lib/definitions";
+import type { Car } from "@/lib/definitions";
 import { formatCurrency, cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import CarForm from "./car-form";
@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { ScrollArea } from "../ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "../ui/alert-dialog";
 import { useFirebase } from "@/firebase";
-import { deleteDoc, doc } from "firebase/firestore";
+import { deleteDoc, doc, updateDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
@@ -40,8 +40,22 @@ const getSafeDate = (date: any): Date | null => {
     return new Date(parsedDate.valueOf() + parsedDate.getTimezoneOffset() * 60 * 1000);
 };
 
+const getAvailabilityProps = (car: Car) => {
+    switch (car.disponibilite) {
+        case 'disponible':
+            return { text: 'Disponible', className: 'bg-green-600' };
+        case 'louee':
+            return { text: 'Louée', className: 'bg-destructive' };
+        case 'maintenance':
+            return { text: 'En maintenance', className: 'bg-yellow-500' };
+        default:
+            return { text: 'Inconnu', className: 'bg-gray-500' };
+    }
+};
+
 function CarDetails({ car }: { car: Car }) {
     const today = new Date();
+    const availability = getAvailabilityProps(car);
     
     const assuranceDate = car.dateExpirationAssurance?.toDate ? car.dateExpirationAssurance.toDate() : null;
     const isAssuranceExpired = assuranceDate && assuranceDate < today;
@@ -71,7 +85,7 @@ function CarDetails({ car }: { car: Car }) {
                     <div><strong>Puissance:</strong> {car.puissance} cv</div>
                     <div><strong>Places:</strong> {car.nbrPlaces}</div>
                     <div><strong>État:</strong> {car.etat}</div>
-                    <div className="flex items-center gap-2"><strong>Disponibilité:</strong> <Badge variant={car.disponible ? "default" : "destructive"} className={cn(car.disponible ? 'bg-green-600' : '')}>{car.disponible ? "Disponible" : "Louée"}</Badge></div>
+                    <div className="flex items-center gap-2"><strong>Disponibilité:</strong> <Badge variant="default" className={cn(availability.className, 'text-white')}>{availability.text}</Badge></div>
                 </div>
                 <Separator />
                  <div className="space-y-2">
@@ -135,6 +149,7 @@ export default function CarCard({ car }: { car: Car }) {
 
   const { firestore } = useFirebase();
   const { toast } = useToast();
+  const availability = getAvailabilityProps(car);
 
   const { documentAttention, maintenanceAttention } = React.useMemo(() => {
     const today = new Date();
@@ -216,6 +231,34 @@ export default function CarCard({ car }: { car: Car }) {
     }
   };
 
+  const toggleMaintenanceStatus = async (carToUpdate: Car) => {
+    if (!firestore) return;
+    const carDocRef = doc(firestore, 'cars', carToUpdate.id);
+    const newStatus = carToUpdate.disponibilite === 'maintenance' ? 'disponible' : 'maintenance';
+
+    try {
+        await updateDoc(carDocRef, {
+            disponibilite: newStatus
+        });
+        toast({
+            title: "Statut mis à jour",
+            description: `La voiture est maintenant marquée comme "${newStatus}".`,
+        });
+    } catch(serverError) {
+        const permissionError = new FirestorePermissionError({
+          path: carDocRef.path,
+          operation: 'update',
+          requestResourceData: { disponibilite: newStatus }
+        }, serverError as Error);
+        errorEmitter.emit('permission-error', permissionError);
+        toast({
+            variant: "destructive",
+            title: "Erreur de mise à jour",
+            description: "Vous n'avez pas la permission de modifier cette voiture.",
+        });
+    }
+};
+
   return (
     <Card className="relative flex flex-col sm:flex-row overflow-hidden group w-full">
         <div className="absolute top-2 right-2 z-10 p-1 flex gap-1">
@@ -246,11 +289,7 @@ export default function CarCard({ car }: { car: Car }) {
         </div>
       <div className="relative w-full sm:w-1/3 h-48 sm:h-auto">
         <div className="absolute top-2 left-2 z-10">
-            {car.disponible ? (
-              <Badge className="bg-green-600 text-white">Disponible</Badge>
-            ) : (
-              <Badge variant="destructive">Louée</Badge>
-            )}
+           <Badge className={cn(availability.className, "text-white")}>{availability.text}</Badge>
         </div>
         <Image
             src={car.photoURL}
@@ -310,7 +349,7 @@ export default function CarCard({ car }: { car: Car }) {
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <SheetTrigger asChild>
-                                    <Button variant="outline" size="icon" className="h-9 w-9">
+                                    <Button variant="outline" size="icon" className="h-9 w-9" disabled={car.disponibilite === 'louee'}>
                                         <Pencil className="h-4 w-4" />
                                     </Button>
                                 </SheetTrigger>
@@ -325,12 +364,41 @@ export default function CarCard({ car }: { car: Car }) {
                         </SheetContent>
                     </Sheet>
 
+                    {/* Maintenance Alert Dialog */}
+                    <AlertDialog>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="outline" size="icon" className="h-9 w-9" disabled={car.disponibilite === 'louee'}>
+                                        <Construction className="h-4 w-4" />
+                                    </Button>
+                                </AlertDialogTrigger>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>{car.disponibilite === 'maintenance' ? 'Marquer comme disponible' : 'Mettre en maintenance'}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Changer le statut du véhicule</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Le statut actuel est "{availability.text}". Voulez-vous le marquer comme "{car.disponibilite === 'maintenance' ? 'disponible' : 'en maintenance'}"?
+                                    Un véhicule en maintenance ne peut pas être loué.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => toggleMaintenanceStatus(car)}>Confirmer</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+
                     {/* Delete Alert Dialog */}
                     <AlertDialog>
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <AlertDialogTrigger asChild>
-                                    <Button variant="destructive" size="icon" className="h-9 w-9">
+                                    <Button variant="destructive" size="icon" className="h-9 w-9" disabled={car.disponibilite === 'louee'}>
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
                                 </AlertDialogTrigger>

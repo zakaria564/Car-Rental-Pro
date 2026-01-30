@@ -16,7 +16,11 @@
           "description": "Condition of the car.",
           "enum": ["new", "good", "fair", "poor"]
         },
-        "disponible": { "type": "boolean", "description": "Availability status." },
+        "disponibilite": {
+          "type": "string",
+          "description": "Availability status of the car.",
+          "enum": ["disponible", "louee", "maintenance"]
+        },
         "photoURL": { "type": "string", "format": "uri", "description": "URL of the car's photo." },
         "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp." },
         "dateMiseEnCirculation": { "type": "string", "format": "date-time", "description": "Date of first registration." },
@@ -54,7 +58,7 @@
           }
         }
       },
-      "required": ["marque", "modele", "immat", "numChassis", "prixParJour", "etat", "disponible", "dateMiseEnCirculation", "kilometrage", "couleur", "nbrPlaces", "puissance", "carburantType", "transmission"]
+      "required": ["marque", "modele", "immat", "numChassis", "prixParJour", "etat", "disponibilite", "dateMiseEnCirculation", "kilometrage", "couleur", "nbrPlaces", "puissance", "carburantType", "transmission"]
     },
     "client": {
       "title": "Client",
