@@ -142,7 +142,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
 
     if (from && to && pricePerDay > 0) {
         const daysDiff = differenceInCalendarDays(startOfDay(to), startOfDay(from));
-        const rentalDays = daysDiff >= 0 ? daysDiff + 1 : 1;
+        const rentalDays = daysDiff < 1 ? 1 : daysDiff;
         return rentalDays * pricePerDay;
     }
 
@@ -606,5 +606,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
   );
 }
 
+
+    
 
     
