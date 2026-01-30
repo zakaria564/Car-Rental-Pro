@@ -184,6 +184,27 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     defaultValues,
   });
   
+  const { watch, setValue, getValues } = form;
+  const kilometrage = watch('kilometrage');
+  const mode = car ? 'edit' : 'new';
+
+  React.useEffect(() => {
+    if (mode === 'new' && kilometrage > 0) {
+        const vidangeInterval = 15000;
+        const courroieInterval = 100000;
+
+        if (!getValues('maintenanceSchedule.prochainVidangeKm')) {
+            const nextVidange = (Math.floor(kilometrage / vidangeInterval)) * vidangeInterval + vidangeInterval;
+            setValue('maintenanceSchedule.prochainVidangeKm', nextVidange);
+        }
+        
+        if (!getValues('maintenanceSchedule.prochaineCourroieKm')) {
+            const nextCourroie = (Math.floor(kilometrage / courroieInterval)) * courroieInterval + courroieInterval;
+            setValue('maintenanceSchedule.prochaineCourroieKm', nextCourroie);
+        }
+    }
+  }, [kilometrage, mode, setValue, getValues]);
+  
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const selectedMarque = form.watch("marque") as CarBrand;
 
@@ -191,6 +212,21 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     control: form.control,
     name: "maintenanceHistory",
   });
+
+  const handleInterventionTypeChange = (value: string, index: number) => {
+    const vidangeInterval = 15000;
+    const courroieInterval = 100000;
+    
+    const interventionKm = getValues(`maintenanceHistory.${index}.kilometrage`);
+
+    if (typeof interventionKm !== 'number' || interventionKm <= 0) return;
+
+    if (value.toLowerCase().includes('vidange')) {
+        setValue('maintenanceSchedule.prochainVidangeKm', interventionKm + vidangeInterval, { shouldValidate: true });
+    } else if (value.toLowerCase().includes('distribution') || value.toLowerCase().includes('courroie')) {
+        setValue('maintenanceSchedule.prochaineCourroieKm', interventionKm + courroieInterval, { shouldValidate: true });
+    }
+  };
 
   React.useEffect(() => {
     form.reset(defaultValues);
@@ -309,8 +345,9 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                 if (!dateString) {
                                     field.onChange(null);
                                 } else {
-                                    const [year, month, day] = dateString.split('-').map(Number);
-                                    field.onChange(new Date(year, month - 1, day));
+                                    const date = new Date(dateString);
+                                    const timezoneOffset = date.getTimezoneOffset() * 60000;
+                                    field.onChange(new Date(date.getTime() + timezoneOffset));
                                 }
                               }}
                             />
@@ -528,8 +565,9 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                     if (!dateString) {
                                         field.onChange(null);
                                     } else {
-                                        const [year, month, day] = dateString.split('-').map(Number);
-                                        field.onChange(new Date(year, month - 1, day));
+                                        const date = new Date(dateString);
+                                        const timezoneOffset = date.getTimezoneOffset() * 60000;
+                                        field.onChange(new Date(date.getTime() + timezoneOffset));
                                     }
                                   }}
                                 />
@@ -553,8 +591,9 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                         if (!dateString) {
                                             field.onChange(null);
                                         } else {
-                                            const [year, month, day] = dateString.split('-').map(Number);
-                                            field.onChange(new Date(year, month - 1, day));
+                                            const date = new Date(dateString);
+                                            const timezoneOffset = date.getTimezoneOffset() * 60000;
+                                            field.onChange(new Date(date.getTime() + timezoneOffset));
                                         }
                                       }}
                                     />
@@ -599,8 +638,9 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                                 if (!dateString) {
                                                     field.onChange(null);
                                                 } else {
-                                                    const [year, month, day] = dateString.split('-').map(Number);
-                                                    field.onChange(new Date(year, month - 1, day));
+                                                    const date = new Date(dateString);
+                                                    const timezoneOffset = date.getTimezoneOffset() * 60000;
+                                                    field.onChange(new Date(date.getTime() + timezoneOffset));
                                                 }
                                             }}
                                           />
@@ -639,7 +679,10 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                     render={({ field }) => (
                                       <FormItem>
                                         <FormLabel>Type d'intervention</FormLabel>
-                                         <Select onValueChange={field.onChange} value={field.value}>
+                                         <Select onValueChange={(value) => {
+                                            field.onChange(value);
+                                            handleInterventionTypeChange(value, index);
+                                          }} value={field.value}>
                                             <FormControl>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Sélectionner un type d'intervention" />
@@ -741,8 +784,9 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                         if (!dateString) {
                                             field.onChange(null);
                                         } else {
-                                            const [year, month, day] = dateString.split('-').map(Number);
-                                            field.onChange(new Date(year, month - 1, day));
+                                            const date = new Date(dateString);
+                                            const timezoneOffset = date.getTimezoneOffset() * 60000;
+                                            field.onChange(new Date(date.getTime() + timezoneOffset));
                                         }
                                     }}
                                     />
@@ -763,5 +807,3 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     </Form>
   );
 }
-
-    
