@@ -364,7 +364,9 @@ export default function CarCard({ car }: { car: Car }) {
                             <SheetHeader>
                                 <SheetTitle>{car.disponibilite === 'maintenance' ? 'Terminer la maintenance' : 'Mettre en maintenance'}</SheetTitle>
                             </SheetHeader>
-                            <MaintenanceForm car={car} onFinished={() => setIsMaintenanceSheetOpen(false)} />
+                             <ScrollArea className="h-full pr-6">
+                                <MaintenanceForm car={car} onFinished={() => setIsMaintenanceSheetOpen(false)} />
+                            </ScrollArea>
                         </SheetContent>
                     </Sheet>
 
