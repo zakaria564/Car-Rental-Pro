@@ -39,3 +39,47 @@ export const carBrands = {
 } as const;
 
 export type CarBrand = keyof typeof carBrands;
+
+export const maintenanceInterventionTypes = {
+    "Mécanique": [
+        "Vidange (huile moteur)",
+        "Changement filtres (huile, air, carburant, habitacle)",
+        "Plaquettes de frein",
+        "Disques de frein",
+        "Liquide de frein",
+        "Kit d'embrayage",
+        "Vidange boîte de vitesses",
+        "Kit de distribution",
+        "Courroie d'accessoire",
+        "Amortisseurs",
+        "Pneumatiques",
+        "Parallélisme / Géométrie",
+        "Batterie",
+        "Bougies (allumage / préchauffage)",
+        "Système d'injection",
+        "Vanne EGR / FAP",
+        "Turbo",
+        "Alternateur / Démarreur",
+        "Système de refroidissement (radiateur, liquide)",
+        "Échappement",
+        "Recharge climatisation",
+        "Diagnostic électronique",
+        "Autre (Mécanique)",
+    ],
+    "Carrosserie": [
+        "Réparation pare-choc",
+        "Réparation aile",
+        "Réparation porte",
+        "Réparation capot",
+        "Réparation bas de caisse",
+        "Débosselage sans peinture",
+        "Peinture complète",
+        "Raccord peinture / Retouche",
+        "Lustrage / Polish",
+        "Traitement céramique",
+        "Remplacement pare-brise",
+        "Remplacement vitre / lunette arrière",
+        "Rénovation phares",
+        "Autre (Carrosserie)",
+    ]
+};
