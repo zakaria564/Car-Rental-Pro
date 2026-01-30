@@ -1,5 +1,6 @@
 
 "use client";
+import React from 'react';
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,7 @@ import { Loader2, AlertCircle, CheckCircle, Wrench } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Badge } from '../ui/badge';
 import type { Car } from '@/lib/definitions';
+import { format } from 'date-fns';
 
 function SubmitButton() {
     const { pending } = useFormStatus();
@@ -22,9 +24,31 @@ function SubmitButton() {
     );
 }
 
+const getSafeDate = (date: any): Date | null => {
+    if (!date) return null;
+    if (date instanceof Date) return date;
+    if (date.toDate) return date.toDate();
+    const parsed = new Date(date);
+    return isNaN(parsed.getTime()) ? null : parsed;
+};
+
 export default function MaintenanceChecker({ car }: { car: Car }) {
     const initialState: MaintenanceState = { message: null, errors: {} };
     const [state, dispatch] = useActionState(checkMaintenance, initialState);
+
+    const maintenanceHistoryString = React.useMemo(() => {
+        if (!car.maintenanceHistory || car.maintenanceHistory.length === 0) {
+            return "Aucun historique d'entretien formel enregistré.";
+        }
+        return car.maintenanceHistory
+            .map(event => {
+                const date = getSafeDate(event.date);
+                const dateString = date ? format(date, "dd/MM/yyyy") : "Date inconnue";
+                const costString = event.cout ? ` - Coût: ${formatCurrency(event.cout, 'MAD')}` : "";
+                return `${dateString} (${event.kilometrage.toLocaleString()} km): ${event.typeIntervention} - ${event.description}${costString}`;
+            })
+            .join('\n');
+    }, [car.maintenanceHistory]);
 
     return (
         <div className="space-y-4">
@@ -50,7 +74,8 @@ export default function MaintenanceChecker({ car }: { car: Car }) {
                         name="historicalMaintenanceData"
                         placeholder="L'historique d'entretien de la voiture sera utilisé. Vous pouvez ajouter des détails supplémentaires ici si nécessaire."
                         required
-                        defaultValue={car.maintenanceHistory || ""}
+                        defaultValue={maintenanceHistoryString}
+                        readOnly={!!maintenanceHistoryString}
                     />
                      {state.errors?.historicalMaintenanceData && <p className="text-sm font-medium text-destructive">{state.errors.historicalMaintenanceData[0]}</p>}
                 </div>

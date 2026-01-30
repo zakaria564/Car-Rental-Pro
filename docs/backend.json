@@ -29,7 +29,21 @@
         "dateExpirationAssurance": { "type": "string", "format": "date-time", "description": "Insurance expiration date." },
         "dateProchaineVisiteTechnique": { "type": "string", "format": "date-time", "description": "Next technical inspection date." },
         "anneeVignette": { "type": "number", "description": "Tax sticker year." },
-        "maintenanceHistory": { "type": "string", "description": "A text field for logging maintenance history." }
+        "maintenanceHistory": {
+          "type": "array",
+          "description": "A list of maintenance interventions.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "date": { "type": "string", "format": "date-time", "description": "Date of the maintenance." },
+              "kilometrage": { "type": "number", "description": "Mileage at the time of maintenance." },
+              "typeIntervention": { "type": "string", "description": "Type of intervention (e.g., Vidange, Freins)." },
+              "description": { "type": "string", "description": "Detailed description of the work done." },
+              "cout": { "type": "number", "description": "Cost of the maintenance." }
+            },
+            "required": ["date", "kilometrage", "typeIntervention"]
+          }
+        }
       },
       "required": ["marque", "modele", "immat", "numChassis", "prixParJour", "etat", "disponible", "dateMiseEnCirculation", "kilometrage", "couleur", "nbrPlaces", "puissance", "carburantType", "transmission"]
     },

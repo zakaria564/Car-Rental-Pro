@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,15 @@ import { format } from "date-fns";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 import { Textarea } from "../ui/textarea";
 import { carBrands, type CarBrand } from "@/lib/car-data";
+import { PlusCircle, Trash2 } from "lucide-react";
+
+const maintenanceEventSchema = z.object({
+  date: z.coerce.date({ required_error: "La date est requise." }),
+  kilometrage: z.coerce.number().int().min(0, "Le kilométrage ne peut être négatif."),
+  typeIntervention: z.string().min(3, "Le type d'intervention est requis."),
+  description: z.string().min(5, "La description est requise."),
+  cout: z.coerce.number().min(0).optional().nullable(),
+});
 
 const carFormSchema = z.object({
   marque: z.string({ required_error: "La marque est requise."}).min(1, "La marque est requise."),
@@ -50,7 +59,7 @@ const carFormSchema = z.object({
   dateExpirationAssurance: z.coerce.date().optional().nullable(),
   dateProchaineVisiteTechnique: z.coerce.date().optional().nullable(),
   anneeVignette: z.coerce.number().optional().nullable(),
-  maintenanceHistory: z.string().optional().nullable(),
+  maintenanceHistory: z.array(maintenanceEventSchema).optional().nullable(),
 });
 
 type CarFormValues = z.infer<typeof carFormSchema>;
@@ -70,13 +79,18 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
   const { firestore } = useFirebase();
 
   const defaultValues = React.useMemo(() => {
+    const maintenanceHistory = car?.maintenanceHistory?.map(event => ({
+        ...event,
+        date: getSafeDate(event.date) || new Date(),
+    })) || [];
+
     return car ? {
       ...car,
       dateMiseEnCirculation: getSafeDate(car.dateMiseEnCirculation),
       dateExpirationAssurance: getSafeDate(car.dateExpirationAssurance),
       dateProchaineVisiteTechnique: getSafeDate(car.dateProchaineVisiteTechnique),
       anneeVignette: car.anneeVignette ?? undefined,
-      maintenanceHistory: car.maintenanceHistory ?? "",
+      maintenanceHistory,
       immatWW: car.immatWW ?? "",
     } : {
       marque: "",
@@ -98,7 +112,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
       dateExpirationAssurance: null,
       dateProchaineVisiteTechnique: null,
       anneeVignette: new Date().getFullYear(),
-      maintenanceHistory: "",
+      maintenanceHistory: [],
     }
   }, [car]);
 
@@ -110,6 +124,11 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
   
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const selectedMarque = form.watch("marque") as CarBrand;
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "maintenanceHistory",
+  });
 
   React.useEffect(() => {
     form.reset(defaultValues);
@@ -228,7 +247,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                 if (!dateString) {
                                     field.onChange(null);
                                 } else {
-                                    field.onChange(new Date(`${dateString}T00:00:00`));
+                                    field.onChange(new Date(`${dateString}T00:00:00Z`));
                                 }
                               }}
                             />
@@ -242,7 +261,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                     name="immat"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Plaque d'immatriculation</FormLabel>
+                        <FormLabel>Plaque d'immatriculation (12345 - أ - 1)</FormLabel>
                         <FormControl>
                             <Input placeholder="12345 - أ - 1" {...field} />
                         </FormControl>
@@ -446,7 +465,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                     if (!dateString) {
                                         field.onChange(null);
                                     } else {
-                                        field.onChange(new Date(`${dateString}T00:00:00`));
+                                        field.onChange(new Date(`${dateString}T00:00:00Z`));
                                     }
                                   }}
                                 />
@@ -470,7 +489,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                         if (!dateString) {
                                             field.onChange(null);
                                         } else {
-                                            field.onChange(new Date(`${dateString}T00:00:00`));
+                                            field.onChange(new Date(`${dateString}T00:00:00Z`));
                                         }
                                       }}
                                     />
@@ -492,27 +511,99 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                 </FormItem>
                             )}
                         />
-                        <FormField
-                            control={form.control}
-                            name="maintenanceHistory"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Historique d'entretien</FormLabel>
-                                 <FormControl>
-                                    <Textarea
-                                        placeholder="20/01/2024 - Vidange d'huile (50,000 km)&#10;15/03/2024 - Remplacement des plaquettes de frein avant"
-                                        className="min-h-32"
-                                        {...field}
-                                        value={field.value ?? ''}
-                                    />
-                                </FormControl>
-                                <FormDescription>
-                                    Notez chaque intervention avec la date, la description, et le kilométrage.
-                                </FormDescription>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                        <div className="space-y-2">
+                          <FormLabel>Historique d'entretien</FormLabel>
+                          <div className="space-y-4">
+                              {fields.map((item, index) => (
+                                <div key={item.id} className="p-4 border rounded-md space-y-4 relative">
+                                  <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive" onClick={() => remove(index)}>
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                  <FormField
+                                    control={form.control}
+                                    name={`maintenanceHistory.${index}.date`}
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Date de l'intervention</FormLabel>
+                                        <FormControl>
+                                          <Input
+                                            type="date"
+                                            value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd") : ""}
+                                            onChange={(e) => {
+                                              const dateString = e.target.value;
+                                              field.onChange(dateString ? new Date(`${dateString}T00:00:00Z`) : null);
+                                            }}
+                                          />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  <div className="grid grid-cols-2 gap-4">
+                                     <FormField
+                                        control={form.control}
+                                        name={`maintenanceHistory.${index}.kilometrage`}
+                                        render={({ field }) => (
+                                          <FormItem>
+                                            <FormLabel>Kilométrage</FormLabel>
+                                            <FormControl><Input type="number" {...field} /></FormControl>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
+                                      />
+                                      <FormField
+                                        control={form.control}
+                                        name={`maintenanceHistory.${index}.cout`}
+                                        render={({ field }) => (
+                                          <FormItem>
+                                            <FormLabel>Coût (MAD)</FormLabel>
+                                            <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
+                                      />
+                                  </div>
+                                  <FormField
+                                    control={form.control}
+                                    name={`maintenanceHistory.${index}.typeIntervention`}
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Type d'intervention</FormLabel>
+                                        <FormControl><Input placeholder="Ex: Vidange, Plaquettes de frein" {...field} /></FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                   <FormField
+                                    control={form.control}
+                                    name={`maintenanceHistory.${index}.description`}
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Description</FormLabel>
+                                        <FormControl><Textarea placeholder="Détails des travaux effectués..." {...field} /></FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                </div>
+                              ))}
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full"
+                                onClick={() => append({
+                                  date: new Date(),
+                                  kilometrage: form.getValues('kilometrage') || 0,
+                                  typeIntervention: '',
+                                  description: '',
+                                  cout: undefined,
+                                })}
+                              >
+                                <PlusCircle className="mr-2 h-4 w-4" />
+                                Ajouter une intervention
+                              </Button>
+                          </div>
+                        </div>
                 </AccordionContent>
             </AccordionItem>
         </Accordion>

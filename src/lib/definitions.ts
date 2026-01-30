@@ -1,4 +1,12 @@
 
+export type Maintenance = {
+  date: any; // Timestamp
+  kilometrage: number;
+  typeIntervention: string;
+  description: string;
+  cout?: number;
+};
+
 export type Car = {
   id: string;
   marque: string;
@@ -21,7 +29,7 @@ export type Car = {
   dateExpirationAssurance?: any;
   dateProchaineVisiteTechnique?: any;
   anneeVignette?: number;
-  maintenanceHistory?: string;
+  maintenanceHistory?: Maintenance[];
 };
 
 export type Client = {

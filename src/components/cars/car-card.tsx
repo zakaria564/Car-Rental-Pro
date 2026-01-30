@@ -10,7 +10,7 @@ import {
   Card,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { Car } from "@/lib/definitions";
+import type { Car, Maintenance } from "@/lib/definitions";
 import { formatCurrency, cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import CarForm from "./car-form";
@@ -32,6 +32,15 @@ import {
 import { Separator } from "../ui/separator";
 import { format, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
+
+const getSafeDate = (date: any): Date | null => {
+    if (!date) return null;
+    if (date instanceof Date && !isNaN(date.getTime())) return date;
+    if (date.toDate) return date.toDate();
+    const parsedDate = new Date(date);
+    if (isNaN(parsedDate.getTime())) return null;
+    return new Date(parsedDate.valueOf() + parsedDate.getTimezoneOffset() * 60 * 1000);
+};
 
 function CarDetails({ car }: { car: Car }) {
     const today = new Date();
@@ -81,15 +90,26 @@ function CarDetails({ car }: { car: Car }) {
                     </div>
                     <div><strong>Vignette:</strong> {car.anneeVignette || 'N/A'}</div>
                 </div>
-                {car.maintenanceHistory && (
+                
+                {car.maintenanceHistory && car.maintenanceHistory.length > 0 && (
                     <>
                         <Separator />
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                             <h4 className="font-semibold text-base">Historique d'entretien</h4>
-                            <p className="whitespace-pre-wrap text-xs bg-muted p-2 rounded-md border">{car.maintenanceHistory}</p>
+                             <div className="space-y-2">
+                                {[...car.maintenanceHistory].sort((a, b) => getSafeDate(b.date)!.getTime() - getSafeDate(a.date)!.getTime()).map((event, index) => (
+                                    <div key={index} className="text-xs p-3 bg-muted rounded-md border relative">
+                                        <p className="font-bold">{event.typeIntervention}</p>
+                                        <p className="text-muted-foreground">{getSafeDate(event.date) ? format(getSafeDate(event.date)!, 'dd/MM/yyyy') : ''} - {event.kilometrage.toLocaleString()} km</p>
+                                        <p className="mt-1">{event.description}</p>
+                                        {event.cout != null && <div className="font-semibold mt-1 text-right">{formatCurrency(event.cout, 'MAD')}</div>}
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </>
                 )}
+
                 <Separator />
                 <div>
                     <div className="font-bold text-lg"><strong>Prix par jour:</strong> {formatCurrency(car.prixParJour, 'MAD')}</div>
