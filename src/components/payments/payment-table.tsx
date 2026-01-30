@@ -141,9 +141,11 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
     const pricePerDay = rental.location.prixParJour || 0;
 
     if (from && to && pricePerDay > 0) {
+        if (startOfDay(from).getTime() === startOfDay(to).getTime()) {
+            return pricePerDay;
+        }
         const daysDiff = differenceInCalendarDays(startOfDay(to), startOfDay(from));
-        const rentalDays = daysDiff < 1 ? 1 : daysDiff;
-        return rentalDays * pricePerDay;
+        return daysDiff * pricePerDay;
     }
 
     // Fallbacks
@@ -206,6 +208,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
     if (!firestore || !rental?.id) return;
 
     const rentalRef = doc(firestore, 'rentals', rental.id);
+    const carDocRef = doc(firestore, 'cars', rental.vehicule.carId);
     const paymentsQuery = query(collection(firestore, 'payments'), where("rentalId", "==", rental.id));
 
     try {
@@ -217,6 +220,10 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
         });
 
         batch.delete(rentalRef);
+
+        if (rental.statut === 'en_cours') {
+            batch.update(carDocRef, { disponible: true });
+        }
 
         await batch.commit();
 
@@ -606,6 +613,8 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
   );
 }
 
+
+    
 
     
 
