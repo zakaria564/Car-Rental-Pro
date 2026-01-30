@@ -56,6 +56,7 @@ type CarFormValues = z.infer<typeof carFormSchema>;
 
 const getSafeDate = (date: any): Date | undefined => {
     if (!date) return undefined;
+    if (date instanceof Date && !isNaN(date.getTime())) return date;
     if (date.toDate) return date.toDate(); // Firestore Timestamp
     const parsedDate = new Date(date);
     if (isNaN(parsedDate.getTime())) return undefined;
@@ -224,8 +225,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                 if (!dateString) {
                                     field.onChange(null);
                                 } else {
-                                    const [year, month, day] = dateString.split('-').map(Number);
-                                    field.onChange(new Date(year, month - 1, day));
+                                    field.onChange(new Date(`${dateString}T00:00:00`));
                                 }
                               }}
                             />
@@ -241,7 +241,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                         <FormItem>
                         <FormLabel>Plaque d'immatriculation</FormLabel>
                         <FormControl>
-                            <Input placeholder="VOITURE-123" {...field} />
+                            <Input placeholder="12345 - أ - 1 | WW..." {...field} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
@@ -430,8 +430,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                     if (!dateString) {
                                         field.onChange(null);
                                     } else {
-                                        const [year, month, day] = dateString.split('-').map(Number);
-                                        field.onChange(new Date(year, month - 1, day));
+                                        field.onChange(new Date(`${dateString}T00:00:00`));
                                     }
                                   }}
                                 />
@@ -455,8 +454,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                         if (!dateString) {
                                             field.onChange(null);
                                         } else {
-                                            const [year, month, day] = dateString.split('-').map(Number);
-                                            field.onChange(new Date(year, month - 1, day));
+                                            field.onChange(new Date(`${dateString}T00:00:00`));
                                         }
                                       }}
                                     />
