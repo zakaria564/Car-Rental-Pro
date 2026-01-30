@@ -132,13 +132,13 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
       anneeVignette: new Date().getFullYear(),
       maintenanceHistory: [],
       maintenanceSchedule: {
-        prochainVidangeKm: undefined,
-        prochainFiltreGasoilKm: undefined,
-        prochaineCourroieKm: undefined,
+        prochainVidangeKm: null,
+        prochainFiltreGasoilKm: null,
+        prochaineCourroieKm: null,
         prochaineRevisionDate: null,
         prochainLiquideFreinDate: null,
         prochainLiquideRefroidissementDate: null,
-        prochainPlaquettesFreinKm: undefined,
+        prochainPlaquettesFreinKm: null,
       }
     }
   }, [car]);
@@ -171,7 +171,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
 
     const lowerType = type.toLowerCase();
   
-    if (lowerType.includes('vidange') || lowerType.includes('filtre à huile') || lowerType.includes('changement filtres')) {
+    if (lowerType.includes('vidange') || lowerType.includes('filtre à huile')) {
         setValue('maintenanceSchedule.prochainVidangeKm', km + vidangeInterval, { shouldValidate: true });
     }
     if (lowerType.includes('filtre à carburant (gazole)')) {
@@ -205,10 +205,29 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     const carId = car?.id || doc(collection(firestore, 'cars')).id;
     const isNewCar = !car;
 
+    const carDataForFirestore: { [key: string]: any } = { ...data };
+
+    // Firestore doesn't accept 'undefined', so we convert to 'null'.
+    if (carDataForFirestore.maintenanceSchedule) {
+      Object.keys(carDataForFirestore.maintenanceSchedule).forEach((key) => {
+        const typedKey = key as keyof typeof carDataForFirestore.maintenanceSchedule;
+        if (carDataForFirestore.maintenanceSchedule[typedKey] === undefined) {
+          carDataForFirestore.maintenanceSchedule[typedKey] = null;
+        }
+      });
+    }
+
+    // Also handle other optional top-level fields that might be undefined
+    for (const key in carDataForFirestore) {
+      if (carDataForFirestore[key] === undefined) {
+        carDataForFirestore[key] = null;
+      }
+    }
+    
     const carPayload = {
-      ...data,
+      ...carDataForFirestore,
       createdAt: car?.createdAt || serverTimestamp(),
-      photoURL: data.photoURL || `https://picsum.photos/seed/${carId}/600/400`,
+      photoURL: carDataForFirestore.photoURL || `https://picsum.photos/seed/${carId}/600/400`,
       disponibilite: car?.disponibilite || 'disponible',
     };
 
@@ -846,5 +865,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     </Form>
   );
 }
+
+    
 
     
