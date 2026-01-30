@@ -140,8 +140,9 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
     const to = getSafeDate(rental.location.dateFin);
 
     if (from && to && rental.location.prixParJour > 0) {
-        const days = differenceInCalendarDays(startOfDay(to), startOfDay(from));
-        return (days >= 0 ? days + 1 : 1) * rental.location.prixParJour;
+        const daysDiff = differenceInCalendarDays(startOfDay(to), startOfDay(from));
+        const rentalDays = daysDiff < 1 ? 1 : daysDiff;
+        return rentalDays * rental.location.prixParJour;
     }
     return rental.location.montantTotal ?? (rental.location.nbrJours || 0) * (rental.location.prixParJour || 0);
   };
@@ -405,7 +406,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
                   </DropdownMenuItem>
                 }
                 <DropdownMenuItem onClick={() => openStatement(rental)}>
-                  <FileText className="mr-2 h-4 w-4" />
+                  <History className="mr-2 h-4 w-4" />
                   Voir le relevé
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -553,7 +554,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
                     <AlertDialogHeader>
                         <AlertDialogTitle>Supprimer ce paiement ?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Cette action est irréversible. Le paiement de {formatCurrency(paymentToDelete.amount, 'MAD')} du {paymentToDelete.paymentDate?.toDate ? format(paymentToDelete.paymentDate.toDate(), "dd/MM/yyyy") : ''} sera supprimé.
+                            Cette action est irréversible. Le paiement de ${formatCurrency(paymentToDelete.amount, 'MAD')} du ${paymentToDelete.paymentDate?.toDate ? format(paymentToDelete.paymentDate.toDate(), "dd/MM/yyyy") : ''} sera supprimé.
                             Le montant sera déduit du total payé pour le contrat.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
@@ -576,7 +577,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
                     <AlertDialogHeader>
                         <AlertDialogTitle>Supprimer ce contrat ?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Cette action est irréversible. Le contrat pour {rentalToDelete.locataire.nomPrenom} et <strong>tous</strong> ses paiements associés seront définitivement supprimés.
+                            Cette action est irréversible. Le contrat pour ${rentalToDelete.locataire.nomPrenom} et <strong>tous</strong> ses paiements associés seront définitivement supprimés.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
