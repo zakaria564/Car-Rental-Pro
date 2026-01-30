@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -38,7 +39,7 @@ const getSafeDate = (date: any): Date | null => {
     if (date.toDate) return date.toDate();
     const parsedDate = new Date(date);
     if (isNaN(parsedDate.getTime())) return null;
-    return new Date(parsedDate.valueOf() + parsedDate.getTimezoneOffset() * 60 * 1000);
+    return parsedDate;
 };
 
 const getAvailabilityProps = (car: Car) => {
@@ -416,3 +417,5 @@ export default function CarCard({ car }: { car: Car }) {
     </Card>
   );
 }
+
+    

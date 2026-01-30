@@ -77,9 +77,7 @@ const getSafeDate = (date: any): Date | undefined => {
     if (date.toDate) return date.toDate(); // Firestore Timestamp
     const parsedDate = new Date(date);
     if (isNaN(parsedDate.getTime())) return undefined;
-    // Adjust for timezone offset by creating a date in UTC
-    const dateString = parsedDate.toISOString().substring(0, 10);
-    return new Date(dateString + 'T00:00:00Z');
+    return new Date(parsedDate.toISOString().substring(0, 10) + 'T00:00:00');
 };
 
 export default function CarForm({ car, onFinished }: { car: Car | null, onFinished: () => void }) {
@@ -183,7 +181,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
   });
 
   const updateScheduleFromIntervention = (type: string | undefined, km: number | undefined, date: Date | undefined) => {
-    if (!type || typeof km !== 'number' || km <= 0 || !date) return;
+    if (!type || typeof km !== 'number' || km < 0 || !date) return;
   
     const vidangeInterval = 15000;
     const courroieInterval = 100000;
@@ -323,9 +321,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                 if (!dateString) {
                                     field.onChange(null);
                                 } else {
-                                    const date = new Date(dateString);
-                                    const timezoneOffset = date.getTimezoneOffset() * 60000;
-                                    field.onChange(new Date(date.getTime() + timezoneOffset));
+                                    field.onChange(new Date(`${dateString}T00:00:00`));
                                 }
                               }}
                             />
@@ -543,9 +539,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                     if (!dateString) {
                                         field.onChange(null);
                                     } else {
-                                        const date = new Date(dateString);
-                                        const timezoneOffset = date.getTimezoneOffset() * 60000;
-                                        field.onChange(new Date(date.getTime() + timezoneOffset));
+                                        field.onChange(new Date(`${dateString}T00:00:00`));
                                     }
                                   }}
                                 />
@@ -569,9 +563,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                         if (!dateString) {
                                             field.onChange(null);
                                         } else {
-                                            const date = new Date(dateString);
-                                            const timezoneOffset = date.getTimezoneOffset() * 60000;
-                                            field.onChange(new Date(date.getTime() + timezoneOffset));
+                                            field.onChange(new Date(`${dateString}T00:00:00`));
                                         }
                                       }}
                                     />
@@ -615,9 +607,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                                 const dateString = e.target.value;
                                                 let date = null;
                                                 if (dateString) {
-                                                    const parsedDate = new Date(dateString);
-                                                    const timezoneOffset = parsedDate.getTimezoneOffset() * 60000;
-                                                    date = new Date(parsedDate.getTime() + timezoneOffset);
+                                                    date = new Date(`${dateString}T00:00:00`);
                                                 }
                                                 field.onChange(date);
                                                 const type = getValues(`maintenanceHistory.${index}.typeIntervention`);
@@ -791,7 +781,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                     onChange={(e) => {
                                         const dateString = e.target.value;
                                         if (!dateString) { field.onChange(null); } 
-                                        else { const date = new Date(dateString); const timezoneOffset = date.getTimezoneOffset() * 60000; field.onChange(new Date(date.getTime() + timezoneOffset)); }
+                                        else { field.onChange(new Date(`${dateString}T00:00:00`)); }
                                     }}
                                     />
                                 </FormControl>
@@ -812,7 +802,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                     onChange={(e) => {
                                         const dateString = e.target.value;
                                         if (!dateString) { field.onChange(null); } 
-                                        else { const date = new Date(dateString); const timezoneOffset = date.getTimezoneOffset() * 60000; field.onChange(new Date(date.getTime() + timezoneOffset)); }
+                                        else { field.onChange(new Date(`${dateString}T00:00:00`)); }
                                     }}
                                     />
                                 </FormControl>
@@ -833,7 +823,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                     onChange={(e) => {
                                         const dateString = e.target.value;
                                         if (!dateString) { field.onChange(null); } 
-                                        else { const date = new Date(dateString); const timezoneOffset = date.getTimezoneOffset() * 60000; field.onChange(new Date(date.getTime() + timezoneOffset)); }
+                                        else { field.onChange(new Date(`${dateString}T00:00:00`)); }
                                     }}
                                     />
                                 </FormControl>
@@ -853,3 +843,5 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     </Form>
   );
 }
+
+    
