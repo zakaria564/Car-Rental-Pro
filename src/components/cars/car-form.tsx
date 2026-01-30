@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useForm, useFieldArray } from "react-hook-form";
@@ -15,7 +14,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import type { Car } from "@/lib/definitions";
 import { useFirebase } from "@/firebase";
@@ -28,6 +27,42 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "..
 import { Textarea } from "../ui/textarea";
 import { carBrands, type CarBrand } from "@/lib/car-data";
 import { PlusCircle, Trash2 } from "lucide-react";
+
+const maintenanceInterventionTypes = {
+    "Mécanique": [
+        "Vidange et filtres",
+        "Plaquettes de frein",
+        "Disques de frein",
+        "Kit d'embrayage",
+        "Kit de distribution",
+        "Courroie d'accessoire",
+        "Amortisseurs",
+        "Pneumatiques",
+        "Parallélisme",
+        "Batterie",
+        "Bougies d'allumage/préchauffage",
+        "Alternateur",
+        "Démarreur",
+        "Système de refroidissement",
+        "Échappement",
+        "Recharge climatisation",
+        "Diagnostic électronique",
+        "Autre (Mécanique)",
+    ],
+    "Carrosserie": [
+        "Réparation pare-choc",
+        "Réparation aile",
+        "Réparation porte",
+        "Débosselage",
+        "Peinture complète",
+        "Raccord peinture",
+        "Lustrage / Polish",
+        "Remplacement pare-brise",
+        "Remplacement vitre",
+        "Rénovation phares",
+        "Autre (Carrosserie)",
+    ]
+};
 
 const maintenanceEventSchema = z.object({
   date: z.coerce.date({ required_error: "La date est requise." }),
@@ -569,7 +604,25 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                     render={({ field }) => (
                                       <FormItem>
                                         <FormLabel>Type d'intervention</FormLabel>
-                                        <FormControl><Input placeholder="Ex: Vidange, Plaquettes de frein" {...field} /></FormControl>
+                                         <Select onValueChange={field.onChange} value={field.value}>
+                                            <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Sélectionner un type d'intervention" />
+                                            </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                            {Object.entries(maintenanceInterventionTypes).map(([group, options]) => (
+                                                <SelectGroup key={group}>
+                                                <SelectLabel>{group}</SelectLabel>
+                                                {options.map((option) => (
+                                                    <SelectItem key={option} value={option}>
+                                                    {option}
+                                                    </SelectItem>
+                                                ))}
+                                                </SelectGroup>
+                                            ))}
+                                            </SelectContent>
+                                        </Select>
                                         <FormMessage />
                                       </FormItem>
                                     )}
