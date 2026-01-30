@@ -26,10 +26,11 @@ import React from "react";
 import { format } from "date-fns";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 import { Textarea } from "../ui/textarea";
+import { carBrands, type CarBrand } from "@/lib/car-data";
 
 const carFormSchema = z.object({
-  marque: z.string().min(2, "La marque doit comporter au moins 2 caractères."),
-  modele: z.string().min(1, "Le modèle est requis."),
+  marque: z.string({ required_error: "La marque est requise."}).min(1, "La marque est requise."),
+  modele: z.string({ required_error: "Le modèle est requis."}).min(1, "Le modèle est requis."),
   dateMiseEnCirculation: z.coerce.date({
     required_error: "La date de mise en circulation est requise.",
   }),
@@ -56,8 +57,10 @@ type CarFormValues = z.infer<typeof carFormSchema>;
 const getSafeDate = (date: any): Date | undefined => {
     if (!date) return undefined;
     if (date.toDate) return date.toDate(); // Firestore Timestamp
-    const parsed = new Date(date);
-    return isNaN(parsed.getTime()) ? undefined : parsed;
+    const parsedDate = new Date(date);
+    if (isNaN(parsedDate.getTime())) return undefined;
+    // Adjust for timezone offset
+    return new Date(parsedDate.valueOf() + parsedDate.getTimezoneOffset() * 60 * 1000);
 };
 
 export default function CarForm({ car, onFinished }: { car: Car | null, onFinished: () => void }) {
@@ -102,6 +105,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
   });
   
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const selectedMarque = form.watch("marque") as CarBrand;
 
   React.useEffect(() => {
     form.reset(defaultValues);
@@ -157,30 +161,53 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                 <AccordionTrigger>Informations Générales</AccordionTrigger>
                 <AccordionContent className="pt-4 space-y-4">
                     <FormField
-                    control={form.control}
-                    name="marque"
-                    render={({ field }) => (
+                      control={form.control}
+                      name="marque"
+                      render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Marque</FormLabel>
-                        <FormControl>
-                            <Input placeholder="Tesla" {...field} />
-                        </FormControl>
-                        <FormMessage />
+                          <FormLabel>Marque</FormLabel>
+                          <Select onValueChange={(value) => {
+                              field.onChange(value);
+                              form.setValue('modele', '');
+                            }} 
+                            value={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Sélectionner une marque" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {Object.keys(carBrands).sort().map((brand) => (
+                                <SelectItem key={brand} value={brand}>{brand}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
                         </FormItem>
-                    )}
+                      )}
                     />
                     <FormField
-                    control={form.control}
-                    name="modele"
-                    render={({ field }) => (
+                      control={form.control}
+                      name="modele"
+                      render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Modèle</FormLabel>
-                        <FormControl>
-                            <Input placeholder="Model S" {...field} />
-                        </FormControl>
-                        <FormMessage />
+                          <FormLabel>Modèle</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value} disabled={!selectedMarque}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder={!selectedMarque ? "Sélectionnez d'abord une marque" : "Sélectionner un modèle"} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {selectedMarque && carBrands[selectedMarque] && carBrands[selectedMarque].map((model) => (
+                                <SelectItem key={model} value={model}>{model}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
                         </FormItem>
-                    )}
+                      )}
                     />
                     <FormField
                       control={form.control}
@@ -197,7 +224,8 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                 if (!dateString) {
                                     field.onChange(null);
                                 } else {
-                                    field.onChange(new Date(`${dateString}T00:00:00`));
+                                    const [year, month, day] = dateString.split('-').map(Number);
+                                    field.onChange(new Date(year, month - 1, day));
                                 }
                               }}
                             />
@@ -293,7 +321,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>Carburant</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                             <SelectTrigger>
                                 <SelectValue placeholder="Type de carburant" />
@@ -315,7 +343,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>Transmission</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                             <SelectTrigger>
                                 <SelectValue placeholder="Type de transmission" />
@@ -349,7 +377,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>État</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                             <SelectTrigger>
                                 <SelectValue placeholder="Sélectionnez l'état de la voiture" />
@@ -402,7 +430,8 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                     if (!dateString) {
                                         field.onChange(null);
                                     } else {
-                                        field.onChange(new Date(`${dateString}T00:00:00`));
+                                        const [year, month, day] = dateString.split('-').map(Number);
+                                        field.onChange(new Date(year, month - 1, day));
                                     }
                                   }}
                                 />
@@ -426,7 +455,8 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                         if (!dateString) {
                                             field.onChange(null);
                                         } else {
-                                            field.onChange(new Date(`${dateString}T00:00:00`));
+                                            const [year, month, day] = dateString.split('-').map(Number);
+                                            field.onChange(new Date(year, month - 1, day));
                                         }
                                       }}
                                     />
@@ -481,4 +511,3 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     </Form>
   );
 }
-
