@@ -8,15 +8,13 @@ import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import type { Payment, Rental } from "@/lib/definitions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, PlusCircle, DollarSign } from "lucide-react";
+import { AlertCircle, PlusCircle } from "lucide-react";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import PaymentForm from "@/components/payments/payment-form";
-import { formatCurrency } from "@/lib/utils";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function PaymentsPage() {
   const [payments, setPayments] = React.useState<Payment[]>([]);
@@ -96,25 +94,6 @@ export default function PaymentsPage() {
     }
   };
   
-  const validRentalIds = new Set(rentals.map(r => r.id));
-  const validPayments = payments.filter(p => validRentalIds.has(p.rentalId));
-
-  const monthlyRevenue = React.useMemo(() => {
-    const now = new Date();
-    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-
-    return validPayments.reduce((acc, p) => {
-        if (p.paymentDate?.toDate) {
-            const paymentDate = p.paymentDate.toDate();
-            if (paymentDate >= firstDayOfMonth && paymentDate <= lastDayOfMonth) {
-                return acc + (p.amount || 0);
-            }
-        }
-        return acc;
-    }, 0);
-  }, [validPayments]);
-
   return (
     <Sheet open={isSheetOpen} onOpenChange={handleSheetOpenChange}>
         <DashboardHeader title="Comptabilité" description="Suivez la situation financière de vos contrats.">
@@ -124,24 +103,6 @@ export default function PaymentsPage() {
                 </Button>
             </SheetTrigger>
         </DashboardHeader>
-        
-        <div className="mb-4">
-             {loading ? (
-                <Skeleton className="h-40 w-full" />
-             ) : (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    <Card className="col-span-1 md:col-span-2 lg:col-span-1 h-40 flex flex-col">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Revenu du mois</CardTitle>
-                            <DollarSign className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent className="flex-grow flex items-center justify-center pb-4">
-                            <div className="text-2xl font-bold">{formatCurrency(monthlyRevenue, 'MAD')}</div>
-                        </CardContent>
-                    </Card>
-                </div>
-             )}
-        </div>
       
         {loading ? (
             <div className="space-y-2">
