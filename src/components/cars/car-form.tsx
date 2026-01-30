@@ -124,10 +124,12 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
   const { firestore } = useFirebase();
 
   const defaultValues = React.useMemo(() => {
-    const maintenanceHistory = car?.maintenanceHistory?.map(event => ({
-        ...event,
-        date: getSafeDate(event.date) || new Date(),
-    })) || [];
+    const maintenanceHistory = (car?.maintenanceHistory && Array.isArray(car.maintenanceHistory))
+        ? car.maintenanceHistory.map(event => ({
+            ...event,
+            date: getSafeDate(event.date) || new Date(),
+        }))
+        : [];
 
     return car ? {
       ...car,
@@ -494,7 +496,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                 </AccordionContent>
             </AccordionItem>
              <AccordionItem value="item-2">
-                <AccordionTrigger>Documents & Entretien</AccordionTrigger>
+                <AccordionTrigger>Documents &amp; Entretien</AccordionTrigger>
                 <AccordionContent className="pt-4 space-y-4">
                      <FormField
                         control={form.control}
@@ -687,3 +689,5 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     </Form>
   );
 }
+
+    
