@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -15,7 +14,6 @@ import { formatCurrency, cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import CarForm from "./car-form";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import MaintenanceChecker from "./maintenance-checker";
 import { ScrollArea } from "../ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "../ui/alert-dialog";
 import { useFirebase } from "@/firebase";
@@ -133,7 +131,6 @@ function CarDetails({ car }: { car: Car }) {
 
 export default function CarCard({ car }: { car: Car }) {
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
-  const [isMaintenanceDialogOpen, setIsMaintenanceDialogOpen] = React.useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = React.useState(false);
 
   const { firestore } = useFirebase();
@@ -327,26 +324,6 @@ export default function CarCard({ car }: { car: Car }) {
                             </ScrollArea>
                         </SheetContent>
                     </Sheet>
-
-                    {/* Maintenance Dialog */}
-                    <Dialog open={isMaintenanceDialogOpen} onOpenChange={setIsMaintenanceDialogOpen}>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <DialogTrigger asChild>
-                                    <Button variant="outline" size="icon" className="h-9 w-9">
-                                        <Wrench className="h-4 w-4" />
-                                    </Button>
-                                </DialogTrigger>
-                            </TooltipTrigger>
-                            <TooltipContent><p>Vérifier l'entretien (IA)</p></TooltipContent>
-                        </Tooltip>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>Vérification IA de l'entretien pour {car.marque} {car.modele}</DialogTitle>
-                            </DialogHeader>
-                            <MaintenanceChecker car={car} />
-                        </DialogContent>
-                    </Dialog>
 
                     {/* Delete Alert Dialog */}
                     <AlertDialog>
