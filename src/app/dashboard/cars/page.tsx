@@ -3,7 +3,7 @@
 import { DashboardHeader } from "@/components/dashboard-header";
 import CarCard from "@/components/cars/car-card";
 import { useFirebase } from "@/firebase";
-import type { Car } from "@/lib/definitions";
+import type { Car, Rental } from "@/lib/definitions";
 import { collection, onSnapshot } from "firebase/firestore";
 import React from "react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,6 +19,7 @@ import CarForm from "@/components/cars/car-form";
 
 export default function CarsPage() {
   const [cars, setCars] = React.useState<Car[]>([]);
+  const [rentals, setRentals] = React.useState<Rental[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [searchTerm, setSearchTerm] = React.useState("");
@@ -40,7 +41,7 @@ export default function CarsPage() {
     if (!firestore) return; // Don't run if firestore is not available yet.
 
     const carsCollection = collection(firestore, "cars");
-    const unsubscribe = onSnapshot(carsCollection, (snapshot) => {
+    const unsubscribeCars = onSnapshot(carsCollection, (snapshot) => {
       const carsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Car));
       setCars(carsData);
       setLoading(false);
@@ -55,11 +56,28 @@ export default function CarsPage() {
         }, serverError as Error);
         errorEmitter.emit('permission-error', permissionError);
     });
+    
+    const rentalsCollection = collection(firestore, "rentals");
+    const unsubscribeRentals = onSnapshot(rentalsCollection, (snapshot) => {
+        const rentalsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Rental));
+        setRentals(rentalsData);
+    }, (err) => {
+        console.error("Error loading rentals for car status:", err);
+    });
 
-    return () => unsubscribe();
+    return () => {
+        unsubscribeCars();
+        unsubscribeRentals();
+    };
   }, [firestore]);
 
-  const filteredCars = cars.filter(car => 
+  const rentedCarIds = new Set(rentals.filter(r => r.statut === 'en_cours').map(r => r.vehicule.carId));
+  const carsWithCorrectedStatus = cars.map(car => ({
+      ...car,
+      disponible: !rentedCarIds.has(car.id)
+  }));
+
+  const filteredCars = carsWithCorrectedStatus.filter(car => 
     car.marque.toLowerCase().includes(searchTerm.toLowerCase()) ||
     car.modele.toLowerCase().includes(searchTerm.toLowerCase())
   );

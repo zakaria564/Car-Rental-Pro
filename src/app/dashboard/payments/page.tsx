@@ -95,13 +95,16 @@ export default function PaymentsPage() {
       setRentalIdForNewPayment(null);
     }
   };
+  
+  const validRentalIds = new Set(rentals.map(r => r.id));
+  const validPayments = payments.filter(p => validRentalIds.has(p.rentalId));
 
   const monthlyRevenue = React.useMemo(() => {
     const now = new Date();
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-    return payments.reduce((acc, p) => {
+    return validPayments.reduce((acc, p) => {
         if (p.paymentDate?.toDate) {
             const paymentDate = p.paymentDate.toDate();
             if (paymentDate >= firstDayOfMonth && paymentDate <= lastDayOfMonth) {
@@ -110,7 +113,7 @@ export default function PaymentsPage() {
         }
         return acc;
     }, 0);
-  }, [payments]);
+  }, [validPayments]);
 
   return (
     <Sheet open={isSheetOpen} onOpenChange={handleSheetOpenChange}>

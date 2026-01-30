@@ -46,7 +46,7 @@ import { Dialog, DialogContent, DialogDescription as DialogDesc, DialogFooter, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import Image from "next/image";
 import { ScrollArea } from "../ui/scroll-area";
-import { doc, deleteDoc, updateDoc, writeBatch, getDoc, collection, getDocs } from "firebase/firestore";
+import { doc, writeBatch, getDoc, collection, getDocs, query, where } from "firebase/firestore";
 import { useFirebase } from "@/firebase";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
@@ -69,9 +69,11 @@ const calculateTotal = (rental: Rental): number => {
     const pricePerDay = rental.location.prixParJour || 0;
 
     if (from && to && pricePerDay > 0) {
+        if (startOfDay(from).getTime() >= startOfDay(to).getTime()) {
+            return pricePerDay;
+        }
         const daysDiff = differenceInCalendarDays(startOfDay(to), startOfDay(from));
-        const rentalDays = daysDiff < 1 ? 1 : daysDiff;
-        return rentalDays * pricePerDay;
+        return (daysDiff + 1) * pricePerDay;
     }
 
     // Fallbacks
@@ -313,8 +315,11 @@ function RentalDetails({ rental }: { rental: Rental }) {
 
     const rentalDuration = () => {
         if (safeDebutDate && safeFinDate) {
+            if (startOfDay(safeDebutDate).getTime() >= startOfDay(safeFinDate).getTime()) {
+                return 1;
+            }
             const daysDiff = differenceInCalendarDays(startOfDay(safeFinDate), startOfDay(safeDebutDate));
-            return daysDiff < 1 ? 1 : daysDiff;
+            return daysDiff + 1;
         }
         return rental.location.nbrJours || 0;
     };
@@ -517,36 +522,35 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     if (!firestore || !rental?.id) return;
     
     const rentalDocRef = doc(firestore, 'rentals', rental.id);
-    const carDocRef = doc(firestore, 'cars', rental.vehicule.carId);
+    const paymentsQuery = query(collection(firestore, 'payments'), where("rentalId", "==", rental.id));
     
-    const batch = writeBatch(firestore);
-    
-    // If the rental was active, we need to make the car available again.
-    if (rental.statut === 'en_cours') {
-      batch.update(carDocRef, { disponible: true });
-    }
-    
-    // Now delete the rental document.
-    batch.delete(rentalDocRef);
-
     try {
+      const batch = writeBatch(firestore);
+      
+      const paymentsSnapshot = await getDocs(paymentsQuery);
+      paymentsSnapshot.forEach(paymentDoc => {
+          batch.delete(paymentDoc.ref);
+      });
+      
+      batch.delete(rentalDocRef);
+
       await batch.commit();
 
       toast({
         title: "Contrat supprimé",
-        description: "Le contrat de location a été supprimé.",
+        description: "Le contrat et ses paiements associés ont été supprimés.",
       });
 
     } catch (serverError) {
       const permissionError = new FirestorePermissionError({
-          path: rentalDocRef.path, // We can be more specific, but this is ok
+          path: rentalDocRef.path,
           operation: 'delete'
       }, serverError as Error);
       errorEmitter.emit('permission-error', permissionError);
       toast({
           variant: "destructive",
           title: "Erreur de suppression",
-          description: "Impossible de supprimer ce contrat. L'état de la voiture peut être incorrect.",
+          description: "Impossible de supprimer ce contrat et ses paiements.",
       });
     }
 

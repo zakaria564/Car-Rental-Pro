@@ -62,8 +62,9 @@ export default function DashboardPage() {
   }, [firestore]);
 
 
-  const availableCars = cars.filter(c => c.disponible).length;
   const activeRentals = rentals.filter(r => r.statut === 'en_cours').length;
+  const rentedCarIds = new Set(rentals.filter(r => r.statut === 'en_cours').map(r => r.vehicule.carId));
+  const availableCars = cars.filter(c => !rentedCarIds.has(c.id)).length;
   
   const expiringDocuments = React.useMemo(() => {
     const today = new Date();

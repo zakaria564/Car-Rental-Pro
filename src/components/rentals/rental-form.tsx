@@ -351,8 +351,11 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
     const to = (mode === 'check-in' && rental) ? dateRetour : dateRange?.to;
 
     if (from && to) {
+        if (startOfDay(from).getTime() >= startOfDay(to).getTime()) {
+            return 1;
+        }
         const daysDiff = differenceInCalendarDays(startOfDay(to), startOfDay(from));
-        return daysDiff < 1 ? 1 : daysDiff;
+        return daysDiff + 1;
     }
     return 0;
   }, [dateRange, dateRetour, mode, rental]);
@@ -465,7 +468,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             };
 
             batch.update(rentalRef, updatePayload);
-            batch.update(carDocRef, { disponible: true, kilometrage: data.kilometrageRetour });
+            batch.update(carDocRef, { kilometrage: data.kilometrageRetour });
 
             await batch.commit();
             toast({
@@ -479,7 +482,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             const rentalRef = doc(firestore, 'rentals', rental.id);
 
             const dayDiff = differenceInCalendarDays(startOfDay(dateRange.to), startOfDay(dateRange.from));
-            const finalRentalDays = dayDiff < 1 ? 1 : dayDiff;
+            const finalRentalDays = dayDiff < 0 ? 1 : dayDiff + 1;
             const finalAmountToPay = finalRentalDays * rental.location.prixParJour;
 
             const updatePayload = {
@@ -512,7 +515,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             }
             
             const dayDiff = differenceInCalendarDays(startOfDay(dateRange.to), startOfDay(dateRange.from));
-            const rentalDays = dayDiff < 1 ? 1 : dayDiff;
+            const rentalDays = dayDiff < 0 ? 1 : dayDiff + 1;
             const totalAmount = rentalDays * selectedCar.prixParJour;
             
             const safeDateMiseEnCirculation = timestampToDate(selectedCar.dateMiseEnCirculation);
@@ -563,11 +566,8 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                 createdAt: serverTimestamp(),
             };
             
-            const carDocRef = doc(firestore, 'cars', selectedCar.id);
-            
             batch.set(newRentalRef, rentalPayload);
-            batch.update(carDocRef, { disponible: false });
-
+            
             await batch.commit();
             toast({
                 title: "Contrat créé",
