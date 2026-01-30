@@ -23,7 +23,7 @@ import { collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import React from "react";
-import { format } from "date-fns";
+import { format, add } from "date-fns";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 import { Textarea } from "../ui/textarea";
 import { carBrands, maintenanceInterventionTypes, type CarBrand } from "@/lib/car-data";
@@ -63,6 +63,9 @@ const carFormSchema = z.object({
     prochainVidangeKm: z.coerce.number().optional().nullable(),
     prochaineCourroieKm: z.coerce.number().optional().nullable(),
     prochaineRevisionDate: z.coerce.date().optional().nullable(),
+    prochainLiquideFreinDate: z.coerce.date().optional().nullable(),
+    prochainLiquideRefroidissementDate: z.coerce.date().optional().nullable(),
+    prochainPlaquettesFreinKm: z.coerce.number().optional().nullable(),
   }).optional().nullable(),
 });
 
@@ -103,6 +106,9 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
         prochainVidangeKm: car.maintenanceSchedule?.prochainVidangeKm ?? undefined,
         prochaineCourroieKm: car.maintenanceSchedule?.prochaineCourroieKm ?? undefined,
         prochaineRevisionDate: getSafeDate(car.maintenanceSchedule?.prochaineRevisionDate),
+        prochainLiquideFreinDate: getSafeDate(car.maintenanceSchedule?.prochainLiquideFreinDate),
+        prochainLiquideRefroidissementDate: getSafeDate(car.maintenanceSchedule?.prochainLiquideRefroidissementDate),
+        prochainPlaquettesFreinKm: car.maintenanceSchedule?.prochainPlaquettesFreinKm ?? undefined,
       }
     } : {
       marque: "",
@@ -128,6 +134,9 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
         prochainVidangeKm: undefined,
         prochaineCourroieKm: undefined,
         prochaineRevisionDate: null,
+        prochainLiquideFreinDate: null,
+        prochainLiquideRefroidissementDate: null,
+        prochainPlaquettesFreinKm: undefined,
       }
     }
   }, [car]);
@@ -146,6 +155,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     if (mode === 'new' && kilometrage > 0) {
         const vidangeInterval = 15000;
         const courroieInterval = 100000;
+        const plaquettesInterval = 40000;
 
         if (!getValues('maintenanceSchedule.prochainVidangeKm')) {
             const nextVidange = (Math.floor(kilometrage / vidangeInterval)) * vidangeInterval + vidangeInterval;
@@ -155,6 +165,11 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
         if (!getValues('maintenanceSchedule.prochaineCourroieKm')) {
             const nextCourroie = (Math.floor(kilometrage / courroieInterval)) * courroieInterval + courroieInterval;
             setValue('maintenanceSchedule.prochaineCourroieKm', nextCourroie);
+        }
+
+        if (!getValues('maintenanceSchedule.prochainPlaquettesFreinKm')) {
+            const nextPlaquettes = (Math.floor(kilometrage / plaquettesInterval)) * plaquettesInterval + plaquettesInterval;
+            setValue('maintenanceSchedule.prochainPlaquettesFreinKm', nextPlaquettes);
         }
     }
   }, [kilometrage, mode, setValue, getValues]);
@@ -167,16 +182,26 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     name: "maintenanceHistory",
   });
 
-  const updateScheduleFromIntervention = (type: string | undefined, km: number | undefined) => {
-    if (!type || typeof km !== 'number' || km <= 0) return;
+  const updateScheduleFromIntervention = (type: string | undefined, km: number | undefined, date: Date | undefined) => {
+    if (!type || typeof km !== 'number' || km <= 0 || !date) return;
   
     const vidangeInterval = 15000;
     const courroieInterval = 100000;
+    const plaquettesInterval = 40000;
+    const ldfInterval = { years: 2 };
+    const ldrInterval = { years: 3 };
+
   
     if (type.toLowerCase().includes('vidange')) {
         setValue('maintenanceSchedule.prochainVidangeKm', km + vidangeInterval, { shouldValidate: true });
     } else if (type.toLowerCase().includes('distribution') || type.toLowerCase().includes('courroie')) {
         setValue('maintenanceSchedule.prochaineCourroieKm', km + courroieInterval, { shouldValidate: true });
+    } else if (type.toLowerCase().includes('liquide de frein')) {
+        setValue('maintenanceSchedule.prochainLiquideFreinDate', add(date, ldfInterval), { shouldValidate: true });
+    } else if (type.toLowerCase().includes('liquide de refroidissement')) {
+        setValue('maintenanceSchedule.prochainLiquideRefroidissementDate', add(date, ldrInterval), { shouldValidate: true });
+    } else if (type.toLowerCase().includes('plaquettes de frein')) {
+        setValue('maintenanceSchedule.prochainPlaquettesFreinKm', km + plaquettesInterval, { shouldValidate: true });
     }
   };
 
@@ -501,7 +526,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                 </AccordionContent>
             </AccordionItem>
              <AccordionItem value="item-2">
-                <AccordionTrigger>Documents &amp; Entretien</AccordionTrigger>
+                <AccordionTrigger>Documents &amp; Historique</AccordionTrigger>
                 <AccordionContent className="pt-4 space-y-4">
                      <FormField
                         control={form.control}
@@ -586,14 +611,19 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                           <Input
                                             type="date"
                                             value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd") : ""}
-                                            onChange={(e) => {
+                                             onChange={(e) => {
                                                 const dateString = e.target.value;
-                                                if (!dateString) {
-                                                    field.onChange(null);
-                                                } else {
-                                                    const date = new Date(dateString);
-                                                    const timezoneOffset = date.getTimezoneOffset() * 60000;
-                                                    field.onChange(new Date(date.getTime() + timezoneOffset));
+                                                let date = null;
+                                                if (dateString) {
+                                                    const parsedDate = new Date(dateString);
+                                                    const timezoneOffset = parsedDate.getTimezoneOffset() * 60000;
+                                                    date = new Date(parsedDate.getTime() + timezoneOffset);
+                                                }
+                                                field.onChange(date);
+                                                const type = getValues(`maintenanceHistory.${index}.typeIntervention`);
+                                                const km = getValues(`maintenanceHistory.${index}.kilometrage`);
+                                                if (date) {
+                                                    updateScheduleFromIntervention(type, km, date);
                                                 }
                                             }}
                                           />
@@ -616,7 +646,8 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                                     onBlur={(e) => {
                                                         field.onBlur();
                                                         const type = getValues(`maintenanceHistory.${index}.typeIntervention`);
-                                                        updateScheduleFromIntervention(type, Number(e.target.value));
+                                                        const date = getValues(`maintenanceHistory.${index}.date`);
+                                                        updateScheduleFromIntervention(type, Number(e.target.value), date);
                                                     }}
                                                 />
                                             </FormControl>
@@ -645,7 +676,8 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                          <Select onValueChange={(value) => {
                                             field.onChange(value);
                                             const km = getValues(`maintenanceHistory.${index}.kilometrage`);
-                                            updateScheduleFromIntervention(value, km);
+                                            const date = getValues(`maintenanceHistory.${index}.date`);
+                                            updateScheduleFromIntervention(value, km, date);
                                           }} value={field.value}>
                                             <FormControl>
                                             <SelectTrigger>
@@ -712,9 +744,22 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                         name="maintenanceSchedule.prochainVidangeKm"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Prochaine vidange (kilométrage)</FormLabel>
+                                <FormLabel>Prochaine vidange (km)</FormLabel>
                                 <FormControl>
                                     <Input type="number" placeholder="80000" {...field} value={field.value ?? ''} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="maintenanceSchedule.prochainPlaquettesFreinKm"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Prochaines plaquettes de frein (km)</FormLabel>
+                                <FormControl>
+                                    <Input type="number" placeholder="100000" {...field} value={field.value ?? ''} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -725,7 +770,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                         name="maintenanceSchedule.prochaineCourroieKm"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Prochaine courroie de distribution (kilométrage)</FormLabel>
+                                <FormLabel>Prochaine courroie de distribution (km)</FormLabel>
                                 <FormControl>
                                     <Input type="number" placeholder="120000" {...field} value={field.value ?? ''} />
                                 </FormControl>
@@ -745,13 +790,50 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                     value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd") : ""}
                                     onChange={(e) => {
                                         const dateString = e.target.value;
-                                        if (!dateString) {
-                                            field.onChange(null);
-                                        } else {
-                                            const date = new Date(dateString);
-                                            const timezoneOffset = date.getTimezoneOffset() * 60000;
-                                            field.onChange(new Date(date.getTime() + timezoneOffset));
-                                        }
+                                        if (!dateString) { field.onChange(null); } 
+                                        else { const date = new Date(dateString); const timezoneOffset = date.getTimezoneOffset() * 60000; field.onChange(new Date(date.getTime() + timezoneOffset)); }
+                                    }}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                     <FormField
+                        control={form.control}
+                        name="maintenanceSchedule.prochainLiquideFreinDate"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Prochain changement liquide de frein (date)</FormLabel>
+                                <FormControl>
+                                    <Input
+                                    type="date"
+                                    value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd") : ""}
+                                    onChange={(e) => {
+                                        const dateString = e.target.value;
+                                        if (!dateString) { field.onChange(null); } 
+                                        else { const date = new Date(dateString); const timezoneOffset = date.getTimezoneOffset() * 60000; field.onChange(new Date(date.getTime() + timezoneOffset)); }
+                                    }}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                     <FormField
+                        control={form.control}
+                        name="maintenanceSchedule.prochainLiquideRefroidissementDate"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Prochain changement liquide de refroidissement (date)</FormLabel>
+                                <FormControl>
+                                    <Input
+                                    type="date"
+                                    value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd") : ""}
+                                    onChange={(e) => {
+                                        const dateString = e.target.value;
+                                        if (!dateString) { field.onChange(null); } 
+                                        else { const date = new Date(dateString); const timezoneOffset = date.getTimezoneOffset() * 60000; field.onChange(new Date(date.getTime() + timezoneOffset)); }
                                     }}
                                     />
                                 </FormControl>
@@ -771,5 +853,3 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     </Form>
   );
 }
-
-    

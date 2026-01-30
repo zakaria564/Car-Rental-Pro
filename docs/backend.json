@@ -54,7 +54,10 @@
           "properties": {
             "prochainVidangeKm": { "type": "number", "description": "Kilométrage pour la prochaine vidange." },
             "prochaineCourroieKm": { "type": "number", "description": "Kilométrage pour le prochain changement de courroie." },
-            "prochaineRevisionDate": { "type": "string", "format": "date-time", "description": "Date de la prochaine révision générale." }
+            "prochaineRevisionDate": { "type": "string", "format": "date-time", "description": "Date de la prochaine révision générale." },
+            "prochainLiquideFreinDate": { "type": "string", "format": "date-time", "description": "Date pour le prochain changement du liquide de frein." },
+            "prochainLiquideRefroidissementDate": { "type": "string", "format": "date-time", "description": "Date pour le prochain changement du liquide de refroidissement." },
+            "prochainPlaquettesFreinKm": { "type": "number", "description": "Kilométrage pour le prochain changement des plaquettes de frein." }
           }
         },
         "currentMaintenance": {

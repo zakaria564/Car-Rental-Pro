@@ -34,6 +34,9 @@ export type Car = {
     prochainVidangeKm?: number;
     prochaineCourroieKm?: number;
     prochaineRevisionDate?: any; // Timestamp
+    prochainLiquideFreinDate?: any; // Timestamp
+    prochainLiquideRefroidissementDate?: any; // Timestamp
+    prochainPlaquettesFreinKm?: number;
   };
   currentMaintenance?: {
     startDate: any; // Timestamp

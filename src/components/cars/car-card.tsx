@@ -117,8 +117,11 @@ function CarDetails({ car }: { car: Car }) {
                         <div className="space-y-2">
                             <h4 className="font-semibold text-base">Plan d'Entretien</h4>
                             <div><strong>Prochaine Vidange:</strong> {car.maintenanceSchedule.prochainVidangeKm ? `${car.maintenanceSchedule.prochainVidangeKm.toLocaleString()} km` : 'N/A'}</div>
+                            <div><strong>Prochaines Plaquettes:</strong> {car.maintenanceSchedule.prochainPlaquettesFreinKm ? `${car.maintenanceSchedule.prochainPlaquettesFreinKm.toLocaleString()} km` : 'N/A'}</div>
                             <div><strong>Prochaine Courroie:</strong> {car.maintenanceSchedule.prochaineCourroieKm ? `${car.maintenanceSchedule.prochaineCourroieKm.toLocaleString()} km` : 'N/A'}</div>
                             <div><strong>Prochaine Révision:</strong> {car.maintenanceSchedule.prochaineRevisionDate?.toDate ? format(car.maintenanceSchedule.prochaineRevisionDate.toDate(), 'dd/MM/yyyy') : 'N/A'}</div>
+                            <div><strong>Prochain Liquide Frein:</strong> {car.maintenanceSchedule.prochainLiquideFreinDate?.toDate ? format(car.maintenanceSchedule.prochainLiquideFreinDate.toDate(), 'dd/MM/yyyy') : 'N/A'}</div>
+                            <div><strong>Prochain Liquide Refroidissement:</strong> {car.maintenanceSchedule.prochainLiquideRefroidissementDate?.toDate ? format(car.maintenanceSchedule.prochainLiquideRefroidissementDate.toDate(), 'dd/MM/yyyy') : 'N/A'}</div>
                         </div>
                     </>
                 )}
@@ -193,23 +196,33 @@ export default function CarCard({ car }: { car: Car }) {
     // Maintenance checks
     const { kilometrage, maintenanceSchedule } = car;
     if (maintenanceSchedule) {
+        let messages: string[] = [];
         if (maintenanceSchedule.prochainVidangeKm && kilometrage >= maintenanceSchedule.prochainVidangeKm - 1000) {
-            maintInfo.needsAttention = true;
-            maintInfo.message = "Vidange requise" + (kilometrage >= maintenanceSchedule.prochainVidangeKm ? "." : " bientôt.");
+            messages.push("Vidange " + (kilometrage >= maintenanceSchedule.prochainVidangeKm ? "requise." : "bientôt."));
         }
         if (maintenanceSchedule.prochaineCourroieKm && kilometrage >= maintenanceSchedule.prochaineCourroieKm - 2000) {
-            maintInfo.needsAttention = true;
-            const newMsg = "Changement de courroie requis" + (kilometrage >= maintenanceSchedule.prochaineCourroieKm ? "." : " bientôt.");
-            maintInfo.message = maintInfo.message ? `${maintInfo.message} ${newMsg}` : newMsg;
+            messages.push("Courroie " + (kilometrage >= maintenanceSchedule.prochaineCourroieKm ? "requise." : "bientôt."));
         }
+        if (maintenanceSchedule.prochainPlaquettesFreinKm && kilometrage >= maintenanceSchedule.prochainPlaquettesFreinKm - 1500) {
+            messages.push("Plaquettes " + (kilometrage >= maintenanceSchedule.prochainPlaquettesFreinKm ? "requises." : "bientôt."));
+        }
+
         const revisionDate = maintenanceSchedule.prochaineRevisionDate?.toDate ? maintenanceSchedule.prochaineRevisionDate.toDate() : null;
-        if (revisionDate) {
-            const daysDiff = differenceInDays(revisionDate, today);
-            if (daysDiff <= 15) {
-                maintInfo.needsAttention = true;
-                const newMsg = "Révision générale requise" + (daysDiff < 0 ? "." : " bientôt.");
-                maintInfo.message = maintInfo.message ? `${maintInfo.message} ${newMsg}` : newMsg;
-            }
+        if (revisionDate && differenceInDays(revisionDate, today) <= 15) {
+            messages.push("Révision " + (differenceInDays(revisionDate, today) < 0 ? "requise." : "bientôt."));
+        }
+        const liquideFreinDate = maintenanceSchedule.prochainLiquideFreinDate?.toDate ? maintenanceSchedule.prochainLiquideFreinDate.toDate() : null;
+        if (liquideFreinDate && differenceInDays(liquideFreinDate, today) <= 30) {
+            messages.push("Liq. frein " + (differenceInDays(liquideFreinDate, today) < 0 ? "requis." : "bientôt."));
+        }
+        const liquideRefroidissementDate = maintenanceSchedule.prochainLiquideRefroidissementDate?.toDate ? maintenanceSchedule.prochainLiquideRefroidissementDate.toDate() : null;
+        if (liquideRefroidissementDate && differenceInDays(liquideRefroidissementDate, today) <= 30) {
+            messages.push("Liq. refroidissement " + (differenceInDays(liquideRefroidissementDate, today) < 0 ? "requis." : "bientôt."));
+        }
+
+        if (messages.length > 0) {
+            maintInfo.needsAttention = true;
+            maintInfo.message = messages.join(' ');
         }
     }
 

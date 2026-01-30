@@ -107,7 +107,7 @@ export default function DashboardPage() {
             const diff = maintenanceSchedule.prochainVidangeKm - kilometrage;
             if (diff <= 0) {
                 alerts.push({ car, alertType: "Vidange", value: `${maintenanceSchedule.prochainVidangeKm.toLocaleString()} km`, currentValue: `${kilometrage.toLocaleString()} km`, status: 'À faire' });
-            } else if (diff <= 1000) { // Alert if within 1000km
+            } else if (diff <= 1000) {
                 alerts.push({ car, alertType: "Vidange", value: `${maintenanceSchedule.prochainVidangeKm.toLocaleString()} km`, currentValue: `${kilometrage.toLocaleString()} km`, status: 'Bientôt' });
             }
         }
@@ -115,8 +115,16 @@ export default function DashboardPage() {
             const diff = maintenanceSchedule.prochaineCourroieKm - kilometrage;
             if (diff <= 0) {
                 alerts.push({ car, alertType: "Courroie de distribution", value: `${maintenanceSchedule.prochaineCourroieKm.toLocaleString()} km`, currentValue: `${kilometrage.toLocaleString()} km`, status: 'À faire' });
-            } else if (diff <= 2000) { // Alert if within 2000km
+            } else if (diff <= 2000) {
                 alerts.push({ car, alertType: "Courroie de distribution", value: `${maintenanceSchedule.prochaineCourroieKm.toLocaleString()} km`, currentValue: `${kilometrage.toLocaleString()} km`, status: 'Bientôt' });
+            }
+        }
+        if (maintenanceSchedule.prochainPlaquettesFreinKm) {
+            const diff = maintenanceSchedule.prochainPlaquettesFreinKm - kilometrage;
+            if (diff <= 0) {
+                alerts.push({ car, alertType: "Plaquettes de frein", value: `${maintenanceSchedule.prochainPlaquettesFreinKm.toLocaleString()} km`, currentValue: `${kilometrage.toLocaleString()} km`, status: 'À faire' });
+            } else if (diff <= 1500) {
+                alerts.push({ car, alertType: "Plaquettes de frein", value: `${maintenanceSchedule.prochainPlaquettesFreinKm.toLocaleString()} km`, currentValue: `${kilometrage.toLocaleString()} km`, status: 'Bientôt' });
             }
         }
         
@@ -126,8 +134,26 @@ export default function DashboardPage() {
             const daysDiff = differenceInDays(revisionDate, today);
             if (daysDiff < 0) {
                 alerts.push({ car, alertType: "Révision générale", value: format(revisionDate, "dd/MM/yyyy"), currentValue: '', status: 'À faire' });
-            } else if (daysDiff <= 15) { // Alert if within 15 days
+            } else if (daysDiff <= 15) {
                 alerts.push({ car, alertType: "Révision générale", value: format(revisionDate, "dd/MM/yyyy"), currentValue: '', status: 'Bientôt' });
+            }
+        }
+        const liquideFreinDate = maintenanceSchedule.prochainLiquideFreinDate?.toDate ? maintenanceSchedule.prochainLiquideFreinDate.toDate() : null;
+        if (liquideFreinDate) {
+            const daysDiff = differenceInDays(liquideFreinDate, today);
+            if (daysDiff < 0) {
+                alerts.push({ car, alertType: "Liquide de frein", value: format(liquideFreinDate, "dd/MM/yyyy"), currentValue: '', status: 'À faire' });
+            } else if (daysDiff <= 30) {
+                alerts.push({ car, alertType: "Liquide de frein", value: format(liquideFreinDate, "dd/MM/yyyy"), currentValue: '', status: 'Bientôt' });
+            }
+        }
+         const liquideRefroidissementDate = maintenanceSchedule.prochainLiquideRefroidissementDate?.toDate ? maintenanceSchedule.prochainLiquideRefroidissementDate.toDate() : null;
+        if (liquideRefroidissementDate) {
+            const daysDiff = differenceInDays(liquideRefroidissementDate, today);
+            if (daysDiff < 0) {
+                alerts.push({ car, alertType: "Liquide de refroidissement", value: format(liquideRefroidissementDate, "dd/MM/yyyy"), currentValue: '', status: 'À faire' });
+            } else if (daysDiff <= 30) {
+                alerts.push({ car, alertType: "Liquide de refroidissement", value: format(liquideRefroidissementDate, "dd/MM/yyyy"), currentValue: '', status: 'Bientôt' });
             }
         }
     });
