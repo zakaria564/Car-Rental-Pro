@@ -118,6 +118,7 @@ function CarDetails({ car }: { car: Car }) {
                         <div className="space-y-2">
                             <h4 className="font-semibold text-base">Plan d'Entretien</h4>
                             <div><strong>Prochaine Vidange:</strong> {car.maintenanceSchedule.prochainVidangeKm ? `${car.maintenanceSchedule.prochainVidangeKm.toLocaleString()} km` : 'N/A'}</div>
+                            <div><strong>Prochain Filtre Gazole:</strong> {car.maintenanceSchedule.prochainFiltreGasoilKm ? `${car.maintenanceSchedule.prochainFiltreGasoilKm.toLocaleString()} km` : 'N/A'}</div>
                             <div><strong>Prochaines Plaquettes:</strong> {car.maintenanceSchedule.prochainPlaquettesFreinKm ? `${car.maintenanceSchedule.prochainPlaquettesFreinKm.toLocaleString()} km` : 'N/A'}</div>
                             <div><strong>Prochaine Courroie:</strong> {car.maintenanceSchedule.prochaineCourroieKm ? `${car.maintenanceSchedule.prochaineCourroieKm.toLocaleString()} km` : 'N/A'}</div>
                             <div><strong>Prochaine Révision:</strong> {car.maintenanceSchedule.prochaineRevisionDate?.toDate ? format(car.maintenanceSchedule.prochaineRevisionDate.toDate(), 'dd/MM/yyyy') : 'N/A'}</div>
@@ -200,6 +201,9 @@ export default function CarCard({ car }: { car: Car }) {
         let messages: string[] = [];
         if (maintenanceSchedule.prochainVidangeKm && kilometrage >= maintenanceSchedule.prochainVidangeKm - 1000) {
             messages.push("Vidange " + (kilometrage >= maintenanceSchedule.prochainVidangeKm ? "requise." : "bientôt."));
+        }
+        if (maintenanceSchedule.prochainFiltreGasoilKm && kilometrage >= maintenanceSchedule.prochainFiltreGasoilKm - 2000) {
+            messages.push("Filtre gazole " + (kilometrage >= maintenanceSchedule.prochainFiltreGasoilKm ? "requis." : "bientôt."));
         }
         if (maintenanceSchedule.prochaineCourroieKm && kilometrage >= maintenanceSchedule.prochaineCourroieKm - 2000) {
             messages.push("Courroie " + (kilometrage >= maintenanceSchedule.prochaineCourroieKm ? "requise." : "bientôt."));

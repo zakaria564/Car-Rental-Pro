@@ -43,7 +43,11 @@ export type CarBrand = keyof typeof carBrands;
 export const maintenanceInterventionTypes = {
     "Mécanique": [
         "Vidange (huile moteur)",
-        "Changement filtres (huile, air, carburant, habitacle)",
+        "Filtre à huile",
+        "Filtre à air",
+        "Filtre à carburant (gazole)",
+        "Filtre à carburant (essence)",
+        "Filtre d'habitacle",
         "Plaquettes de frein",
         "Disques de frein",
         "Liquide de frein",

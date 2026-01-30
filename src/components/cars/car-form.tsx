@@ -61,6 +61,7 @@ const carFormSchema = z.object({
   maintenanceHistory: z.array(maintenanceEventSchema).optional().nullable(),
   maintenanceSchedule: z.object({
     prochainVidangeKm: z.coerce.number().optional().nullable(),
+    prochainFiltreGasoilKm: z.coerce.number().optional().nullable(),
     prochaineCourroieKm: z.coerce.number().optional().nullable(),
     prochaineRevisionDate: z.coerce.date().optional().nullable(),
     prochainLiquideFreinDate: z.coerce.date().optional().nullable(),
@@ -102,6 +103,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
       immatWW: car.immatWW ?? "",
       maintenanceSchedule: {
         prochainVidangeKm: car.maintenanceSchedule?.prochainVidangeKm ?? undefined,
+        prochainFiltreGasoilKm: car.maintenanceSchedule?.prochainFiltreGasoilKm ?? undefined,
         prochaineCourroieKm: car.maintenanceSchedule?.prochaineCourroieKm ?? undefined,
         prochaineRevisionDate: getSafeDate(car.maintenanceSchedule?.prochaineRevisionDate),
         prochainLiquideFreinDate: getSafeDate(car.maintenanceSchedule?.prochainLiquideFreinDate),
@@ -130,6 +132,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
       maintenanceHistory: [],
       maintenanceSchedule: {
         prochainVidangeKm: undefined,
+        prochainFiltreGasoilKm: undefined,
         prochaineCourroieKm: undefined,
         prochaineRevisionDate: null,
         prochainLiquideFreinDate: null,
@@ -151,13 +154,18 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
 
   React.useEffect(() => {
     if (mode === 'new' && kilometrage > 0) {
-        const vidangeInterval = 15000;
+        const vidangeInterval = 10000;
+        const filtreGasoilInterval = 20000;
         const courroieInterval = 100000;
         const plaquettesInterval = 40000;
 
         if (!getValues('maintenanceSchedule.prochainVidangeKm')) {
             const nextVidange = (Math.floor(kilometrage / vidangeInterval)) * vidangeInterval + vidangeInterval;
             setValue('maintenanceSchedule.prochainVidangeKm', nextVidange);
+        }
+        if (!getValues('maintenanceSchedule.prochainFiltreGasoilKm')) {
+            const nextFiltre = (Math.floor(kilometrage / filtreGasoilInterval)) * filtreGasoilInterval + filtreGasoilInterval;
+            setValue('maintenanceSchedule.prochainFiltreGasoilKm', nextFiltre);
         }
         
         if (!getValues('maintenanceSchedule.prochaineCourroieKm')) {
@@ -181,24 +189,30 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
   });
 
   const updateScheduleFromIntervention = (type: string | undefined, km: number | undefined, date: Date | undefined) => {
-    if (!type || typeof km !== 'number' || km < 0 || !date) return;
+    if (!type || typeof km !== 'number' || km < 0) return;
   
-    const vidangeInterval = 15000;
+    const vidangeInterval = 10000;
+    const filtreGasoilInterval = 20000;
     const courroieInterval = 100000;
     const plaquettesInterval = 40000;
     const ldfInterval = { years: 2 };
     const ldrInterval = { years: 3 };
 
+    const lowerType = type.toLowerCase();
   
-    if (type.toLowerCase().includes('vidange')) {
+    if (lowerType.includes('vidange') || lowerType.includes('filtre à huile')) {
         setValue('maintenanceSchedule.prochainVidangeKm', km + vidangeInterval, { shouldValidate: true });
-    } else if (type.toLowerCase().includes('distribution') || type.toLowerCase().includes('courroie')) {
+    } else if (lowerType.includes('filtre à carburant (gazole)')) {
+        setValue('maintenanceSchedule.prochainFiltreGasoilKm', km + filtreGasoilInterval, { shouldValidate: true });
+    } else if (lowerType.includes('distribution') || lowerType.includes('courroie')) {
         setValue('maintenanceSchedule.prochaineCourroieKm', km + courroieInterval, { shouldValidate: true });
-    } else if (type.toLowerCase().includes('liquide de frein')) {
+    } else if (lowerType.includes('liquide de frein')) {
+        if (!date) return;
         setValue('maintenanceSchedule.prochainLiquideFreinDate', add(date, ldfInterval), { shouldValidate: true });
-    } else if (type.toLowerCase().includes('liquide de refroidissement')) {
+    } else if (lowerType.includes('liquide de refroidissement')) {
+        if (!date) return;
         setValue('maintenanceSchedule.prochainLiquideRefroidissementDate', add(date, ldrInterval), { shouldValidate: true });
-    } else if (type.toLowerCase().includes('plaquettes de frein')) {
+    } else if (lowerType.includes('plaquettes de frein')) {
         setValue('maintenanceSchedule.prochainPlaquettesFreinKm', km + plaquettesInterval, { shouldValidate: true });
     }
   };
@@ -744,6 +758,19 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                     />
                     <FormField
                         control={form.control}
+                        name="maintenanceSchedule.prochainFiltreGasoilKm"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Prochain filtre à gazole (km)</FormLabel>
+                                <FormControl>
+                                    <Input type="number" placeholder="90000" {...field} value={field.value ?? ''} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
                         name="maintenanceSchedule.prochainPlaquettesFreinKm"
                         render={({ field }) => (
                             <FormItem>
@@ -843,5 +870,3 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     </Form>
   );
 }
-
-    

@@ -111,6 +111,14 @@ export default function DashboardPage() {
                 alerts.push({ car, alertType: "Vidange", value: `${maintenanceSchedule.prochainVidangeKm.toLocaleString()} km`, currentValue: `${kilometrage.toLocaleString()} km`, status: 'Bientôt' });
             }
         }
+        if (maintenanceSchedule.prochainFiltreGasoilKm) {
+            const diff = maintenanceSchedule.prochainFiltreGasoilKm - kilometrage;
+            if (diff <= 0) {
+                alerts.push({ car, alertType: "Filtre à gazole", value: `${maintenanceSchedule.prochainFiltreGasoilKm.toLocaleString()} km`, currentValue: `${kilometrage.toLocaleString()} km`, status: 'À faire' });
+            } else if (diff <= 2000) {
+                alerts.push({ car, alertType: "Filtre à gazole", value: `${maintenanceSchedule.prochainFiltreGasoilKm.toLocaleString()} km`, currentValue: `${kilometrage.toLocaleString()} km`, status: 'Bientôt' });
+            }
+        }
         if (maintenanceSchedule.prochaineCourroieKm) {
             const diff = maintenanceSchedule.prochaineCourroieKm - kilometrage;
             if (diff <= 0) {

@@ -53,6 +53,7 @@
           "description": "Rappels pour le prochain entretien.",
           "properties": {
             "prochainVidangeKm": { "type": "number", "description": "Kilométrage pour la prochaine vidange." },
+            "prochainFiltreGasoilKm": { "type": "number", "description": "Kilométrage pour le prochain changement du filtre à gazole." },
             "prochaineCourroieKm": { "type": "number", "description": "Kilométrage pour le prochain changement de courroie." },
             "prochaineRevisionDate": { "type": "string", "format": "date-time", "description": "Date de la prochaine révision générale." },
             "prochainLiquideFreinDate": { "type": "string", "format": "date-time", "description": "Date pour le prochain changement du liquide de frein." },
