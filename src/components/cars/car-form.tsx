@@ -150,32 +150,6 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
   });
   
   const { watch, setValue, getValues } = form;
-  const kilometrage = watch('kilometrage');
-  const mode = car ? 'edit' : 'new';
-
-  React.useEffect(() => {
-    const km = Number(kilometrage);
-    if (mode === 'new' && km > 0) {
-        const vidangeInterval = 10000;
-        const filtreGasoilInterval = 20000;
-        const courroieInterval = 100000;
-        const plaquettesInterval = 40000;
-
-        // Set next service based on current mileage + interval
-        if (!getValues('maintenanceSchedule.prochainVidangeKm')) {
-            setValue('maintenanceSchedule.prochainVidangeKm', km + vidangeInterval);
-        }
-        if (!getValues('maintenanceSchedule.prochainFiltreGasoilKm')) {
-            setValue('maintenanceSchedule.prochainFiltreGasoilKm', km + filtreGasoilInterval);
-        }
-        if (!getValues('maintenanceSchedule.prochaineCourroieKm')) {
-            setValue('maintenanceSchedule.prochaineCourroieKm', km + courroieInterval);
-        }
-        if (!getValues('maintenanceSchedule.prochainPlaquettesFreinKm')) {
-            setValue('maintenanceSchedule.prochainPlaquettesFreinKm', km + plaquettesInterval);
-        }
-    }
-  }, [kilometrage, mode, setValue, getValues]);
   
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const selectedMarque = form.watch("marque") as CarBrand;
@@ -197,19 +171,24 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
 
     const lowerType = type.toLowerCase();
   
-    if (lowerType.includes('vidange') || lowerType.includes('filtre à huile')) {
+    if (lowerType.includes('vidange') || lowerType.includes('filtre à huile') || lowerType.includes('changement filtres')) {
         setValue('maintenanceSchedule.prochainVidangeKm', km + vidangeInterval, { shouldValidate: true });
-    } else if (lowerType.includes('filtre à carburant (gazole)')) {
+    }
+    if (lowerType.includes('filtre à carburant (gazole)')) {
         setValue('maintenanceSchedule.prochainFiltreGasoilKm', km + filtreGasoilInterval, { shouldValidate: true });
-    } else if (lowerType.includes('distribution') || lowerType.includes('courroie')) {
+    }
+    if (lowerType.includes('distribution') || lowerType.includes('courroie')) {
         setValue('maintenanceSchedule.prochaineCourroieKm', km + courroieInterval, { shouldValidate: true });
-    } else if (lowerType.includes('liquide de frein')) {
+    }
+    if (lowerType.includes('liquide de frein')) {
         if (!date) return;
         setValue('maintenanceSchedule.prochainLiquideFreinDate', add(date, ldfInterval), { shouldValidate: true });
-    } else if (lowerType.includes('liquide de refroidissement')) {
+    }
+    if (lowerType.includes('liquide de refroidissement')) {
         if (!date) return;
         setValue('maintenanceSchedule.prochainLiquideRefroidissementDate', add(date, ldrInterval), { shouldValidate: true });
-    } else if (lowerType.includes('plaquettes de frein')) {
+    }
+    if (lowerType.includes('plaquettes de frein')) {
         setValue('maintenanceSchedule.prochainPlaquettesFreinKm', km + plaquettesInterval, { shouldValidate: true });
     }
   };
@@ -533,7 +512,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                 </AccordionContent>
             </AccordionItem>
              <AccordionItem value="item-2">
-                <AccordionTrigger>Documents &amp; Historique</AccordionTrigger>
+                <AccordionTrigger>Documents & Historique</AccordionTrigger>
                 <AccordionContent className="pt-4 space-y-4">
                      <FormField
                         control={form.control}
