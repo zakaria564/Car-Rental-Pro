@@ -213,18 +213,16 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     name: "maintenanceHistory",
   });
 
-  const handleInterventionTypeChange = (value: string, index: number) => {
+  const updateScheduleFromIntervention = (type: string | undefined, km: number | undefined) => {
+    if (!type || typeof km !== 'number' || km <= 0) return;
+  
     const vidangeInterval = 15000;
     const courroieInterval = 100000;
-    
-    const interventionKm = getValues(`maintenanceHistory.${index}.kilometrage`);
-
-    if (typeof interventionKm !== 'number' || interventionKm <= 0) return;
-
-    if (value.toLowerCase().includes('vidange')) {
-        setValue('maintenanceSchedule.prochainVidangeKm', interventionKm + vidangeInterval, { shouldValidate: true });
-    } else if (value.toLowerCase().includes('distribution') || value.toLowerCase().includes('courroie')) {
-        setValue('maintenanceSchedule.prochaineCourroieKm', interventionKm + courroieInterval, { shouldValidate: true });
+  
+    if (type.toLowerCase().includes('vidange')) {
+        setValue('maintenanceSchedule.prochainVidangeKm', km + vidangeInterval, { shouldValidate: true });
+    } else if (type.toLowerCase().includes('distribution') || type.toLowerCase().includes('courroie')) {
+        setValue('maintenanceSchedule.prochaineCourroieKm', km + courroieInterval, { shouldValidate: true });
     }
   };
 
@@ -656,7 +654,17 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                         render={({ field }) => (
                                           <FormItem>
                                             <FormLabel>Kilométrage</FormLabel>
-                                            <FormControl><Input type="number" {...field} /></FormControl>
+                                            <FormControl>
+                                                <Input
+                                                    type="number"
+                                                    {...field}
+                                                    onBlur={(e) => {
+                                                        field.onBlur();
+                                                        const type = getValues(`maintenanceHistory.${index}.typeIntervention`);
+                                                        updateScheduleFromIntervention(type, Number(e.target.value));
+                                                    }}
+                                                />
+                                            </FormControl>
                                             <FormMessage />
                                           </FormItem>
                                         )}
@@ -681,7 +689,8 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                         <FormLabel>Type d'intervention</FormLabel>
                                          <Select onValueChange={(value) => {
                                             field.onChange(value);
-                                            handleInterventionTypeChange(value, index);
+                                            const km = getValues(`maintenanceHistory.${index}.kilometrage`);
+                                            updateScheduleFromIntervention(value, km);
                                           }} value={field.value}>
                                             <FormControl>
                                             <SelectTrigger>
@@ -807,3 +816,5 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     </Form>
   );
 }
+
+    
