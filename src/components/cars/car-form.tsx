@@ -192,7 +192,14 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                             <Input
                               type="date"
                               value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd") : ""}
-                              onChange={(e) => field.onChange(e.target.value ? e.target.valueAsDate : null)}
+                              onChange={(e) => {
+                                const dateString = e.target.value;
+                                if (!dateString) {
+                                    field.onChange(null);
+                                } else {
+                                    field.onChange(new Date(`${dateString}T00:00:00`));
+                                }
+                              }}
                             />
                           </FormControl>
                           <FormMessage />
@@ -390,7 +397,14 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                 <Input
                                   type="date"
                                   value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd") : ""}
-                                  onChange={(e) => field.onChange(e.target.value ? e.target.valueAsDate : null)}
+                                  onChange={(e) => {
+                                    const dateString = e.target.value;
+                                    if (!dateString) {
+                                        field.onChange(null);
+                                    } else {
+                                        field.onChange(new Date(`${dateString}T00:00:00`));
+                                    }
+                                  }}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -407,7 +421,14 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                     <Input
                                       type="date"
                                       value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd") : ""}
-                                      onChange={(e) => field.onChange(e.target.value ? e.target.valueAsDate : null)}
+                                      onChange={(e) => {
+                                        const dateString = e.target.value;
+                                        if (!dateString) {
+                                            field.onChange(null);
+                                        } else {
+                                            field.onChange(new Date(`${dateString}T00:00:00`));
+                                        }
+                                      }}
                                     />
                                   </FormControl>
                                   <FormMessage />

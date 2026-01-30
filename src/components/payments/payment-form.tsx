@@ -51,7 +51,7 @@ const calculateTotal = (rental: Rental): number => {
 
     if (from && to && pricePerDay > 0) {
         const daysDiff = differenceInCalendarDays(startOfDay(to), startOfDay(from));
-        const rentalDays = daysDiff === 0 ? 1 : daysDiff;
+        const rentalDays = daysDiff <= 0 ? 1 : daysDiff;
         return rentalDays * pricePerDay;
     }
 
@@ -248,7 +248,14 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
                   <Input
                     type="date"
                     value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd") : ""}
-                    onChange={(e) => field.onChange(e.target.value ? e.target.valueAsDate : null)}
+                    onChange={(e) => {
+                        const dateString = e.target.value;
+                        if (!dateString) {
+                            field.onChange(null);
+                        } else {
+                            field.onChange(new Date(`${dateString}T00:00:00`));
+                        }
+                    }}
                   />
                 </FormControl>
                 <FormMessage />

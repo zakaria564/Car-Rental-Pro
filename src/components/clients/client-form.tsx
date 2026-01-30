@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm, useFieldArray } from "react-hook-form";
@@ -190,8 +191,15 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
               <FormControl>
                  <Input
                     type="date"
-                    value={field.value ? format(new Date(field.value), "yyyy-MM-dd") : ""}
-                    onChange={(e) => field.onChange(e.target.valueAsDate)}
+                    value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd") : ""}
+                    onChange={(e) => {
+                        const dateString = e.target.value;
+                        if (!dateString) {
+                            field.onChange(null);
+                        } else {
+                            field.onChange(new Date(`${dateString}T00:00:00`));
+                        }
+                    }}
                     />
               </FormControl>
               <FormMessage />
