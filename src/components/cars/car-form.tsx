@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm, useFieldArray } from "react-hook-form";
@@ -30,20 +31,25 @@ import { PlusCircle, Trash2 } from "lucide-react";
 
 const maintenanceInterventionTypes = {
     "Mécanique": [
-        "Vidange et filtres",
+        "Vidange (huile moteur)",
+        "Changement filtres (huile, air, carburant, habitacle)",
         "Plaquettes de frein",
         "Disques de frein",
+        "Liquide de frein",
         "Kit d'embrayage",
+        "Vidange boîte de vitesses",
         "Kit de distribution",
         "Courroie d'accessoire",
         "Amortisseurs",
         "Pneumatiques",
-        "Parallélisme",
+        "Parallélisme / Géométrie",
         "Batterie",
-        "Bougies d'allumage/préchauffage",
-        "Alternateur",
-        "Démarreur",
-        "Système de refroidissement",
+        "Bougies (allumage / préchauffage)",
+        "Système d'injection",
+        "Vanne EGR / FAP",
+        "Turbo",
+        "Alternateur / Démarreur",
+        "Système de refroidissement (radiateur, liquide)",
         "Échappement",
         "Recharge climatisation",
         "Diagnostic électronique",
@@ -53,12 +59,15 @@ const maintenanceInterventionTypes = {
         "Réparation pare-choc",
         "Réparation aile",
         "Réparation porte",
-        "Débosselage",
+        "Réparation capot",
+        "Réparation bas de caisse",
+        "Débosselage sans peinture",
         "Peinture complète",
-        "Raccord peinture",
+        "Raccord peinture / Retouche",
         "Lustrage / Polish",
+        "Traitement céramique",
         "Remplacement pare-brise",
-        "Remplacement vitre",
+        "Remplacement vitre / lunette arrière",
         "Rénovation phares",
         "Autre (Carrosserie)",
     ]
@@ -105,8 +114,9 @@ const getSafeDate = (date: any): Date | undefined => {
     if (date.toDate) return date.toDate(); // Firestore Timestamp
     const parsedDate = new Date(date);
     if (isNaN(parsedDate.getTime())) return undefined;
-    // Adjust for timezone offset
-    return new Date(parsedDate.valueOf() + parsedDate.getTimezoneOffset() * 60 * 1000);
+    // Adjust for timezone offset by creating a date in UTC
+    const dateString = parsedDate.toISOString().substring(0, 10);
+    return new Date(dateString + 'T00:00:00Z');
 };
 
 export default function CarForm({ car, onFinished }: { car: Car | null, onFinished: () => void }) {
@@ -130,7 +140,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     } : {
       marque: "",
       modele: "",
-      dateMiseEnCirculation: new Date(),
+      dateMiseEnCirculation: undefined,
       immat: "",
       immatWW: "",
       numChassis: "",
@@ -282,7 +292,8 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                 if (!dateString) {
                                     field.onChange(null);
                                 } else {
-                                    field.onChange(new Date(`${dateString}T00:00:00Z`));
+                                    const [year, month, day] = dateString.split('-').map(Number);
+                                    field.onChange(new Date(year, month - 1, day));
                                 }
                               }}
                             />
@@ -471,7 +482,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                             <FormItem>
                                 <FormLabel>Photo (URL)</FormLabel>
                                 <FormControl>
-                                    <Input type="text" placeholder="https://exemple.com/image.png" {...field} />
+                                    <Input type="text" placeholder="https://exemple.com/image.png" {...field} value={field.value ?? ''} />
                                 </FormControl>
                                 <FormDescription>
                                     Collez l'URL de l'image ici. Si le champ est laissé vide, une image par défaut sera utilisée.
@@ -500,7 +511,8 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                     if (!dateString) {
                                         field.onChange(null);
                                     } else {
-                                        field.onChange(new Date(`${dateString}T00:00:00Z`));
+                                        const [year, month, day] = dateString.split('-').map(Number);
+                                        field.onChange(new Date(year, month - 1, day));
                                     }
                                   }}
                                 />
@@ -524,7 +536,8 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                         if (!dateString) {
                                             field.onChange(null);
                                         } else {
-                                            field.onChange(new Date(`${dateString}T00:00:00Z`));
+                                            const [year, month, day] = dateString.split('-').map(Number);
+                                            field.onChange(new Date(year, month - 1, day));
                                         }
                                       }}
                                     />
@@ -565,8 +578,13 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                             type="date"
                                             value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd") : ""}
                                             onChange={(e) => {
-                                              const dateString = e.target.value;
-                                              field.onChange(dateString ? new Date(`${dateString}T00:00:00Z`) : null);
+                                                const dateString = e.target.value;
+                                                if (!dateString) {
+                                                    field.onChange(null);
+                                                } else {
+                                                    const [year, month, day] = dateString.split('-').map(Number);
+                                                    field.onChange(new Date(year, month - 1, day));
+                                                }
                                             }}
                                           />
                                         </FormControl>
