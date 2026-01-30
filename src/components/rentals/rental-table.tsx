@@ -69,11 +69,9 @@ const calculateTotal = (rental: Rental): number => {
     const pricePerDay = rental.location.prixParJour || 0;
 
     if (from && to && pricePerDay > 0) {
-        if (startOfDay(from).getTime() >= startOfDay(to).getTime()) {
-            return pricePerDay;
-        }
         const daysDiff = differenceInCalendarDays(startOfDay(to), startOfDay(from));
-        return (daysDiff + 1) * pricePerDay;
+        const rentalDays = daysDiff === 0 ? 1 : daysDiff;
+        return rentalDays * pricePerDay;
     }
 
     // Fallbacks
@@ -90,7 +88,7 @@ const calculateTotal = (rental: Rental): number => {
 type RentalTableProps = {
   rentals: Rental[];
   clients?: Client[];
-  cars?: Car[];
+  cars?: CarType[];
   isDashboard?: boolean;
 };
 
@@ -315,11 +313,8 @@ function RentalDetails({ rental }: { rental: Rental }) {
 
     const rentalDuration = () => {
         if (safeDebutDate && safeFinDate) {
-            if (startOfDay(safeDebutDate).getTime() >= startOfDay(safeFinDate).getTime()) {
-                return 1;
-            }
             const daysDiff = differenceInCalendarDays(startOfDay(safeFinDate), startOfDay(safeDebutDate));
-            return daysDiff + 1;
+            return daysDiff === 0 ? 1 : daysDiff;
         }
         return rental.location.nbrJours || 0;
     };
@@ -879,8 +874,3 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     </>
   );
 }
-
-
-    
-
-    

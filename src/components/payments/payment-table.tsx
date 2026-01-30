@@ -37,7 +37,7 @@ import { Invoice } from "./invoice";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { useFirebase } from "@/firebase";
-import { doc, runTransaction, writeBatch, query, where, getDocs, collection } from "firebase/firestore";
+import { doc, runTransaction, writeBatch, query, where, getDocs, collection, updateDoc } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 
@@ -141,11 +141,9 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
     const pricePerDay = rental.location.prixParJour || 0;
 
     if (from && to && pricePerDay > 0) {
-        if (startOfDay(from).getTime() >= startOfDay(to).getTime()) {
-            return pricePerDay;
-        }
         const daysDiff = differenceInCalendarDays(startOfDay(to), startOfDay(from));
-        return (daysDiff + 1) * pricePerDay;
+        const rentalDays = daysDiff === 0 ? 1 : daysDiff;
+        return rentalDays * pricePerDay;
     }
 
     // Fallbacks
@@ -208,6 +206,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
     if (!firestore || !rental?.id) return;
 
     const rentalRef = doc(firestore, 'rentals', rental.id);
+    const carRef = doc(firestore, 'cars', rental.vehicule.carId);
     const paymentsQuery = query(collection(firestore, 'payments'), where("rentalId", "==", rental.id));
 
     try {
@@ -219,6 +218,8 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
         });
 
         batch.delete(rentalRef);
+        batch.update(carRef, { disponible: true });
+
 
         await batch.commit();
 
@@ -607,10 +608,3 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
     </>
   );
 }
-
-
-    
-
-    
-
-    
