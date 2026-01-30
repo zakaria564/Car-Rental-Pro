@@ -47,14 +47,24 @@ const getSafeDate = (date: any): Date | null => {
 const calculateTotal = (rental: Rental): number => {
     const from = getSafeDate(rental.location.dateDebut);
     const to = getSafeDate(rental.location.dateFin);
+    const pricePerDay = rental.location.prixParJour || 0;
 
-    if (from && to && rental.location.prixParJour > 0) {
+    if (from && to && pricePerDay > 0) {
         const daysDiff = differenceInCalendarDays(startOfDay(to), startOfDay(from));
-        const rentalDays = daysDiff < 1 ? 1 : daysDiff;
-        return rentalDays * rental.location.prixParJour;
+        const rentalDays = daysDiff >= 0 ? daysDiff + 1 : 1;
+        return rentalDays * pricePerDay;
     }
-    return rental.location.montantTotal ?? (rental.location.nbrJours || 0) * (rental.location.prixParJour || 0);
-};
+
+    // Fallbacks
+    if (typeof rental.location.montantTotal === 'number' && !isNaN(rental.location.montantTotal) && rental.location.montantTotal > 0) {
+      return rental.location.montantTotal;
+    }
+    if (rental.location.nbrJours && pricePerDay > 0) {
+      return rental.location.nbrJours * pricePerDay;
+    }
+    
+    return 0;
+  };
 
 
 export default function PaymentForm({ payment, rentals, onFinished, preselectedRentalId }: { 
@@ -296,5 +306,7 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
     </Form>
   );
 }
+
+    
 
     

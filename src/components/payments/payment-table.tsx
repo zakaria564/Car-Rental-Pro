@@ -138,13 +138,23 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
   const calculateTotal = (rental: Rental): number => {
     const from = getSafeDate(rental.location.dateDebut);
     const to = getSafeDate(rental.location.dateFin);
+    const pricePerDay = rental.location.prixParJour || 0;
 
-    if (from && to && rental.location.prixParJour > 0) {
+    if (from && to && pricePerDay > 0) {
         const daysDiff = differenceInCalendarDays(startOfDay(to), startOfDay(from));
-        const rentalDays = daysDiff < 1 ? 1 : daysDiff;
-        return rentalDays * rental.location.prixParJour;
+        const rentalDays = daysDiff >= 0 ? daysDiff + 1 : 1;
+        return rentalDays * pricePerDay;
     }
-    return rental.location.montantTotal ?? (rental.location.nbrJours || 0) * (rental.location.prixParJour || 0);
+
+    // Fallbacks
+    if (typeof rental.location.montantTotal === 'number' && !isNaN(rental.location.montantTotal) && rental.location.montantTotal > 0) {
+      return rental.location.montantTotal;
+    }
+    if (rental.location.nbrJours && pricePerDay > 0) {
+      return rental.location.nbrJours * pricePerDay;
+    }
+    
+    return 0;
   };
 
   const handleDeletePayment = async (paymentToDelete: Payment) => {
@@ -406,7 +416,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
                   </DropdownMenuItem>
                 }
                 <DropdownMenuItem onClick={() => openStatement(rental)}>
-                  <History className="mr-2 h-4 w-4" />
+                  <FileText className="mr-2 h-4 w-4" />
                   Voir le relevé
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -595,3 +605,6 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
     </>
   );
 }
+
+
+    

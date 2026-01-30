@@ -64,28 +64,24 @@ const getSafeDate = (date: any): Date | null => {
 };
 
 const calculateTotal = (rental: Rental): number => {
-    // 1. Use montantTotal if it's a valid number
-    if (typeof rental.location.montantTotal === 'number' && !isNaN(rental.location.montantTotal) && rental.location.montantTotal > 0) {
-      return rental.location.montantTotal;
-    }
-
-    // 2. Calculate from dates
     const from = getSafeDate(rental.location.dateDebut);
     const to = getSafeDate(rental.location.dateFin);
     const pricePerDay = rental.location.prixParJour || 0;
 
     if (from && to && pricePerDay > 0) {
         const daysDiff = differenceInCalendarDays(startOfDay(to), startOfDay(from));
-        const rentalDays = daysDiff < 1 ? 1 : daysDiff;
+        const rentalDays = daysDiff >= 0 ? daysDiff + 1 : 1;
         return rentalDays * pricePerDay;
     }
 
-    // 3. Fallback to nbrJours if dates are not reliable
+    // Fallbacks
+    if (typeof rental.location.montantTotal === 'number' && !isNaN(rental.location.montantTotal) && rental.location.montantTotal > 0) {
+      return rental.location.montantTotal;
+    }
     if (rental.location.nbrJours && pricePerDay > 0) {
       return rental.location.nbrJours * pricePerDay;
     }
     
-    // 4. If all else fails, return 0
     return 0;
   };
 
@@ -318,7 +314,7 @@ function RentalDetails({ rental }: { rental: Rental }) {
     const rentalDuration = () => {
         if (safeDebutDate && safeFinDate) {
             const daysDiff = differenceInCalendarDays(startOfDay(safeFinDate), startOfDay(safeDebutDate));
-            return daysDiff < 1 ? 1 : daysDiff;
+            return daysDiff >= 0 ? daysDiff + 1 : 1;
         }
         return rental.location.nbrJours || 0;
     };
@@ -879,3 +875,6 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     </>
   );
 }
+
+
+    
