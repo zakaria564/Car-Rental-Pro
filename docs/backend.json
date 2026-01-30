@@ -43,6 +43,15 @@
             },
             "required": ["date", "kilometrage", "typeIntervention"]
           }
+        },
+        "maintenanceSchedule": {
+          "type": "object",
+          "description": "Rappels pour le prochain entretien.",
+          "properties": {
+            "prochainVidangeKm": { "type": "number", "description": "Kilométrage pour la prochaine vidange." },
+            "prochaineCourroieKm": { "type": "number", "description": "Kilométrage pour le prochain changement de courroie." },
+            "prochaineRevisionDate": { "type": "string", "format": "date-time", "description": "Date de la prochaine révision générale." }
+          }
         }
       },
       "required": ["marque", "modele", "immat", "numChassis", "prixParJour", "etat", "disponible", "dateMiseEnCirculation", "kilometrage", "couleur", "nbrPlaces", "puissance", "carburantType", "transmission"]

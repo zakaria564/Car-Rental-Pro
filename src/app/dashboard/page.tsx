@@ -1,5 +1,5 @@
 'use client';
-import { Car, KeyRound, TriangleAlert } from "lucide-react";
+import { Car, KeyRound, TriangleAlert, Wrench } from "lucide-react";
 import { StatCard } from "@/components/stat-card";
 import RentalTable from "@/components/rentals/rental-table";
 import { DashboardHeader } from "@/components/dashboard-header";
@@ -94,6 +94,47 @@ export default function DashboardPage() {
 
     return alerts.sort((a, b) => a.expiryDate.getTime() - b.expiryDate.getTime());
   }, [cars]);
+  
+  const maintenanceAlerts = React.useMemo(() => {
+    const alerts: { car: CarType, alertType: string, value: string, currentValue: string, status: 'À faire' | 'Bientôt' }[] = [];
+    const today = new Date();
+
+    cars.forEach(car => {
+        const { kilometrage, maintenanceSchedule } = car;
+        if (!maintenanceSchedule) return;
+
+        // Mileage-based alerts
+        if (maintenanceSchedule.prochainVidangeKm) {
+            const diff = maintenanceSchedule.prochainVidangeKm - kilometrage;
+            if (diff <= 0) {
+                alerts.push({ car, alertType: "Vidange", value: `${maintenanceSchedule.prochainVidangeKm.toLocaleString()} km`, currentValue: `${kilometrage.toLocaleString()} km`, status: 'À faire' });
+            } else if (diff <= 1000) { // Alert if within 1000km
+                alerts.push({ car, alertType: "Vidange", value: `${maintenanceSchedule.prochainVidangeKm.toLocaleString()} km`, currentValue: `${kilometrage.toLocaleString()} km`, status: 'Bientôt' });
+            }
+        }
+        if (maintenanceSchedule.prochaineCourroieKm) {
+            const diff = maintenanceSchedule.prochaineCourroieKm - kilometrage;
+            if (diff <= 0) {
+                alerts.push({ car, alertType: "Courroie de distribution", value: `${maintenanceSchedule.prochaineCourroieKm.toLocaleString()} km`, currentValue: `${kilometrage.toLocaleString()} km`, status: 'À faire' });
+            } else if (diff <= 2000) { // Alert if within 2000km
+                alerts.push({ car, alertType: "Courroie de distribution", value: `${maintenanceSchedule.prochaineCourroieKm.toLocaleString()} km`, currentValue: `${kilometrage.toLocaleString()} km`, status: 'Bientôt' });
+            }
+        }
+        
+        // Date-based alerts
+        const revisionDate = maintenanceSchedule.prochaineRevisionDate?.toDate ? maintenanceSchedule.prochaineRevisionDate.toDate() : null;
+        if (revisionDate) {
+            const daysDiff = differenceInDays(revisionDate, today);
+            if (daysDiff < 0) {
+                alerts.push({ car, alertType: "Révision générale", value: format(revisionDate, "dd/MM/yyyy"), currentValue: '', status: 'À faire' });
+            } else if (daysDiff <= 15) { // Alert if within 15 days
+                alerts.push({ car, alertType: "Révision générale", value: format(revisionDate, "dd/MM/yyyy"), currentValue: '', status: 'Bientôt' });
+            }
+        }
+    });
+
+    return alerts;
+  }, [cars]);
 
 
   return (
@@ -118,7 +159,7 @@ export default function DashboardPage() {
             <StatCard title="Voitures disponibles" value={`${availableCars} / ${cars.length}`} icon={Car} color="text-green-500" />
             <StatCard title="Locations actives" value={activeRentals.toString()} icon={KeyRound} />
         </div>
-        <div className="grid auto-rows-fr gap-4">
+        <div className="grid auto-rows-fr gap-4 lg:grid-cols-2">
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -179,6 +220,65 @@ export default function DashboardPage() {
             </Card>
 
             <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Wrench className="h-5 w-5 text-blue-500" />
+                        <span>Alertes Entretien</span>
+                    </CardTitle>
+                    <CardDescription>
+                        Véhicules nécessitant un entretien prochainement ou en retard.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                   {maintenanceAlerts.length > 0 ? (
+                    <div className="space-y-4">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Véhicule</TableHead>
+                                    <TableHead>Intervention</TableHead>
+                                    <TableHead className="text-right">Échéance</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {maintenanceAlerts.slice(0, 4).map((alert, index) => (
+                                    <TableRow key={index}>
+                                        <TableCell>
+                                            <div className="font-medium">{alert.car.marque} {alert.car.modele}</div>
+                                            <div className="text-sm text-muted-foreground">
+                                                {alert.car.immat}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>{alert.alertType}</TableCell>
+                                        <TableCell className="text-right">
+                                            <div className="flex flex-col items-end">
+                                                <span>{alert.value}</span>
+                                                <Badge variant={alert.status === 'À faire' ? 'destructive' : 'default'} className={cn(alert.status === 'Bientôt' && 'bg-blue-100 text-blue-800 hover:bg-blue-100/80')}>
+                                                    {alert.status}
+                                                </Badge>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                         {maintenanceAlerts.length > 4 && (
+                            <div className="text-center">
+                                <Link href="/dashboard/cars" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
+                                    et {maintenanceAlerts.length - 4} autre(s)...
+                                </Link>
+                            </div>
+                        )}
+                    </div>
+                   ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-center p-8">
+                        <p className="text-muted-foreground">Aucune alerte d'entretien pour le moment.</p>
+                    </div>
+                   )}
+                </CardContent>
+            </Card>
+
+            <Card className="lg:col-span-2">
                 <CardHeader>
                     <CardTitle>Locations récentes</CardTitle>
                 </CardHeader>

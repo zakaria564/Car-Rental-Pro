@@ -30,6 +30,11 @@ export type Car = {
   dateProchaineVisiteTechnique?: any;
   anneeVignette?: number;
   maintenanceHistory?: Maintenance[];
+  maintenanceSchedule?: {
+    prochainVidangeKm?: number;
+    prochaineCourroieKm?: number;
+    prochaineRevisionDate?: any; // Timestamp
+  };
 };
 
 export type Client = {

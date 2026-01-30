@@ -90,6 +90,17 @@ function CarDetails({ car }: { car: Car }) {
                     </div>
                     <div><strong>Vignette:</strong> {car.anneeVignette || 'N/A'}</div>
                 </div>
+                 {car.maintenanceSchedule && (
+                    <>
+                        <Separator />
+                        <div className="space-y-2">
+                            <h4 className="font-semibold text-base">Plan d'Entretien</h4>
+                            <div><strong>Prochaine Vidange:</strong> {car.maintenanceSchedule.prochainVidangeKm ? `${car.maintenanceSchedule.prochainVidangeKm.toLocaleString()} km` : 'N/A'}</div>
+                            <div><strong>Prochaine Courroie:</strong> {car.maintenanceSchedule.prochaineCourroieKm ? `${car.maintenanceSchedule.prochaineCourroieKm.toLocaleString()} km` : 'N/A'}</div>
+                            <div><strong>Prochaine Révision:</strong> {car.maintenanceSchedule.prochaineRevisionDate?.toDate ? format(car.maintenanceSchedule.prochaineRevisionDate.toDate(), 'dd/MM/yyyy') : 'N/A'}</div>
+                        </div>
+                    </>
+                )}
                 
                 {car.maintenanceHistory && car.maintenanceHistory.length > 0 && (
                     <>
@@ -128,26 +139,60 @@ export default function CarCard({ car }: { car: Car }) {
   const { firestore } = useFirebase();
   const { toast } = useToast();
 
-  const today = new Date();
-    
-  const assuranceDate = car.dateExpirationAssurance?.toDate ? car.dateExpirationAssurance.toDate() : null;
-  const isAssuranceExpired = assuranceDate && assuranceDate < today;
-  const daysUntilAssuranceExpires = assuranceDate ? differenceInDays(assuranceDate, today) : null;
-  const isAssuranceExpiringSoon = !isAssuranceExpired && daysUntilAssuranceExpires !== null && daysUntilAssuranceExpires >= 0 && daysUntilAssuranceExpires <= 7;
+  const { documentAttention, maintenanceAttention } = React.useMemo(() => {
+    const today = new Date();
+    const docInfo = { needsAttention: false, message: "" };
+    const maintInfo = { needsAttention: false, message: "" };
 
-  const visiteDate = car.dateProchaineVisiteTechnique?.toDate ? car.dateProchaineVisiteTechnique.toDate() : null;
-  const isVisiteExpired = visiteDate && visiteDate < today;
-  const daysUntilVisiteExpires = visiteDate ? differenceInDays(visiteDate, today) : null;
-  const isVisiteExpiringSoon = !isVisiteExpired && daysUntilVisiteExpires !== null && daysUntilVisiteExpires >= 0 && daysUntilVisiteExpires <= 7;
+    // Document checks
+    const assuranceDate = car.dateExpirationAssurance?.toDate ? car.dateExpirationAssurance.toDate() : null;
+    if (assuranceDate) {
+      const daysDiff = differenceInDays(assuranceDate, today);
+      if (daysDiff < 0) {
+        docInfo.needsAttention = true;
+        docInfo.message = "Assurance expirée.";
+      } else if (daysDiff <= 7) {
+        docInfo.needsAttention = true;
+        docInfo.message = "Assurance expire bientôt.";
+      }
+    }
+    const visiteDate = car.dateProchaineVisiteTechnique?.toDate ? car.dateProchaineVisiteTechnique.toDate() : null;
+    if (visiteDate) {
+      const daysDiff = differenceInDays(visiteDate, today);
+      if (daysDiff < 0) {
+        docInfo.needsAttention = true;
+        docInfo.message = docInfo.message ? docInfo.message + " Visite technique expirée." : "Visite technique expirée.";
+      } else if (daysDiff <= 7) {
+        docInfo.needsAttention = true;
+        docInfo.message = docInfo.message ? docInfo.message + " Visite technique expire bientôt." : "Visite technique expire bientôt.";
+      }
+    }
 
-  const needsAttention = isAssuranceExpired || isVisiteExpired || isAssuranceExpiringSoon || isVisiteExpiringSoon;
+    // Maintenance checks
+    const { kilometrage, maintenanceSchedule } = car;
+    if (maintenanceSchedule) {
+        if (maintenanceSchedule.prochainVidangeKm && kilometrage >= maintenanceSchedule.prochainVidangeKm - 1000) {
+            maintInfo.needsAttention = true;
+            maintInfo.message = "Vidange requise" + (kilometrage >= maintenanceSchedule.prochainVidangeKm ? "." : " bientôt.");
+        }
+        if (maintenanceSchedule.prochaineCourroieKm && kilometrage >= maintenanceSchedule.prochaineCourroieKm - 2000) {
+            maintInfo.needsAttention = true;
+            const newMsg = "Changement de courroie requis" + (kilometrage >= maintenanceSchedule.prochaineCourroieKm ? "." : " bientôt.");
+            maintInfo.message = maintInfo.message ? `${maintInfo.message} ${newMsg}` : newMsg;
+        }
+        const revisionDate = maintenanceSchedule.prochaineRevisionDate?.toDate ? maintenanceSchedule.prochaineRevisionDate.toDate() : null;
+        if (revisionDate) {
+            const daysDiff = differenceInDays(revisionDate, today);
+            if (daysDiff <= 15) {
+                maintInfo.needsAttention = true;
+                const newMsg = "Révision générale requise" + (daysDiff < 0 ? "." : " bientôt.");
+                maintInfo.message = maintInfo.message ? `${maintInfo.message} ${newMsg}` : newMsg;
+            }
+        }
+    }
 
-  let attentionMessage = "";
-  if (isAssuranceExpired || isVisiteExpired) {
-    attentionMessage = "Un ou plusieurs documents sont expirés.";
-  } else if (isAssuranceExpiringSoon || isVisiteExpiringSoon) {
-    attentionMessage = "Un ou plusieurs documents expirent bientôt.";
-  }
+    return { documentAttention: docInfo, maintenanceAttention: maintInfo };
+  }, [car]);
 
 
   const handleDeleteCar = async (carId: string) => {
@@ -176,20 +221,32 @@ export default function CarCard({ car }: { car: Car }) {
 
   return (
     <Card className="relative flex flex-col sm:flex-row overflow-hidden group w-full">
-      {needsAttention && (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="absolute top-2 right-2 z-10 p-1">
-                <TriangleAlert className="h-5 w-5 text-accent" />
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{attentionMessage}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      )}
+        <div className="absolute top-2 right-2 z-10 p-1 flex gap-1">
+            {documentAttention.needsAttention && (
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <div className="p-1 rounded-full bg-background/80 backdrop-blur-sm">
+                                <TriangleAlert className="h-5 w-5 text-destructive" />
+                            </div>
+                        </TooltipTrigger>
+                        <TooltipContent><p>{documentAttention.message}</p></TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+            )}
+             {maintenanceAttention.needsAttention && (
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                             <div className="p-1 rounded-full bg-background/80 backdrop-blur-sm">
+                                <Wrench className="h-5 w-5 text-blue-500" />
+                            </div>
+                        </TooltipTrigger>
+                        <TooltipContent><p>{maintenanceAttention.message}</p></TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+            )}
+        </div>
       <div className="relative w-full sm:w-1/3 h-48 sm:h-auto">
         <div className="absolute top-2 left-2 z-10">
             {car.disponible ? (

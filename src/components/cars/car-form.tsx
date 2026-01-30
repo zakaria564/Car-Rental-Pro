@@ -104,6 +104,11 @@ const carFormSchema = z.object({
   dateProchaineVisiteTechnique: z.coerce.date().optional().nullable(),
   anneeVignette: z.coerce.number().optional().nullable(),
   maintenanceHistory: z.array(maintenanceEventSchema).optional().nullable(),
+  maintenanceSchedule: z.object({
+    prochainVidangeKm: z.coerce.number().optional().nullable(),
+    prochaineCourroieKm: z.coerce.number().optional().nullable(),
+    prochaineRevisionDate: z.coerce.date().optional().nullable(),
+  }).optional().nullable(),
 });
 
 type CarFormValues = z.infer<typeof carFormSchema>;
@@ -139,6 +144,11 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
       anneeVignette: car.anneeVignette ?? undefined,
       maintenanceHistory,
       immatWW: car.immatWW ?? "",
+      maintenanceSchedule: {
+        prochainVidangeKm: car.maintenanceSchedule?.prochainVidangeKm ?? undefined,
+        prochaineCourroieKm: car.maintenanceSchedule?.prochaineCourroieKm ?? undefined,
+        prochaineRevisionDate: getSafeDate(car.maintenanceSchedule?.prochaineRevisionDate),
+      }
     } : {
       marque: "",
       modele: "",
@@ -160,6 +170,11 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
       dateProchaineVisiteTechnique: null,
       anneeVignette: new Date().getFullYear(),
       maintenanceHistory: [],
+      maintenanceSchedule: {
+        prochainVidangeKm: undefined,
+        prochaineCourroieKm: undefined,
+        prochaineRevisionDate: null,
+      }
     }
   }, [car]);
 
@@ -226,7 +241,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-4">
-        <Accordion type="multiple" defaultValue={['item-1', 'item-2']} className="w-full">
+        <Accordion type="multiple" defaultValue={['item-1', 'item-2', 'item-3']} className="w-full">
             <AccordionItem value="item-1">
                 <AccordionTrigger>Informations Générales</AccordionTrigger>
                 <AccordionContent className="pt-4 space-y-4">
@@ -677,6 +692,65 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                               </Button>
                           </div>
                         </div>
+                </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="item-3">
+                <AccordionTrigger>Plan d'Entretien (Alertes)</AccordionTrigger>
+                <AccordionContent className="pt-4 space-y-4">
+                    <FormDescription>
+                        Définissez les rappels pour les entretiens importants. Le système vous alertera lorsque l'échéance approche.
+                    </FormDescription>
+                    <FormField
+                        control={form.control}
+                        name="maintenanceSchedule.prochainVidangeKm"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Prochaine vidange (kilométrage)</FormLabel>
+                                <FormControl>
+                                    <Input type="number" placeholder="80000" {...field} value={field.value ?? ''} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="maintenanceSchedule.prochaineCourroieKm"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Prochaine courroie de distribution (kilométrage)</FormLabel>
+                                <FormControl>
+                                    <Input type="number" placeholder="120000" {...field} value={field.value ?? ''} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="maintenanceSchedule.prochaineRevisionDate"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Prochaine révision générale (date)</FormLabel>
+                                <FormControl>
+                                    <Input
+                                    type="date"
+                                    value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd") : ""}
+                                    onChange={(e) => {
+                                        const dateString = e.target.value;
+                                        if (!dateString) {
+                                            field.onChange(null);
+                                        } else {
+                                            const [year, month, day] = dateString.split('-').map(Number);
+                                            field.onChange(new Date(year, month - 1, day));
+                                        }
+                                    }}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
                 </AccordionContent>
             </AccordionItem>
         </Accordion>
