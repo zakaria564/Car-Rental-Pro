@@ -56,6 +56,25 @@
             "prochaineCourroieKm": { "type": "number", "description": "Kilométrage pour le prochain changement de courroie." },
             "prochaineRevisionDate": { "type": "string", "format": "date-time", "description": "Date de la prochaine révision générale." }
           }
+        },
+        "currentMaintenance": {
+          "type": "object",
+          "description": "Détails sur l'entretien en cours, le cas échéant.",
+          "properties": {
+            "startDate": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Date de début de la maintenance."
+            },
+            "reason": {
+              "type": "string",
+              "description": "Raison ou type d'intervention."
+            },
+            "notes": {
+              "type": "string",
+              "description": "Notes supplémentaires sur la maintenance."
+            }
+          }
         }
       },
       "required": ["marque", "modele", "immat", "numChassis", "prixParJour", "etat", "disponibilite", "dateMiseEnCirculation", "kilometrage", "couleur", "nbrPlaces", "puissance", "carburantType", "transmission"]

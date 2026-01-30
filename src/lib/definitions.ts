@@ -35,6 +35,11 @@ export type Car = {
     prochaineCourroieKm?: number;
     prochaineRevisionDate?: any; // Timestamp
   };
+  currentMaintenance?: {
+    startDate: any; // Timestamp
+    reason: string;
+    notes?: string;
+  };
 };
 
 export type Client = {

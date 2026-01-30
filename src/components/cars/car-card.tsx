@@ -13,6 +13,7 @@ import type { Car } from "@/lib/definitions";
 import { formatCurrency, cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import CarForm from "./car-form";
+import MaintenanceForm from "./maintenance-form";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "../ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "../ui/alert-dialog";
@@ -87,6 +88,14 @@ function CarDetails({ car }: { car: Car }) {
                     <div><strong>État:</strong> {car.etat}</div>
                     <div className="flex items-center gap-2"><strong>Disponibilité:</strong> <Badge variant="default" className={cn(availability.className, 'text-white')}>{availability.text}</Badge></div>
                 </div>
+                 {car.disponibilite === 'maintenance' && car.currentMaintenance && (
+                    <div className="col-span-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm">
+                        <p className="font-semibold text-yellow-800">Détails de la maintenance en cours:</p>
+                        <p><strong>Depuis le:</strong> {car.currentMaintenance.startDate?.toDate ? format(car.currentMaintenance.startDate.toDate(), 'dd/MM/yyyy') : 'N/A'}</p>
+                        <p><strong>Raison:</strong> {car.currentMaintenance.reason}</p>
+                        {car.currentMaintenance.notes && <p><strong>Notes:</strong> {car.currentMaintenance.notes}</p>}
+                    </div>
+                )}
                 <Separator />
                  <div className="space-y-2">
                     <h4 className="font-semibold text-base">Documents & Expirations</h4>
@@ -146,6 +155,7 @@ function CarDetails({ car }: { car: Car }) {
 export default function CarCard({ car }: { car: Car }) {
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = React.useState(false);
+  const [isMaintenanceSheetOpen, setIsMaintenanceSheetOpen] = React.useState(false);
 
   const { firestore } = useFirebase();
   const { toast } = useToast();
@@ -230,34 +240,6 @@ export default function CarCard({ car }: { car: Car }) {
       });
     }
   };
-
-  const toggleMaintenanceStatus = async (carToUpdate: Car) => {
-    if (!firestore) return;
-    const carDocRef = doc(firestore, 'cars', carToUpdate.id);
-    const newStatus = carToUpdate.disponibilite === 'maintenance' ? 'disponible' : 'maintenance';
-
-    try {
-        await updateDoc(carDocRef, {
-            disponibilite: newStatus
-        });
-        toast({
-            title: "Statut mis à jour",
-            description: `La voiture est maintenant marquée comme "${newStatus}".`,
-        });
-    } catch(serverError) {
-        const permissionError = new FirestorePermissionError({
-          path: carDocRef.path,
-          operation: 'update',
-          requestResourceData: { disponibilite: newStatus }
-        }, serverError as Error);
-        errorEmitter.emit('permission-error', permissionError);
-        toast({
-            variant: "destructive",
-            title: "Erreur de mise à jour",
-            description: "Vous n'avez pas la permission de modifier cette voiture.",
-        });
-    }
-};
 
   return (
     <Card className="relative flex flex-col sm:flex-row overflow-hidden group w-full">
@@ -364,34 +346,27 @@ export default function CarCard({ car }: { car: Car }) {
                         </SheetContent>
                     </Sheet>
 
-                    {/* Maintenance Alert Dialog */}
-                    <AlertDialog>
+                    {/* Maintenance Sheet */}
+                    <Sheet open={isMaintenanceSheetOpen} onOpenChange={setIsMaintenanceSheetOpen}>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <AlertDialogTrigger asChild>
+                                <SheetTrigger asChild>
                                     <Button variant="outline" size="icon" className="h-9 w-9" disabled={car.disponibilite === 'louee'}>
                                         <Construction className="h-4 w-4" />
                                     </Button>
-                                </AlertDialogTrigger>
+                                </SheetTrigger>
                             </TooltipTrigger>
                             <TooltipContent>
-                                <p>{car.disponibilite === 'maintenance' ? 'Marquer comme disponible' : 'Mettre en maintenance'}</p>
+                                <p>{car.disponibilite === 'maintenance' ? 'Terminer la maintenance' : 'Mettre en maintenance'}</p>
                             </TooltipContent>
                         </Tooltip>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Changer le statut du véhicule</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    Le statut actuel est "{availability.text}". Voulez-vous le marquer comme "{car.disponibilite === 'maintenance' ? 'disponible' : 'en maintenance'}"?
-                                    Un véhicule en maintenance ne peut pas être loué.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => toggleMaintenanceStatus(car)}>Confirmer</AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
+                        <SheetContent className="sm:max-w-md">
+                            <SheetHeader>
+                                <SheetTitle>{car.disponibilite === 'maintenance' ? 'Terminer la maintenance' : 'Mettre en maintenance'}</SheetTitle>
+                            </SheetHeader>
+                            <MaintenanceForm car={car} onFinished={() => setIsMaintenanceSheetOpen(false)} />
+                        </SheetContent>
+                    </Sheet>
 
                     {/* Delete Alert Dialog */}
                     <AlertDialog>
