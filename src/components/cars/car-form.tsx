@@ -78,7 +78,8 @@ const getSafeDate = (date: any): Date | undefined => {
     if (date.toDate) return date.toDate(); // Firestore Timestamp
     const parsedDate = new Date(date);
     if (isNaN(parsedDate.getTime())) return undefined;
-    return new Date(parsedDate.toISOString().substring(0, 10) + 'T00:00:00');
+    // Normalize to avoid timezone issues when displaying in input type="date"
+    return new Date(parsedDate.getTime() + parsedDate.getTimezoneOffset() * 60000);
 };
 
 export default function CarForm({ car, onFinished }: { car: Car | null, onFinished: () => void }) {
@@ -153,29 +154,25 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
   const mode = car ? 'edit' : 'new';
 
   React.useEffect(() => {
-    if (mode === 'new' && kilometrage > 0) {
+    const km = Number(kilometrage);
+    if (mode === 'new' && km > 0) {
         const vidangeInterval = 10000;
         const filtreGasoilInterval = 20000;
         const courroieInterval = 100000;
         const plaquettesInterval = 40000;
 
+        // Set next service based on current mileage + interval
         if (!getValues('maintenanceSchedule.prochainVidangeKm')) {
-            const nextVidange = (Math.floor(kilometrage / vidangeInterval)) * vidangeInterval + vidangeInterval;
-            setValue('maintenanceSchedule.prochainVidangeKm', nextVidange);
+            setValue('maintenanceSchedule.prochainVidangeKm', km + vidangeInterval);
         }
         if (!getValues('maintenanceSchedule.prochainFiltreGasoilKm')) {
-            const nextFiltre = (Math.floor(kilometrage / filtreGasoilInterval)) * filtreGasoilInterval + filtreGasoilInterval;
-            setValue('maintenanceSchedule.prochainFiltreGasoilKm', nextFiltre);
+            setValue('maintenanceSchedule.prochainFiltreGasoilKm', km + filtreGasoilInterval);
         }
-        
         if (!getValues('maintenanceSchedule.prochaineCourroieKm')) {
-            const nextCourroie = (Math.floor(kilometrage / courroieInterval)) * courroieInterval + courroieInterval;
-            setValue('maintenanceSchedule.prochaineCourroieKm', nextCourroie);
+            setValue('maintenanceSchedule.prochaineCourroieKm', km + courroieInterval);
         }
-
         if (!getValues('maintenanceSchedule.prochainPlaquettesFreinKm')) {
-            const nextPlaquettes = (Math.floor(kilometrage / plaquettesInterval)) * plaquettesInterval + plaquettesInterval;
-            setValue('maintenanceSchedule.prochainPlaquettesFreinKm', nextPlaquettes);
+            setValue('maintenanceSchedule.prochainPlaquettesFreinKm', km + plaquettesInterval);
         }
     }
   }, [kilometrage, mode, setValue, getValues]);
@@ -189,7 +186,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
   });
 
   const updateScheduleFromIntervention = (type: string | undefined, km: number | undefined, date: Date | undefined) => {
-    if (!type || typeof km !== 'number' || km < 0) return;
+    if (!type || typeof km !== 'number' || km <= 0) return;
   
     const vidangeInterval = 10000;
     const filtreGasoilInterval = 20000;
@@ -335,7 +332,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                 if (!dateString) {
                                     field.onChange(null);
                                 } else {
-                                    field.onChange(new Date(`${dateString}T00:00:00`));
+                                    field.onChange(new Date(dateString));
                                 }
                               }}
                             />
@@ -553,7 +550,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                     if (!dateString) {
                                         field.onChange(null);
                                     } else {
-                                        field.onChange(new Date(`${dateString}T00:00:00`));
+                                        field.onChange(new Date(dateString));
                                     }
                                   }}
                                 />
@@ -577,7 +574,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                         if (!dateString) {
                                             field.onChange(null);
                                         } else {
-                                            field.onChange(new Date(`${dateString}T00:00:00`));
+                                            field.onChange(new Date(dateString));
                                         }
                                       }}
                                     />
@@ -621,7 +618,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                                 const dateString = e.target.value;
                                                 let date = null;
                                                 if (dateString) {
-                                                    date = new Date(`${dateString}T00:00:00`);
+                                                    date = new Date(dateString);
                                                 }
                                                 field.onChange(date);
                                                 const type = getValues(`maintenanceHistory.${index}.typeIntervention`);
@@ -808,7 +805,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                     onChange={(e) => {
                                         const dateString = e.target.value;
                                         if (!dateString) { field.onChange(null); } 
-                                        else { field.onChange(new Date(`${dateString}T00:00:00`)); }
+                                        else { field.onChange(new Date(dateString)); }
                                     }}
                                     />
                                 </FormControl>
@@ -829,7 +826,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                     onChange={(e) => {
                                         const dateString = e.target.value;
                                         if (!dateString) { field.onChange(null); } 
-                                        else { field.onChange(new Date(`${dateString}T00:00:00`)); }
+                                        else { field.onChange(new Date(dateString)); }
                                     }}
                                     />
                                 </FormControl>
@@ -850,7 +847,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                     onChange={(e) => {
                                         const dateString = e.target.value;
                                         if (!dateString) { field.onChange(null); } 
-                                        else { field.onChange(new Date(`${dateString}T00:00:00`)); }
+                                        else { field.onChange(new Date(dateString)); }
                                     }}
                                     />
                                 </FormControl>
@@ -870,3 +867,5 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     </Form>
   );
 }
+
+    
