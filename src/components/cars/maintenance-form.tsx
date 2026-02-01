@@ -111,31 +111,40 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
                 });
                 
                 if (!isDuplicate) {
-                    const newHistory = [...existingHistory, newHistoryEvent];
-                    updatePayload.maintenanceHistory = newHistory;
-                    
-                    // Recalculate schedule based on the new event
-                    const newSchedule = carData.maintenanceSchedule || {};
-                    const eventKm = data.maintenanceEvent.kilometrage;
-                    const eventType = data.maintenanceEvent.typeIntervention;
-
-                    if (eventType.includes('Vidange')) {
-                        newSchedule.prochainVidangeKm = eventKm + 10000;
-                    }
-                    if (eventType.includes('Filtre à carburant (gazole)')) {
-                        newSchedule.prochainFiltreGasoilKm = eventKm + 20000;
-                    }
-                    if (eventType.includes('Plaquettes de frein')) {
-                        newSchedule.prochainesPlaquettesFreinKm = eventKm + 20000;
-                    }
-                    if (eventType.includes('Kit de distribution')) {
-                        newSchedule.prochaineCourroieDistributionKm = eventKm + 70000;
-                    }
-                    updatePayload.maintenanceSchedule = newSchedule;
+                    updatePayload.maintenanceHistory = arrayUnion(newHistoryEvent);
                 }
-                 // Also update car's main mileage
-                if (data.maintenanceEvent.kilometrage > carData.kilometrage) {
-                    updatePayload.kilometrage = data.maintenanceEvent.kilometrage;
+
+                const eventKm = data.maintenanceEvent.kilometrage;
+                const finalKmForCalc = Math.max(eventKm, carData.kilometrage);
+
+                // Recalculate schedule based on the new event's mileage
+                const calculateNextMilestone = (currentKm: number, interval: number): number => {
+                    if (interval <= 0) return 0;
+                    if (currentKm === 0) return interval;
+                    if (currentKm > 0 && currentKm % interval === 0) {
+                       return currentKm + interval;
+                    }
+                    return Math.ceil(currentKm / interval) * interval;
+                };
+
+                const newSchedule = { ...carData.maintenanceSchedule };
+                
+                const nextVidange = calculateNextMilestone(finalKmForCalc, 10000);
+                newSchedule.prochainVidangeKm = nextVidange > 0 ? nextVidange : null;
+
+                const nextFiltre = calculateNextMilestone(finalKmForCalc, 20000);
+                newSchedule.prochainFiltreGasoilKm = nextFiltre > 0 ? nextFiltre : null;
+
+                const nextPlaquettes = calculateNextMilestone(finalKmForCalc, 20000);
+                newSchedule.prochainesPlaquettesFreinKm = nextPlaquettes > 0 ? nextPlaquettes : null;
+
+                const nextDistribution = calculateNextMilestone(finalKmForCalc, 60000);
+                newSchedule.prochaineCourroieDistributionKm = nextDistribution > 0 ? nextDistribution : null;
+
+                updatePayload.maintenanceSchedule = newSchedule;
+
+                if (eventKm > carData.kilometrage) {
+                    updatePayload.kilometrage = eventKm;
                 }
             }
         } else { // Starting maintenance

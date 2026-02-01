@@ -122,10 +122,10 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
       anneeVignette: new Date().getFullYear(),
       maintenanceHistory: [],
       maintenanceSchedule: {
-        prochainVidangeKm: undefined,
-        prochainFiltreGasoilKm: undefined,
-        prochainesPlaquettesFreinKm: undefined,
-        prochaineCourroieDistributionKm: undefined,
+        prochainVidangeKm: 10000,
+        prochainFiltreGasoilKm: 20000,
+        prochainesPlaquettesFreinKm: 20000,
+        prochaineCourroieDistributionKm: 60000,
       }
     }
   }, [car]);
@@ -147,32 +147,42 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
   });
   
   const kilometrage = watch("kilometrage");
-  const maintenanceHistory = watch("maintenanceHistory");
 
   React.useEffect(() => {
-    const history = maintenanceHistory || [];
     const km = Number(kilometrage);
+    if (isNaN(km) || km < 0) {
+      if (isNewCar) {
+        setValue('maintenanceSchedule.prochainVidangeKm', 10000, { shouldValidate: false });
+        setValue('maintenanceSchedule.prochainFiltreGasoilKm', 20000, { shouldValidate: false });
+        setValue('maintenanceSchedule.prochainesPlaquettesFreinKm', 20000, { shouldValidate: false });
+        setValue('maintenanceSchedule.prochaineCourroieDistributionKm', 60000, { shouldValidate: false });
+      }
+      return;
+    };
 
-    const sortedHistory = [...history].filter(h => h?.kilometrage != null).sort((a, b) => b.kilometrage - a.kilometrage);
-    const findLastKm = (type: string) => {
-        const event = sortedHistory.find(e => e.typeIntervention && e.typeIntervention.includes(type));
-        return event ? event.kilometrage : undefined;
-    }
+    const calculateNextMilestone = (currentKm: number, interval: number): number => {
+        if (interval <= 0) return 0;
+        if (currentKm === 0) return interval;
+        if (currentKm > 0 && currentKm % interval === 0) {
+           return currentKm + interval;
+        }
+        return Math.ceil(currentKm / interval) * interval;
+    };
 
-    const lastVidangeKm = findLastKm('Vidange');
-    setValue('maintenanceSchedule.prochainVidangeKm', lastVidangeKm !== undefined ? lastVidangeKm + 10000 : (isNewCar && km > 0 ? km + 10000 : null));
+    const nextVidange = calculateNextMilestone(km, 10000);
+    setValue('maintenanceSchedule.prochainVidangeKm', nextVidange > 0 ? nextVidange : null, { shouldValidate: false });
+
+    const nextFiltre = calculateNextMilestone(km, 20000);
+    setValue('maintenanceSchedule.prochainFiltreGasoilKm', nextFiltre > 0 ? nextFiltre : null, { shouldValidate: false });
+
+    const nextPlaquettes = calculateNextMilestone(km, 20000);
+    setValue('maintenanceSchedule.prochainesPlaquettesFreinKm', nextPlaquettes > 0 ? nextPlaquettes : null, { shouldValidate: false });
     
-    const lastFiltreGasoilKm = findLastKm('Filtre à carburant (gazole)');
-    setValue('maintenanceSchedule.prochainFiltreGasoilKm', lastFiltreGasoilKm !== undefined ? lastFiltreGasoilKm + 20000 : (isNewCar ? 20000 : null));
-    
-    const lastPlaquettesKm = findLastKm('Plaquettes de frein');
-    setValue('maintenanceSchedule.prochainesPlaquettesFreinKm', lastPlaquettesKm !== undefined ? lastPlaquettesKm + 20000 : (isNewCar ? 20000 : null));
+    const nextDistribution = calculateNextMilestone(km, 60000);
+    setValue('maintenanceSchedule.prochaineCourroieDistributionKm', nextDistribution > 0 ? nextDistribution : null, { shouldValidate: false });
 
-    const lastDistributionKm = findLastKm('Kit de distribution');
-    setValue('maintenanceSchedule.prochaineCourroieDistributionKm', lastDistributionKm !== undefined ? lastDistributionKm + 70000 : (isNewCar ? 70000 : null));
+  }, [kilometrage, isNewCar, setValue]);
 
-  // Using JSON.stringify for deep comparison of the history array
-  }, [kilometrage, maintenanceHistory, isNewCar, setValue, JSON.stringify(maintenanceHistory)]);
 
   React.useEffect(() => {
     form.reset(defaultValues);
@@ -714,10 +724,10 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                 </AccordionContent>
             </AccordionItem>
             <AccordionItem value="item-3">
-                <AccordionTrigger>Plan d'Entretien (Alertes)</AccordionTrigger>
+                <AccordionTrigger>Plan d'Entretien (Automatique)</AccordionTrigger>
                 <AccordionContent className="pt-4 space-y-4">
                     <FormDescription>
-                        Les échéances d'entretien sont calculées automatiquement en fonction du kilométrage et de l'historique.
+                        Les échéances d'entretien sont calculées automatiquement en fonction du kilométrage actuel du véhicule.
                     </FormDescription>
                     <div className="grid grid-cols-2 gap-4">
                         <FormField
