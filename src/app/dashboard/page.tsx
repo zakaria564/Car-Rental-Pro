@@ -96,7 +96,6 @@ export default function DashboardPage() {
   }, [cars]);
   
  const maintenanceAlerts = React.useMemo(() => {
-    const today = new Date();
     const alerts: { car: CarType, alertType: string, value: string, currentValue: string, status: 'À faire' | 'Bientôt' }[] = [];
 
     cars.forEach(car => {
@@ -119,21 +118,6 @@ export default function DashboardPage() {
         checkKmAlert(maintenanceSchedule.prochainesPlaquettesFreinKm, "Plaquettes de frein", 2000);
         checkKmAlert(maintenanceSchedule.prochaineCourroieDistributionKm, "Courroie de distribution", 5000);
 
-        // Date-based alerts
-        const checkDateAlert = (nextDate: any, type: string, soonThresholdDays: number = 30) => {
-            const date = getSafeDate(nextDate);
-            if (!date) return;
-            const daysDiff = differenceInDays(date, today);
-            if (daysDiff < 0) {
-                alerts.push({ car, alertType: type, value: format(date, "dd/MM/yyyy"), currentValue: 'Expiré', status: 'À faire' });
-            } else if (daysDiff <= soonThresholdDays) {
-                alerts.push({ car, alertType: type, value: format(date, "dd/MM/yyyy"), currentValue: `dans ${daysDiff} jours`, status: 'Bientôt' });
-            }
-        };
-
-        checkDateAlert(maintenanceSchedule.prochainChangementLiquideFreinDate, "Liquide de frein");
-        checkDateAlert(maintenanceSchedule.prochainChangementLiquideRefroidissementDate, "Liquide de refroidissement");
-        checkDateAlert(maintenanceSchedule.prochaineRevisionDate, "Révision générale");
     });
 
     // Sort alerts by status and then by value/date
