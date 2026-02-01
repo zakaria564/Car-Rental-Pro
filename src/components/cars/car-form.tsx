@@ -365,10 +365,11 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                               <Input 
                                   type="number" 
                                   placeholder="54000" 
+                                  {...field}
                                   value={field.value ?? ''}
                                   onChange={(e) => {
                                       const kmValue = e.target.value;
-                                      field.onChange(e); 
+                                      field.onChange(kmValue);
                                       if (kmValue === '' || isNaN(Number(kmValue))) {
                                           if (!car) {
                                               setValue('maintenanceSchedule.prochainVidangeKm', null, { shouldValidate: true });
@@ -637,9 +638,10 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                                 <Input
                                                     type="number"
                                                     {...field}
+                                                    value={field.value ?? ''}
                                                     onChange={(e) => {
                                                         const kmValue = e.target.value;
-                                                        field.onChange(e);
+                                                        field.onChange(kmValue);
                                                         const type = getValues(`maintenanceHistory.${index}.typeIntervention`);
                                                         const date = getValues(`maintenanceHistory.${index}.date`);
                                                         updateScheduleFromIntervention(type, kmValue === '' ? undefined : Number(kmValue), date);
