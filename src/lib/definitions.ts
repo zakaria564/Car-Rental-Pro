@@ -24,7 +24,7 @@ export type Car = {
   couleur: string;
   nbrPlaces: number;
   puissance: number;
-  carburantType: 'Diesel' | 'Essence' | 'Electrique';
+  carburantType: 'Diesel' | 'Essence' | 'Electrique' | 'Hybrid';
   transmission: 'Manuelle' | 'Automatique';
   dateExpirationAssurance?: any;
   dateProchaineVisiteTechnique?: any;

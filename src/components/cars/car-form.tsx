@@ -51,7 +51,7 @@ const carFormSchema = z.object({
   couleur: z.string().min(3, "La couleur est requise."),
   nbrPlaces: z.coerce.number().int("Le nombre de places doit être un nombre entier.").min(2, "Le nombre de places est requis.").max(9),
   puissance: z.coerce.number().int("La puissance doit être un nombre entier.").min(4, "La puissance est requise."),
-  carburantType: z.enum(['Diesel', 'Essence', 'Electrique']),
+  carburantType: z.enum(['Diesel', 'Essence', 'Electrique', 'Hybrid']),
   transmission: z.enum(['Manuelle', 'Automatique']),
   prixParJour: z.coerce.number().min(1, "Le prix doit être supérieur à 0."),
   etat: z.enum(["new", "good", "fair", "poor"]),
@@ -341,15 +341,15 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                   placeholder="54000" 
                                   {...field}
                                   onChange={(e) => {
-                                      field.onChange(e); // Propagate event to hook form
-                                      if (e.target.value === '') {
+                                      const kmValue = e.target.value;
+                                      field.onChange(e); 
+                                      if (kmValue === '') {
                                           if (!car) {
                                               setValue('maintenanceSchedule.prochainVidangeKm', null, { shouldValidate: true });
                                           }
                                           return;
                                       }
-                                      const km = Number(e.target.value);
-                                      // For new cars, automatically set the first oil change schedule
+                                      const km = Number(kmValue);
                                       if (!car) {
                                           const vidangeInterval = 10000;
                                           setValue('maintenanceSchedule.prochainVidangeKm', km + vidangeInterval, { shouldValidate: true });
@@ -420,6 +420,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                             <SelectItem value="Essence">Essence</SelectItem>
                             <SelectItem value="Diesel">Diesel</SelectItem>
                             <SelectItem value="Electrique">Électrique</SelectItem>
+                            <SelectItem value="Hybrid">Hybride (Essence + Électrique)</SelectItem>
                             </SelectContent>
                         </Select>
                         <FormMessage />
@@ -609,9 +610,10 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                                     type="number"
                                                     {...field}
                                                     onChange={(e) => {
+                                                        const kmValue = e.target.value;
                                                         field.onChange(e);
                                                         const type = getValues(`maintenanceHistory.${index}.typeIntervention`);
-                                                        updateScheduleFromIntervention(type, e.target.value === '' ? undefined : Number(e.target.value));
+                                                        updateScheduleFromIntervention(type, kmValue === '' ? undefined : Number(kmValue));
                                                     }}
                                                 />
                                             </FormControl>

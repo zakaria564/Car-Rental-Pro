@@ -28,7 +28,7 @@
         "couleur": { "type": "string", "description": "Color of the car." },
         "nbrPlaces": { "type": "number", "description": "Number of seats." },
         "puissance": { "type": "number", "description": "Fiscal power of the car." },
-        "carburantType": { "type": "string", "enum": ["Diesel", "Essence", "Electrique"], "description": "Type of fuel." },
+        "carburantType": { "type": "string", "enum": ["Diesel", "Essence", "Electrique", "Hybrid"], "description": "Type of fuel." },
         "transmission": { "type": "string", "enum": ["Manuelle", "Automatique"], "description": "Type of transmission." },
         "dateExpirationAssurance": { "type": "string", "format": "date-time", "description": "Insurance expiration date." },
         "dateProchaineVisiteTechnique": { "type": "string", "format": "date-time", "description": "Next technical inspection date." },
