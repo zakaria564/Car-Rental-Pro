@@ -75,6 +75,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
   const { firestore } = useFirebase();
 
   const isMaintenance = car?.disponibilite === 'maintenance';
+  const isNewCar = !car;
 
   const defaultValues = React.useMemo(() => {
     const maintenanceHistory = (car?.maintenanceHistory && Array.isArray(car.maintenanceHistory))
@@ -155,7 +156,6 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     setIsSubmitting(true);
 
     const carId = car?.id || doc(collection(firestore, 'cars')).id;
-    const isNewCar = !car;
 
     const carDataForFirestore: { [key: string]: any } = { ...data };
 
@@ -340,17 +340,16 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                   type="number" 
                                   placeholder="54000"
                                   value={field.value ?? ''}
-                                  onChange={field.onChange}
-                                  onBlur={(e) => {
-                                      const kmValue = e.target.value;
-                                      field.onChange(kmValue === '' ? '' : Number(kmValue));
-                                      const km = Number(kmValue);
-                                      if (!isNaN(km) && km > 0 && isNewCar) {
-                                          const vidangeInterval = 10000;
-                                          form.setValue('maintenanceSchedule.prochainVidangeKm', km + vidangeInterval, { shouldValidate: true });
-                                      } else if (kmValue === '' && isNewCar) {
-                                           form.setValue('maintenanceSchedule.prochainVidangeKm', undefined, { shouldValidate: true });
-                                      }
+                                  onChange={(e) => {
+                                    const kmValue = e.target.value;
+                                    field.onChange(kmValue === '' ? '' : Number(kmValue));
+                                    const km = Number(kmValue);
+                                    if (!isNaN(km) && km > 0 && isNewCar) {
+                                        const vidangeInterval = 10000;
+                                        form.setValue('maintenanceSchedule.prochainVidangeKm', km + vidangeInterval, { shouldValidate: true });
+                                    } else if (kmValue === '' && isNewCar) {
+                                         form.setValue('maintenanceSchedule.prochainVidangeKm', undefined, { shouldValidate: true });
+                                    }
                                   }}
                               />
                           </FormControl>
