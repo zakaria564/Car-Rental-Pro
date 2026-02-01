@@ -97,7 +97,6 @@ export default function DashboardPage() {
   
   const maintenanceAlerts = React.useMemo(() => {
     const alerts: { car: CarType, alertType: string, value: string, currentValue: string, status: 'À faire' | 'Bientôt' }[] = [];
-    const today = new Date();
 
     cars.forEach(car => {
         const { kilometrage, maintenanceSchedule } = car;
@@ -110,59 +109,6 @@ export default function DashboardPage() {
                 alerts.push({ car, alertType: "Vidange", value: `${maintenanceSchedule.prochainVidangeKm.toLocaleString()} km`, currentValue: `${kilometrage.toLocaleString()} km`, status: 'À faire' });
             } else if (diff <= 1000) {
                 alerts.push({ car, alertType: "Vidange", value: `${maintenanceSchedule.prochainVidangeKm.toLocaleString()} km`, currentValue: `${kilometrage.toLocaleString()} km`, status: 'Bientôt' });
-            }
-        }
-        if (maintenanceSchedule.prochainFiltreGasoilKm) {
-            const diff = maintenanceSchedule.prochainFiltreGasoilKm - kilometrage;
-            if (diff <= 0) {
-                alerts.push({ car, alertType: "Filtre à gazole", value: `${maintenanceSchedule.prochainFiltreGasoilKm.toLocaleString()} km`, currentValue: `${kilometrage.toLocaleString()} km`, status: 'À faire' });
-            } else if (diff <= 2000) {
-                alerts.push({ car, alertType: "Filtre à gazole", value: `${maintenanceSchedule.prochainFiltreGasoilKm.toLocaleString()} km`, currentValue: `${kilometrage.toLocaleString()} km`, status: 'Bientôt' });
-            }
-        }
-        if (maintenanceSchedule.prochaineCourroieKm) {
-            const diff = maintenanceSchedule.prochaineCourroieKm - kilometrage;
-            if (diff <= 0) {
-                alerts.push({ car, alertType: "Courroie de distribution", value: `${maintenanceSchedule.prochaineCourroieKm.toLocaleString()} km`, currentValue: `${kilometrage.toLocaleString()} km`, status: 'À faire' });
-            } else if (diff <= 2000) {
-                alerts.push({ car, alertType: "Courroie de distribution", value: `${maintenanceSchedule.prochaineCourroieKm.toLocaleString()} km`, currentValue: `${kilometrage.toLocaleString()} km`, status: 'Bientôt' });
-            }
-        }
-        if (maintenanceSchedule.prochainPlaquettesFreinKm) {
-            const diff = maintenanceSchedule.prochainPlaquettesFreinKm - kilometrage;
-            if (diff <= 0) {
-                alerts.push({ car, alertType: "Plaquettes de frein", value: `${maintenanceSchedule.prochainPlaquettesFreinKm.toLocaleString()} km`, currentValue: `${kilometrage.toLocaleString()} km`, status: 'À faire' });
-            } else if (diff <= 1500) {
-                alerts.push({ car, alertType: "Plaquettes de frein", value: `${maintenanceSchedule.prochainPlaquettesFreinKm.toLocaleString()} km`, currentValue: `${kilometrage.toLocaleString()} km`, status: 'Bientôt' });
-            }
-        }
-        
-        // Date-based alerts
-        const revisionDate = getSafeDate(maintenanceSchedule.prochaineRevisionDate);
-        if (revisionDate) {
-            const daysDiff = differenceInDays(revisionDate, today);
-            if (daysDiff < 0) {
-                alerts.push({ car, alertType: "Révision générale", value: format(revisionDate, "dd/MM/yyyy"), currentValue: '', status: 'À faire' });
-            } else if (daysDiff <= 15) {
-                alerts.push({ car, alertType: "Révision générale", value: format(revisionDate, "dd/MM/yyyy"), currentValue: '', status: 'Bientôt' });
-            }
-        }
-        const liquideFreinDate = getSafeDate(maintenanceSchedule.prochainLiquideFreinDate);
-        if (liquideFreinDate) {
-            const daysDiff = differenceInDays(liquideFreinDate, today);
-            if (daysDiff < 0) {
-                alerts.push({ car, alertType: "Liquide de frein", value: format(liquideFreinDate, "dd/MM/yyyy"), currentValue: '', status: 'À faire' });
-            } else if (daysDiff <= 30) {
-                alerts.push({ car, alertType: "Liquide de frein", value: format(liquideFreinDate, "dd/MM/yyyy"), currentValue: '', status: 'Bientôt' });
-            }
-        }
-         const liquideRefroidissementDate = getSafeDate(maintenanceSchedule.prochainLiquideRefroidissementDate);
-        if (liquideRefroidissementDate) {
-            const daysDiff = differenceInDays(liquideRefroidissementDate, today);
-            if (daysDiff < 0) {
-                alerts.push({ car, alertType: "Liquide de refroidissement", value: format(liquideRefroidissementDate, "dd/MM/yyyy"), currentValue: '', status: 'À faire' });
-            } else if (daysDiff <= 30) {
-                alerts.push({ car, alertType: "Liquide de refroidissement", value: format(liquideRefroidissementDate, "dd/MM/yyyy"), currentValue: '', status: 'Bientôt' });
             }
         }
     });

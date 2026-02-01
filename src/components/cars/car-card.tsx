@@ -109,12 +109,6 @@ function CarDetails({ car }: { car: Car }) {
                         <div className="space-y-2">
                             <h4 className="font-semibold text-base">Plan d'Entretien</h4>
                             <div><strong>Prochaine Vidange:</strong> {car.maintenanceSchedule.prochainVidangeKm ? `${car.maintenanceSchedule.prochainVidangeKm.toLocaleString()} km` : 'N/A'}</div>
-                            <div><strong>Prochain Filtre Gazole:</strong> {car.maintenanceSchedule.prochainFiltreGasoilKm ? `${car.maintenanceSchedule.prochainFiltreGasoilKm.toLocaleString()} km` : 'N/A'}</div>
-                            <div><strong>Prochaines Plaquettes:</strong> {car.maintenanceSchedule.prochainPlaquettesFreinKm ? `${car.maintenanceSchedule.prochainPlaquettesFreinKm.toLocaleString()} km` : 'N/A'}</div>
-                            <div><strong>Prochaine Courroie:</strong> {car.maintenanceSchedule.prochaineCourroieKm ? `${car.maintenanceSchedule.prochaineCourroieKm.toLocaleString()} km` : 'N/A'}</div>
-                            <div><strong>Prochaine Révision:</strong> {getSafeDate(car.maintenanceSchedule.prochaineRevisionDate) ? format(getSafeDate(car.maintenanceSchedule.prochaineRevisionDate)!, 'dd/MM/yyyy') : 'N/A'}</div>
-                            <div><strong>Prochain Liquide Frein:</strong> {getSafeDate(car.maintenanceSchedule.prochainLiquideFreinDate) ? format(getSafeDate(car.maintenanceSchedule.prochainLiquideFreinDate)!, 'dd/MM/yyyy') : 'N/A'}</div>
-                            <div><strong>Prochain Liquide Refroidissement:</strong> {getSafeDate(car.maintenanceSchedule.prochainLiquideRefroidissementDate) ? format(getSafeDate(car.maintenanceSchedule.prochainLiquideRefroidissementDate)!, 'dd/MM/yyyy') : 'N/A'}</div>
                         </div>
                     </>
                 )}
@@ -193,29 +187,7 @@ export default function CarCard({ car }: { car: Car }) {
         if (maintenanceSchedule.prochainVidangeKm && kilometrage >= maintenanceSchedule.prochainVidangeKm - 1000) {
             messages.push("Vidange " + (kilometrage >= maintenanceSchedule.prochainVidangeKm ? "requise." : "bientôt."));
         }
-        if (maintenanceSchedule.prochainFiltreGasoilKm && kilometrage >= maintenanceSchedule.prochainFiltreGasoilKm - 2000) {
-            messages.push("Filtre gazole " + (kilometrage >= maintenanceSchedule.prochainFiltreGasoilKm ? "requis." : "bientôt."));
-        }
-        if (maintenanceSchedule.prochaineCourroieKm && kilometrage >= maintenanceSchedule.prochaineCourroieKm - 2000) {
-            messages.push("Courroie " + (kilometrage >= maintenanceSchedule.prochaineCourroieKm ? "requise." : "bientôt."));
-        }
-        if (maintenanceSchedule.prochainPlaquettesFreinKm && kilometrage >= maintenanceSchedule.prochainPlaquettesFreinKm - 1500) {
-            messages.push("Plaquettes " + (kilometrage >= maintenanceSchedule.prochainPlaquettesFreinKm ? "requises." : "bientôt."));
-        }
-
-        const revisionDate = getSafeDate(maintenanceSchedule.prochaineRevisionDate);
-        if (revisionDate && differenceInDays(revisionDate, today) <= 15) {
-            messages.push("Révision " + (differenceInDays(revisionDate, today) < 0 ? "requise." : "bientôt."));
-        }
-        const liquideFreinDate = getSafeDate(maintenanceSchedule.prochainLiquideFreinDate);
-        if (liquideFreinDate && differenceInDays(liquideFreinDate, today) <= 30) {
-            messages.push("Liq. frein " + (differenceInDays(liquideFreinDate, today) < 0 ? "requis." : "bientôt."));
-        }
-        const liquideRefroidissementDate = getSafeDate(maintenanceSchedule.prochainLiquideRefroidissementDate);
-        if (liquideRefroidissementDate && differenceInDays(liquideRefroidissementDate, today) <= 30) {
-            messages.push("Liq. refroidissement " + (differenceInDays(liquideRefroidissementDate, today) < 0 ? "requis." : "bientôt."));
-        }
-
+        
         if (messages.length > 0) {
             maintInfo.needsAttention = true;
             maintInfo.message = messages.join(' ');
