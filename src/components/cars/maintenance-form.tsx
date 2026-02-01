@@ -94,13 +94,11 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
 
             if (data.addToHistory && data.maintenanceEvent) {
                 const newHistoryEvent: Maintenance = { ...data.maintenanceEvent };
-                // Ensure cout is null not undefined
                 if (newHistoryEvent.cout === undefined) {
                     newHistoryEvent.cout = null;
                 }
 
                 const existingHistory = carData.maintenanceHistory || [];
-
                 const isDuplicate = existingHistory.some(event => {
                     const eventDate = getSafeDate(event.date);
                     const newEventDate = getSafeDate(newHistoryEvent.date);
@@ -114,38 +112,35 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
                     updatePayload.maintenanceHistory = arrayUnion(newHistoryEvent);
                 }
 
-                const eventKm = data.maintenanceEvent.kilometrage;
-                const finalKmForCalc = Math.max(eventKm, carData.kilometrage);
+                const newCarMileage = Math.max(carData.kilometrage, newHistoryEvent.kilometrage);
+                updatePayload.kilometrage = newCarMileage;
+                
+                const fullHistory = isDuplicate ? existingHistory : [...existingHistory, newHistoryEvent];
 
-                // Recalculate schedule based on the new event's mileage
-                const calculateNextMilestone = (currentKm: number, interval: number): number => {
-                    if (interval <= 0) return 0;
-                    if (currentKm === 0) return interval;
-                    if (currentKm > 0 && currentKm % interval === 0) {
-                       return currentKm + interval;
+                const calculateNextForType = (keywords: string[], interval: number): number | null => {
+                    const interventionsOfType = fullHistory
+                        .filter(h => keywords.some(keyword => h.typeIntervention.toLowerCase().includes(keyword)))
+                        .filter(h => h.kilometrage > 0);
+
+                    if (interventionsOfType.length > 0) {
+                        const lastMileage = Math.max(...interventionsOfType.map(h => h.kilometrage));
+                        return lastMileage + interval;
                     }
-                    return Math.ceil(currentKm / interval) * interval;
+                    if (newCarMileage > 0 && interval > 0) {
+                      const nextMilestone = Math.ceil(newCarMileage / interval) * interval;
+                      return nextMilestone > newCarMileage ? nextMilestone : nextMilestone + interval;
+                    }
+                    return null;
                 };
 
-                const newSchedule = { ...carData.maintenanceSchedule };
+                const newSchedule = {
+                    prochainVidangeKm: calculateNextForType(['vidange'], 10000),
+                    prochainFiltreGasoilKm: calculateNextForType(['filtre à gazole', 'filtre carburant'], 20000),
+                    prochainesPlaquettesFreinKm: calculateNextForType(['plaquettes de frein'], 20000),
+                    prochaineCourroieDistributionKm: calculateNextForType(['distribution'], 60000),
+                };
                 
-                const nextVidange = calculateNextMilestone(finalKmForCalc, 10000);
-                newSchedule.prochainVidangeKm = nextVidange > 0 ? nextVidange : null;
-
-                const nextFiltre = calculateNextMilestone(finalKmForCalc, 20000);
-                newSchedule.prochainFiltreGasoilKm = nextFiltre > 0 ? nextFiltre : null;
-
-                const nextPlaquettes = calculateNextMilestone(finalKmForCalc, 20000);
-                newSchedule.prochainesPlaquettesFreinKm = nextPlaquettes > 0 ? nextPlaquettes : null;
-
-                const nextDistribution = calculateNextMilestone(finalKmForCalc, 60000);
-                newSchedule.prochaineCourroieDistributionKm = nextDistribution > 0 ? nextDistribution : null;
-
                 updatePayload.maintenanceSchedule = newSchedule;
-
-                if (eventKm > carData.kilometrage) {
-                    updatePayload.kilometrage = eventKm;
-                }
             }
         } else { // Starting maintenance
             updatePayload.disponibilite = 'maintenance';
