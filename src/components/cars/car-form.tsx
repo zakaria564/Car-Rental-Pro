@@ -136,7 +136,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     defaultValues,
   });
   
-  const { getValues } = form;
+  const { watch, setValue } = form;
   
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const selectedMarque = form.watch("marque") as CarBrand;
@@ -146,6 +146,34 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     name: "maintenanceHistory",
   });
   
+  const kilometrage = watch("kilometrage");
+  const maintenanceHistory = watch("maintenanceHistory");
+
+  React.useEffect(() => {
+    const history = maintenanceHistory || [];
+    const km = Number(kilometrage);
+
+    const sortedHistory = [...history].filter(h => h?.kilometrage != null).sort((a, b) => b.kilometrage - a.kilometrage);
+    const findLastKm = (type: string) => {
+        const event = sortedHistory.find(e => e.typeIntervention && e.typeIntervention.includes(type));
+        return event ? event.kilometrage : undefined;
+    }
+
+    const lastVidangeKm = findLastKm('Vidange');
+    setValue('maintenanceSchedule.prochainVidangeKm', lastVidangeKm !== undefined ? lastVidangeKm + 10000 : (isNewCar && km > 0 ? km + 10000 : null));
+    
+    const lastFiltreGasoilKm = findLastKm('Filtre à carburant (gazole)');
+    setValue('maintenanceSchedule.prochainFiltreGasoilKm', lastFiltreGasoilKm !== undefined ? lastFiltreGasoilKm + 20000 : (isNewCar ? 20000 : null));
+    
+    const lastPlaquettesKm = findLastKm('Plaquettes de frein');
+    setValue('maintenanceSchedule.prochainesPlaquettesFreinKm', lastPlaquettesKm !== undefined ? lastPlaquettesKm + 20000 : (isNewCar ? 20000 : null));
+
+    const lastDistributionKm = findLastKm('Kit de distribution');
+    setValue('maintenanceSchedule.prochaineCourroieDistributionKm', lastDistributionKm !== undefined ? lastDistributionKm + 70000 : (isNewCar ? 70000 : null));
+
+  // Using JSON.stringify for deep comparison of the history array
+  }, [kilometrage, maintenanceHistory, isNewCar, setValue, JSON.stringify(maintenanceHistory)]);
+
   React.useEffect(() => {
     form.reset(defaultValues);
   }, [car, defaultValues, form]);
@@ -343,13 +371,6 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                   onChange={(e) => {
                                     const kmValue = e.target.value;
                                     field.onChange(kmValue === '' ? '' : Number(kmValue));
-                                    const km = Number(kmValue);
-                                    if (!isNaN(km) && km > 0 && isNewCar) {
-                                        const vidangeInterval = 10000;
-                                        form.setValue('maintenanceSchedule.prochainVidangeKm', km + vidangeInterval, { shouldValidate: true });
-                                    } else if (kmValue === '' && isNewCar) {
-                                         form.setValue('maintenanceSchedule.prochainVidangeKm', undefined, { shouldValidate: true });
-                                    }
                                   }}
                               />
                           </FormControl>
@@ -696,7 +717,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                 <AccordionTrigger>Plan d'Entretien (Alertes)</AccordionTrigger>
                 <AccordionContent className="pt-4 space-y-4">
                     <FormDescription>
-                        Définissez les rappels pour les entretiens importants. Le système vous alertera lorsque l'échéance approche.
+                        Les échéances d'entretien sont calculées automatiquement en fonction du kilométrage et de l'historique.
                     </FormDescription>
                     <div className="grid grid-cols-2 gap-4">
                         <FormField
@@ -706,7 +727,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                 <FormItem>
                                     <FormLabel>Prochaine vidange (km)</FormLabel>
                                     <FormControl>
-                                        <Input type="number" placeholder="Auto" {...field} value={field.value ?? ''} readOnly />
+                                        <Input type="number" placeholder="Automatique" {...field} value={field.value ?? ''} readOnly />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -719,7 +740,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                 <FormItem>
                                     <FormLabel>Prochain filtre gazole (km)</FormLabel>
                                     <FormControl>
-                                        <Input type="number" placeholder="Manuel" {...field} value={field.value ?? ''} />
+                                        <Input type="number" placeholder="Automatique" {...field} value={field.value ?? ''} readOnly />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -732,7 +753,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                 <FormItem>
                                     <FormLabel>Prochaines plaquettes (km)</FormLabel>
                                     <FormControl>
-                                        <Input type="number" placeholder="Manuel" {...field} value={field.value ?? ''} />
+                                        <Input type="number" placeholder="Automatique" {...field} value={field.value ?? ''} readOnly />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -745,7 +766,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                 <FormItem>
                                     <FormLabel>Prochaine distribution (km)</FormLabel>
                                     <FormControl>
-                                        <Input type="number" placeholder="Manuel" {...field} value={field.value ?? ''} />
+                                        <Input type="number" placeholder="Automatique" {...field} value={field.value ?? ''} readOnly />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>

@@ -111,7 +111,31 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
                 });
                 
                 if (!isDuplicate) {
-                    updatePayload.maintenanceHistory = [...existingHistory, newHistoryEvent];
+                    const newHistory = [...existingHistory, newHistoryEvent];
+                    updatePayload.maintenanceHistory = newHistory;
+                    
+                    // Recalculate schedule based on the new event
+                    const newSchedule = carData.maintenanceSchedule || {};
+                    const eventKm = data.maintenanceEvent.kilometrage;
+                    const eventType = data.maintenanceEvent.typeIntervention;
+
+                    if (eventType.includes('Vidange')) {
+                        newSchedule.prochainVidangeKm = eventKm + 10000;
+                    }
+                    if (eventType.includes('Filtre à carburant (gazole)')) {
+                        newSchedule.prochainFiltreGasoilKm = eventKm + 20000;
+                    }
+                    if (eventType.includes('Plaquettes de frein')) {
+                        newSchedule.prochainesPlaquettesFreinKm = eventKm + 20000;
+                    }
+                    if (eventType.includes('Kit de distribution')) {
+                        newSchedule.prochaineCourroieDistributionKm = eventKm + 70000;
+                    }
+                    updatePayload.maintenanceSchedule = newSchedule;
+                }
+                 // Also update car's main mileage
+                if (data.maintenanceEvent.kilometrage > carData.kilometrage) {
+                    updatePayload.kilometrage = data.maintenanceEvent.kilometrage;
                 }
             }
         } else { // Starting maintenance
