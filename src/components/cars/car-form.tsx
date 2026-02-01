@@ -97,7 +97,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
       immat: "",
       immatWW: "",
       numChassis: "",
-      kilometrage: 0,
+      kilometrage: undefined,
       couleur: "",
       nbrPlaces: 4,
       puissance: 7,
@@ -135,10 +135,10 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
   const updateScheduleFromIntervention = (type: string | undefined, km: number | undefined) => {
     if (!type || typeof km !== 'number') return;
   
-    const vidangeInterval = 10000;
     const lowerType = type.toLowerCase();
   
-    if (lowerType.includes('vidange') || lowerType.includes('filtre à huile')) {
+    if (lowerType.includes('vidange')) {
+        const vidangeInterval = 10000;
         setValue('maintenanceSchedule.prochainVidangeKm', km + vidangeInterval, { shouldValidate: true });
     }
   };
@@ -330,33 +330,37 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                     )}
                     />
                     <FormField
-                    control={form.control}
-                    name="kilometrage"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Kilométrage</FormLabel>
-                        <FormControl>
-                            <Input 
-                                type="number" 
-                                placeholder="54000" 
-                                {...field}
-                                onBlur={(e) => {
-                                    field.onBlur(); // Keep react-hook-form's onBlur
-                                    const km = Number(e.target.value);
-                                    // For new cars, automatically set the first oil change schedule
-                                    if (!car && km > 0) {
-                                        const history = getValues('maintenanceHistory');
-                                        if (!history || history.length === 0) {
-                                            const vidangeInterval = 10000;
-                                            setValue('maintenanceSchedule.prochainVidangeKm', km + vidangeInterval, { shouldValidate: true });
-                                        }
-                                    }
-                                }}
-                            />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
+                      control={form.control}
+                      name="kilometrage"
+                      render={({ field }) => (
+                          <FormItem>
+                          <FormLabel>Kilométrage</FormLabel>
+                          <FormControl>
+                              <Input 
+                                  type="number" 
+                                  placeholder="54000" 
+                                  {...field}
+                                  onChange={(e) => {
+                                      field.onChange(e); // Propagate event to hook form
+                                      if (e.target.value === '') {
+                                          if (!car) {
+                                              setValue('maintenanceSchedule.prochainVidangeKm', null, { shouldValidate: true });
+                                          }
+                                          return;
+                                      }
+                                      const km = Number(e.target.value);
+                                      // For new cars, automatically set the first oil change schedule
+                                      if (!car) {
+                                          const vidangeInterval = 10000;
+                                          setValue('maintenanceSchedule.prochainVidangeKm', km + vidangeInterval, { shouldValidate: true });
+                                      }
+                                  }}
+                                  value={field.value ?? ''}
+                              />
+                          </FormControl>
+                          <FormMessage />
+                          </FormItem>
+                      )}
                     />
                     <FormField
                     control={form.control}
@@ -586,11 +590,6 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                                     date = new Date(dateString);
                                                 }
                                                 field.onChange(date);
-                                                const type = getValues(`maintenanceHistory.${index}.typeIntervention`);
-                                                const km = getValues(`maintenanceHistory.${index}.kilometrage`);
-                                                if (date) {
-                                                    updateScheduleFromIntervention(type, km);
-                                                }
                                             }}
                                           />
                                         </FormControl>
@@ -609,10 +608,10 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                                 <Input
                                                     type="number"
                                                     {...field}
-                                                    onBlur={(e) => {
-                                                        field.onBlur();
+                                                    onChange={(e) => {
+                                                        field.onChange(e);
                                                         const type = getValues(`maintenanceHistory.${index}.typeIntervention`);
-                                                        updateScheduleFromIntervention(type, Number(e.target.value));
+                                                        updateScheduleFromIntervention(type, e.target.value === '' ? undefined : Number(e.target.value));
                                                     }}
                                                 />
                                             </FormControl>
@@ -710,7 +709,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                             <FormItem>
                                 <FormLabel>Prochaine vidange (km)</FormLabel>
                                 <FormControl>
-                                    <Input type="number" placeholder="Calculé automatiquement" {...field} value={field.value ?? ''} />
+                                    <Input type="number" placeholder="Calculé automatiquement" {...field} value={field.value ?? ''} readOnly />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
