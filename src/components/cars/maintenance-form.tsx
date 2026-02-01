@@ -129,11 +129,16 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
                     return null;
                 };
 
+                const getNextMilestone = (currentKm: number, interval: number) => {
+                    const next = Math.ceil(currentKm / interval) * interval;
+                    return next > currentKm ? next : next + interval;
+                };
+                
                 updatePayload.maintenanceSchedule = {
-                    prochainVidangeKm: calculateNext(['vidange'], 10000),
-                    prochainFiltreGasoilKm: calculateNext(['filtre à gazole', 'filtre carburant'], 20000),
-                    prochainesPlaquettesFreinKm: calculateNext(['plaquettes de frein'], 20000),
-                    prochaineCourroieDistributionKm: calculateNext(['distribution'], 60000),
+                    prochainVidangeKm: getNextMilestone(newCarMileage, 10000),
+                    prochainFiltreGasoilKm: getNextMilestone(newCarMileage, 20000),
+                    prochainesPlaquettesFreinKm: getNextMilestone(newCarMileage, 20000),
+                    prochaineCourroieDistributionKm: getNextMilestone(newCarMileage, 60000),
                 };
             }
         } else { // Starting maintenance
@@ -323,7 +328,7 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>Notes supplémentaires</FormLabel>
-                        <FormControl><Textarea placeholder="Symptômes observés, détails spécifiques..." {...field} /></FormControl>
+                        <FormControl><Textarea placeholder="Symptômes observés, détails spécifiques..." {...field} value={field.value ?? ''} /></FormControl>
                         <FormMessage />
                     </FormItem>
                     )}
