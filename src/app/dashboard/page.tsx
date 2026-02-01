@@ -1,3 +1,4 @@
+
 'use client';
 import { Car, KeyRound, TriangleAlert, Wrench } from "lucide-react";
 import { StatCard } from "@/components/stat-card";
@@ -14,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { differenceInDays, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn, getSafeDate } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 
 export default function DashboardPage() {
@@ -70,7 +71,7 @@ export default function DashboardPage() {
     const alerts: { car: CarType, documentName: string, expiryDate: Date, status: 'Expiré' | 'Expire bientôt' }[] = [];
 
     cars.forEach(car => {
-        const assuranceDate = car.dateExpirationAssurance?.toDate ? car.dateExpirationAssurance.toDate() : null;
+        const assuranceDate = getSafeDate(car.dateExpirationAssurance);
         if (assuranceDate) {
             const daysDiff = differenceInDays(assuranceDate, today);
             if (daysDiff < 0) {
@@ -80,7 +81,7 @@ export default function DashboardPage() {
             }
         }
 
-        const visiteDate = car.dateProchaineVisiteTechnique?.toDate ? car.dateProchaineVisiteTechnique.toDate() : null;
+        const visiteDate = getSafeDate(car.dateProchaineVisiteTechnique);
         if (visiteDate) {
             const daysDiff = differenceInDays(visiteDate, today);
             if (daysDiff < 0) {
@@ -137,7 +138,7 @@ export default function DashboardPage() {
         }
         
         // Date-based alerts
-        const revisionDate = maintenanceSchedule.prochaineRevisionDate?.toDate ? maintenanceSchedule.prochaineRevisionDate.toDate() : null;
+        const revisionDate = getSafeDate(maintenanceSchedule.prochaineRevisionDate);
         if (revisionDate) {
             const daysDiff = differenceInDays(revisionDate, today);
             if (daysDiff < 0) {
@@ -146,7 +147,7 @@ export default function DashboardPage() {
                 alerts.push({ car, alertType: "Révision générale", value: format(revisionDate, "dd/MM/yyyy"), currentValue: '', status: 'Bientôt' });
             }
         }
-        const liquideFreinDate = maintenanceSchedule.prochainLiquideFreinDate?.toDate ? maintenanceSchedule.prochainLiquideFreinDate.toDate() : null;
+        const liquideFreinDate = getSafeDate(maintenanceSchedule.prochainLiquideFreinDate);
         if (liquideFreinDate) {
             const daysDiff = differenceInDays(liquideFreinDate, today);
             if (daysDiff < 0) {
@@ -155,7 +156,7 @@ export default function DashboardPage() {
                 alerts.push({ car, alertType: "Liquide de frein", value: format(liquideFreinDate, "dd/MM/yyyy"), currentValue: '', status: 'Bientôt' });
             }
         }
-         const liquideRefroidissementDate = maintenanceSchedule.prochainLiquideRefroidissementDate?.toDate ? maintenanceSchedule.prochainLiquideRefroidissementDate.toDate() : null;
+         const liquideRefroidissementDate = getSafeDate(maintenanceSchedule.prochainLiquideRefroidissementDate);
         if (liquideRefroidissementDate) {
             const daysDiff = differenceInDays(liquideRefroidissementDate, today);
             if (daysDiff < 0) {

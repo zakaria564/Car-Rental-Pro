@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Car } from "@/lib/definitions";
-import { formatCurrency, cn } from "@/lib/utils";
+import { formatCurrency, cn, getSafeDate } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import CarForm from "./car-form";
 import MaintenanceForm from "./maintenance-form";
@@ -33,15 +33,6 @@ import { Separator } from "../ui/separator";
 import { format, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
 
-const getSafeDate = (date: any): Date | null => {
-    if (!date) return null;
-    if (date instanceof Date && !isNaN(date.getTime())) return date;
-    if (date.toDate) return date.toDate();
-    const parsedDate = new Date(date);
-    if (isNaN(parsedDate.getTime())) return null;
-    return parsedDate;
-};
-
 const getAvailabilityProps = (car: Car) => {
     switch (car.disponibilite) {
         case 'disponible':
@@ -59,12 +50,12 @@ function CarDetails({ car }: { car: Car }) {
     const today = new Date();
     const availability = getAvailabilityProps(car);
     
-    const assuranceDate = car.dateExpirationAssurance?.toDate ? car.dateExpirationAssurance.toDate() : null;
+    const assuranceDate = getSafeDate(car.dateExpirationAssurance);
     const isAssuranceExpired = assuranceDate && assuranceDate < today;
     const daysUntilAssuranceExpires = assuranceDate ? differenceInDays(assuranceDate, today) : null;
     const isAssuranceExpiringSoon = !isAssuranceExpired && daysUntilAssuranceExpires !== null && daysUntilAssuranceExpires >= 0 && daysUntilAssuranceExpires <= 7;
 
-    const visiteDate = car.dateProchaineVisiteTechnique?.toDate ? car.dateProchaineVisiteTechnique.toDate() : null;
+    const visiteDate = getSafeDate(car.dateProchaineVisiteTechnique);
     const isVisiteExpired = visiteDate && visiteDate < today;
     const daysUntilVisiteExpires = visiteDate ? differenceInDays(visiteDate, today) : null;
     const isVisiteExpiringSoon = !isVisiteExpired && daysUntilVisiteExpires !== null && daysUntilVisiteExpires >= 0 && daysUntilVisiteExpires <= 7;
@@ -76,7 +67,7 @@ function CarDetails({ car }: { car: Car }) {
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                     <div><strong>Marque:</strong> {car.marque}</div>
                     <div><strong>Modèle:</strong> {car.modele}</div>
-                    <div><strong>Mise en circulation:</strong> {car.dateMiseEnCirculation?.toDate ? format(car.dateMiseEnCirculation.toDate(), 'dd/MM/yyyy', { locale: fr }) : 'N/A'}</div>
+                    <div><strong>Mise en circulation:</strong> {getSafeDate(car.dateMiseEnCirculation) ? format(getSafeDate(car.dateMiseEnCirculation)!, 'dd/MM/yyyy', { locale: fr }) : 'N/A'}</div>
                     <div><strong>Immatriculation:</strong> {car.immat}</div>
                     {car.immatWW && <div><strong>Immatriculation WW:</strong> {car.immatWW}</div>}
                     <div><strong>N° de châssis:</strong> {car.numChassis}</div>
@@ -92,7 +83,7 @@ function CarDetails({ car }: { car: Car }) {
                  {car.disponibilite === 'maintenance' && car.currentMaintenance && (
                     <div className="col-span-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm">
                         <p className="font-semibold text-yellow-800">Détails de la maintenance en cours:</p>
-                        <p><strong>Depuis le:</strong> {car.currentMaintenance.startDate?.toDate ? format(car.currentMaintenance.startDate.toDate(), 'dd/MM/yyyy') : 'N/A'}</p>
+                        <p><strong>Depuis le:</strong> {getSafeDate(car.currentMaintenance.startDate) ? format(getSafeDate(car.currentMaintenance.startDate)!, 'dd/MM/yyyy') : 'N/A'}</p>
                         <p><strong>Raison:</strong> {car.currentMaintenance.reason}</p>
                         {car.currentMaintenance.notes && <p><strong>Notes:</strong> {car.currentMaintenance.notes}</p>}
                     </div>
@@ -121,9 +112,9 @@ function CarDetails({ car }: { car: Car }) {
                             <div><strong>Prochain Filtre Gazole:</strong> {car.maintenanceSchedule.prochainFiltreGasoilKm ? `${car.maintenanceSchedule.prochainFiltreGasoilKm.toLocaleString()} km` : 'N/A'}</div>
                             <div><strong>Prochaines Plaquettes:</strong> {car.maintenanceSchedule.prochainPlaquettesFreinKm ? `${car.maintenanceSchedule.prochainPlaquettesFreinKm.toLocaleString()} km` : 'N/A'}</div>
                             <div><strong>Prochaine Courroie:</strong> {car.maintenanceSchedule.prochaineCourroieKm ? `${car.maintenanceSchedule.prochaineCourroieKm.toLocaleString()} km` : 'N/A'}</div>
-                            <div><strong>Prochaine Révision:</strong> {car.maintenanceSchedule.prochaineRevisionDate?.toDate ? format(car.maintenanceSchedule.prochaineRevisionDate.toDate(), 'dd/MM/yyyy') : 'N/A'}</div>
-                            <div><strong>Prochain Liquide Frein:</strong> {car.maintenanceSchedule.prochainLiquideFreinDate?.toDate ? format(car.maintenanceSchedule.prochainLiquideFreinDate.toDate(), 'dd/MM/yyyy') : 'N/A'}</div>
-                            <div><strong>Prochain Liquide Refroidissement:</strong> {car.maintenanceSchedule.prochainLiquideRefroidissementDate?.toDate ? format(car.maintenanceSchedule.prochainLiquideRefroidissementDate.toDate(), 'dd/MM/yyyy') : 'N/A'}</div>
+                            <div><strong>Prochaine Révision:</strong> {getSafeDate(car.maintenanceSchedule.prochaineRevisionDate) ? format(getSafeDate(car.maintenanceSchedule.prochaineRevisionDate)!, 'dd/MM/yyyy') : 'N/A'}</div>
+                            <div><strong>Prochain Liquide Frein:</strong> {getSafeDate(car.maintenanceSchedule.prochainLiquideFreinDate) ? format(getSafeDate(car.maintenanceSchedule.prochainLiquideFreinDate)!, 'dd/MM/yyyy') : 'N/A'}</div>
+                            <div><strong>Prochain Liquide Refroidissement:</strong> {getSafeDate(car.maintenanceSchedule.prochainLiquideRefroidissementDate) ? format(getSafeDate(car.maintenanceSchedule.prochainLiquideRefroidissementDate)!, 'dd/MM/yyyy') : 'N/A'}</div>
                         </div>
                     </>
                 )}
@@ -172,7 +163,7 @@ export default function CarCard({ car }: { car: Car }) {
     const maintInfo = { needsAttention: false, message: "" };
 
     // Document checks
-    const assuranceDate = car.dateExpirationAssurance?.toDate ? car.dateExpirationAssurance.toDate() : null;
+    const assuranceDate = getSafeDate(car.dateExpirationAssurance);
     if (assuranceDate) {
       const daysDiff = differenceInDays(assuranceDate, today);
       if (daysDiff < 0) {
@@ -183,7 +174,7 @@ export default function CarCard({ car }: { car: Car }) {
         docInfo.message = "Assurance expire bientôt.";
       }
     }
-    const visiteDate = car.dateProchaineVisiteTechnique?.toDate ? car.dateProchaineVisiteTechnique.toDate() : null;
+    const visiteDate = getSafeDate(car.dateProchaineVisiteTechnique);
     if (visiteDate) {
       const daysDiff = differenceInDays(visiteDate, today);
       if (daysDiff < 0) {
@@ -212,15 +203,15 @@ export default function CarCard({ car }: { car: Car }) {
             messages.push("Plaquettes " + (kilometrage >= maintenanceSchedule.prochainPlaquettesFreinKm ? "requises." : "bientôt."));
         }
 
-        const revisionDate = maintenanceSchedule.prochaineRevisionDate?.toDate ? maintenanceSchedule.prochaineRevisionDate.toDate() : null;
+        const revisionDate = getSafeDate(maintenanceSchedule.prochaineRevisionDate);
         if (revisionDate && differenceInDays(revisionDate, today) <= 15) {
             messages.push("Révision " + (differenceInDays(revisionDate, today) < 0 ? "requise." : "bientôt."));
         }
-        const liquideFreinDate = maintenanceSchedule.prochainLiquideFreinDate?.toDate ? maintenanceSchedule.prochainLiquideFreinDate.toDate() : null;
+        const liquideFreinDate = getSafeDate(maintenanceSchedule.prochainLiquideFreinDate);
         if (liquideFreinDate && differenceInDays(liquideFreinDate, today) <= 30) {
             messages.push("Liq. frein " + (differenceInDays(liquideFreinDate, today) < 0 ? "requis." : "bientôt."));
         }
-        const liquideRefroidissementDate = maintenanceSchedule.prochainLiquideRefroidissementDate?.toDate ? maintenanceSchedule.prochainLiquideRefroidissementDate.toDate() : null;
+        const liquideRefroidissementDate = getSafeDate(maintenanceSchedule.prochainLiquideRefroidissementDate);
         if (liquideRefroidissementDate && differenceInDays(liquideRefroidissementDate, today) <= 30) {
             messages.push("Liq. refroidissement " + (differenceInDays(liquideRefroidissementDate, today) < 0 ? "requis." : "bientôt."));
         }

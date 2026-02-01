@@ -13,3 +13,12 @@ export function formatCurrency(amount: number, currency: 'USD' | 'EUR' | 'MAD' =
     currency: currency,
   }).format(amount);
 }
+
+export const getSafeDate = (date: any): Date | null => {
+    if (!date) return null;
+    if (date instanceof Date && !isNaN(date.getTime())) return date;
+    if (date.toDate && typeof date.toDate === 'function') return date.toDate();
+    const parsedDate = new Date(date);
+    if (isNaN(parsedDate.getTime())) return null;
+    return parsedDate;
+};
