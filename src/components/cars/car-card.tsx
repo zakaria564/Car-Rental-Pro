@@ -122,8 +122,14 @@ function CarDetails({ car }: { car: Car }) {
                         <div className="space-y-3">
                             <h4 className="font-semibold text-base">Historique d'entretien</h4>
                              <div className="space-y-2">
-                                {[...car.maintenanceHistory].sort((a, b) => getSafeDate(b.date)!.getTime() - getSafeDate(a.date)!.getTime()).map((event, index) => (
-                                    <div key={index} className="text-xs p-3 bg-muted rounded-md border relative">
+                                {[...car.maintenanceHistory].sort((a, b) => {
+                                    const dateA = getSafeDate(a.date);
+                                    const dateB = getSafeDate(b.date);
+                                    if (!dateB) return -1;
+                                    if (!dateA) return 1;
+                                    return dateB.getTime() - dateA.getTime();
+                                }).map((event, index) => (
+                                    <div key={`${index}-${getSafeDate(event.date)?.getTime()}-${event.typeIntervention}`} className="text-xs p-3 bg-muted rounded-md border relative">
                                         <p className="font-bold">{event.typeIntervention}</p>
                                         <p className="text-muted-foreground">{getSafeDate(event.date) ? format(getSafeDate(event.date)!, 'dd/MM/yyyy') : ''} - {event.kilometrage.toLocaleString()} km</p>
                                         <p className="mt-1">{event.description}</p>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -10,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import type { Car, Maintenance } from "@/lib/definitions";
 import { useFirebase } from "@/firebase";
-import { arrayUnion, doc, serverTimestamp, updateDoc, FieldValue } from "firebase/firestore";
+import { arrayUnion, doc, serverTimestamp, updateDoc, FieldValue, runTransaction } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import React from "react";
@@ -18,6 +19,7 @@ import { maintenanceInterventionTypes } from "@/lib/car-data";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "../ui/select";
 import { Checkbox } from "../ui/checkbox";
 import { format } from 'date-fns';
+import { getSafeDate } from "@/lib/utils";
 
 const startMaintenanceSchema = z.object({
   reason: z.string().min(3, "La raison est requise."),
@@ -56,7 +58,7 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
     defaultValues: isFinishing ? {
       addToHistory: true,
       maintenanceEvent: {
-        date: car.currentMaintenance?.startDate?.toDate() || new Date(),
+        date: getSafeDate(car.currentMaintenance?.startDate) || new Date(),
         kilometrage: car.kilometrage,
         typeIntervention: car.currentMaintenance?.reason || "",
         description: car.currentMaintenance?.notes || "",
@@ -77,34 +79,58 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
     const carRef = doc(firestore, 'cars', car.id);
 
     try {
+      await runTransaction(firestore, async (transaction) => {
+        const carDoc = await transaction.get(carRef);
+        if (!carDoc.exists()) {
+          throw new Error("Car document not found.");
+        }
+        
+        const carData = carDoc.data() as Car;
+        const updatePayload: {[key: string]: any} = {};
+
         if (isFinishing) {
-            const updatePayload: any = {
-                disponibilite: 'disponible',
-                currentMaintenance: null
-            };
+            updatePayload.disponibilite = 'disponible';
+            updatePayload.currentMaintenance = null;
 
             if (data.addToHistory && data.maintenanceEvent) {
-                const newHistoryEvent: Maintenance = {
-                    ...data.maintenanceEvent
-                };
-                updatePayload.maintenanceHistory = arrayUnion(newHistoryEvent);
-            }
-            await updateDoc(carRef, updatePayload);
-            toast({ title: "Maintenance terminée", description: "La voiture est de nouveau marquée comme disponible." });
-
-        } else { // Starting maintenance
-            const updatePayload = {
-                disponibilite: 'maintenance',
-                currentMaintenance: {
-                    startDate: serverTimestamp(),
-                    reason: data.reason,
-                    notes: data.notes || ""
+                const newHistoryEvent: Maintenance = { ...data.maintenanceEvent };
+                // Ensure cout is null not undefined
+                if (newHistoryEvent.cout === undefined) {
+                    newHistoryEvent.cout = null;
                 }
+
+                const existingHistory = carData.maintenanceHistory || [];
+
+                const isDuplicate = existingHistory.some(event => {
+                    const eventDate = getSafeDate(event.date);
+                    const newEventDate = getSafeDate(newHistoryEvent.date);
+                    if (!eventDate || !newEventDate) return false;
+                    return eventDate.toDateString() === newEventDate.toDateString() &&
+                           event.typeIntervention === newHistoryEvent.typeIntervention &&
+                           event.kilometrage === newHistoryEvent.kilometrage;
+                });
+                
+                if (!isDuplicate) {
+                    updatePayload.maintenanceHistory = [...existingHistory, newHistoryEvent];
+                }
+            }
+        } else { // Starting maintenance
+            updatePayload.disponibilite = 'maintenance';
+            updatePayload.currentMaintenance = {
+                startDate: serverTimestamp(),
+                reason: data.reason,
+                notes: data.notes || ""
             };
-            await updateDoc(carRef, updatePayload);
-            toast({ title: "Voiture en maintenance", description: "Le statut de la voiture a été mis à jour." });
         }
-        onFinished();
+
+        transaction.update(carRef, updatePayload);
+      });
+
+      toast({ 
+        title: isFinishing ? "Maintenance terminée" : "Voiture en maintenance", 
+        description: isFinishing ? "La voiture est de nouveau marquée comme disponible." : "Le statut de la voiture a été mis à jour." 
+      });
+      onFinished();
     } catch (serverError: any) {
         errorEmitter.emit('permission-error', new FirestorePermissionError({
             path: carRef.path,
@@ -113,7 +139,7 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
         toast({
             variant: "destructive",
             title: "Une erreur est survenue",
-            description: "Impossible de mettre à jour le statut de la voiture.",
+            description: serverError.message || "Impossible de mettre à jour le statut de la voiture.",
         });
     } finally {
         setIsSubmitting(false);
@@ -128,7 +154,7 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
                 <div className="p-4 border rounded-md bg-muted/50">
                     <h4 className="font-semibold">Terminer la maintenance</h4>
                     <p className="text-sm text-muted-foreground">
-                        La voiture est en maintenance depuis le {car.currentMaintenance?.startDate ? format(car.currentMaintenance.startDate.toDate(), 'dd/MM/yyyy') : 'N/A'}.<br/>
+                        La voiture est en maintenance depuis le {car.currentMaintenance?.startDate ? format(getSafeDate(car.currentMaintenance.startDate)!, 'dd/MM/yyyy') : 'N/A'}.<br/>
                         Raison: <strong>{car.currentMaintenance?.reason}</strong>
                     </p>
                 </div>
