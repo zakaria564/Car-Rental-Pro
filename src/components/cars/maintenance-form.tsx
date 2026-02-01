@@ -119,26 +119,17 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
                 const newCarMileage = Math.max(carData.kilometrage, data.kilometrage);
                 updatePayload.kilometrage = newCarMileage;
                 
-                const fullHistory = [...existingHistory, ...nonDuplicateEvents];
-                
-                const calculateNext = (keywords: string[], interval: number): number | null => {
-                    if (newCarMileage > 0 && interval > 0) {
-                      const nextMilestone = Math.ceil(newCarMileage / interval) * interval;
-                      return nextMilestone > newCarMileage ? nextMilestone : nextMilestone + interval;
-                    }
-                    return null;
-                };
-
-                const getNextMilestone = (currentKm: number, interval: number) => {
+                const calculateNext = (currentKm: number, interval: number): number | null => {
+                    if (interval <= 0) return null;
                     const next = Math.ceil(currentKm / interval) * interval;
                     return next > currentKm ? next : next + interval;
                 };
-                
+
                 updatePayload.maintenanceSchedule = {
-                    prochainVidangeKm: getNextMilestone(newCarMileage, 10000),
-                    prochainFiltreGasoilKm: getNextMilestone(newCarMileage, 20000),
-                    prochainesPlaquettesFreinKm: getNextMilestone(newCarMileage, 20000),
-                    prochaineCourroieDistributionKm: getNextMilestone(newCarMileage, 60000),
+                    prochainVidangeKm: calculateNext(newCarMileage, 10000),
+                    prochainFiltreGasoilKm: calculateNext(newCarMileage, 20000),
+                    prochainesPlaquettesFreinKm: calculateNext(newCarMileage, 20000),
+                    prochaineCourroieDistributionKm: calculateNext(newCarMileage, 60000),
                 };
             }
         } else { // Starting maintenance
@@ -214,7 +205,7 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
                         render={({ field }) => (
                         <FormItem>
                             <FormLabel>Kilométrage actuel</FormLabel>
-                            <FormControl><Input type="number" {...field} /></FormControl>
+                            <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
                             <FormMessage />
                         </FormItem>
                         )}
