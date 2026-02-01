@@ -28,7 +28,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "..
 import { Textarea } from "../ui/textarea";
 import { carBrands, maintenanceInterventionTypes, type CarBrand } from "@/lib/car-data";
 import { PlusCircle, Trash2 } from "lucide-react";
-import { getSafeDate } from "@/lib/utils";
+import { cn, getSafeDate } from "@/lib/utils";
 
 const maintenanceEventSchema = z.object({
   date: z.coerce.date({ required_error: "La date est requise." }),
@@ -74,6 +74,8 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
   const { toast } = useToast();
   const { firestore } = useFirebase();
 
+  const isMaintenance = car?.disponibilite === 'maintenance';
+
   const defaultValues = React.useMemo(() => {
     const maintenanceHistory = (car?.maintenanceHistory && Array.isArray(car.maintenanceHistory))
         ? car.maintenanceHistory.map(event => ({
@@ -90,8 +92,13 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
       anneeVignette: car.anneeVignette ?? undefined,
       maintenanceHistory,
       immatWW: car.immatWW ?? "",
-      maintenanceSchedule: {
-        ...car.maintenanceSchedule,
+      maintenanceSchedule: car.maintenanceSchedule ? {
+        ...car.maintenanceSchedule
+      } : {
+        prochainVidangeKm: undefined,
+        prochainFiltreGasoilKm: undefined,
+        prochainesPlaquettesFreinKm: undefined,
+        prochaineCourroieDistributionKm: undefined,
       }
     } : {
       marque: "",
@@ -113,7 +120,12 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
       dateProchaineVisiteTechnique: null,
       anneeVignette: new Date().getFullYear(),
       maintenanceHistory: [],
-      maintenanceSchedule: {}
+      maintenanceSchedule: {
+        prochainVidangeKm: undefined,
+        prochainFiltreGasoilKm: undefined,
+        prochainesPlaquettesFreinKm: undefined,
+        prochaineCourroieDistributionKm: undefined,
+      }
     }
   }, [car]);
 
@@ -123,7 +135,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     defaultValues,
   });
   
-  const { watch, setValue, getValues } = form;
+  const { getValues } = form;
   
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const selectedMarque = form.watch("marque") as CarBrand;
@@ -132,18 +144,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     control: form.control,
     name: "maintenanceHistory",
   });
-
-  const updateScheduleFromIntervention = (type: string | undefined, km: number | undefined) => {
-    if (!type || typeof km !== 'number') return;
   
-    const lowerType = type.toLowerCase();
-  
-    if (lowerType.includes('vidange')) {
-        const vidangeInterval = 10000;
-        setValue('maintenanceSchedule.prochainVidangeKm', km + vidangeInterval, { shouldValidate: true });
-    }
-  };
-
   React.useEffect(() => {
     form.reset(defaultValues);
   }, [car, defaultValues, form]);
@@ -158,8 +159,6 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
 
     const carDataForFirestore: { [key: string]: any } = { ...data };
 
-    // Firestore doesn't accept 'undefined', so we convert to 'null'.
-    // Nested objects must also be checked.
     if (carDataForFirestore.maintenanceSchedule) {
       Object.keys(carDataForFirestore.maintenanceSchedule).forEach((key) => {
         const typedKey = key as keyof typeof carDataForFirestore.maintenanceSchedule;
@@ -339,18 +338,18 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                           <FormControl>
                               <Input 
                                   type="number" 
-                                  placeholder="54000" 
+                                  placeholder="54000"
                                   value={field.value ?? ''}
-                                  onChange={(e) => {
+                                  onChange={field.onChange}
+                                  onBlur={(e) => {
                                       const kmValue = e.target.value;
                                       field.onChange(kmValue === '' ? '' : Number(kmValue));
-                                      
                                       const km = Number(kmValue);
-                                      if (!isNaN(km) && km > 0 && !car) { // Only for new cars on valid input
+                                      if (!isNaN(km) && km > 0 && isNewCar) {
                                           const vidangeInterval = 10000;
-                                          setValue('maintenanceSchedule.prochainVidangeKm', km + vidangeInterval, { shouldValidate: true });
-                                      } else if (kmValue === '' && !car) {
-                                           setValue('maintenanceSchedule.prochainVidangeKm', undefined, { shouldValidate: true });
+                                          form.setValue('maintenanceSchedule.prochainVidangeKm', km + vidangeInterval, { shouldValidate: true });
+                                      } else if (kmValue === '' && isNewCar) {
+                                           form.setValue('maintenanceSchedule.prochainVidangeKm', undefined, { shouldValidate: true });
                                       }
                                   }}
                               />
@@ -565,10 +564,15 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                         />
                         <div className="space-y-2">
                           <FormLabel>Historique d'entretien</FormLabel>
+                          {isMaintenance && (
+                            <div className="p-3 text-sm text-yellow-800 bg-yellow-50 border border-yellow-200 rounded-md">
+                                Pour ajouter ou modifier l'intervention en cours, veuillez d'abord la terminer via l'action "Terminer la maintenance" sur la fiche du véhicule. La gestion de l'historique est désactivée pendant une maintenance.
+                            </div>
+                          )}
                           <div className="space-y-4">
                               {fields.map((item, index) => (
-                                <div key={item.id} className="p-4 border rounded-md space-y-4 relative">
-                                  <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive" onClick={() => remove(index)}>
+                                <div key={item.id} className={cn("p-4 border rounded-md space-y-4 relative", isMaintenance && "bg-muted/50 opacity-60 pointer-events-none")}>
+                                  <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive" onClick={() => remove(index)} disabled={isMaintenance}>
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
                                   <FormField
@@ -580,6 +584,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                         <FormControl>
                                           <Input
                                             type="date"
+                                            disabled={isMaintenance}
                                             value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd") : ""}
                                              onChange={(e) => {
                                                 const dateString = e.target.value;
@@ -588,10 +593,6 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                                     date = new Date(dateString);
                                                 }
                                                 field.onChange(date);
-                                                const type = getValues(`maintenanceHistory.${index}.typeIntervention`);
-                                                const kmString = getValues(`maintenanceHistory.${index}.kilometrage`);
-                                                const km = (kmString === '' || kmString === null || typeof kmString === 'undefined') ? undefined : Number(kmString);
-                                                updateScheduleFromIntervention(type, km);
                                             }}
                                           />
                                         </FormControl>
@@ -609,13 +610,9 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                             <FormControl>
                                                 <Input
                                                     type="number"
+                                                    disabled={isMaintenance}
                                                     value={field.value ?? ''}
-                                                    onChange={(e) => {
-                                                        const kmValue = e.target.value;
-                                                        field.onChange(kmValue === '' ? '' : Number(kmValue));
-                                                        const type = getValues(`maintenanceHistory.${index}.typeIntervention`);
-                                                        updateScheduleFromIntervention(type, kmValue === '' ? undefined : Number(kmValue));
-                                                    }}
+                                                    onChange={field.onChange}
                                                 />
                                             </FormControl>
                                             <FormMessage />
@@ -628,7 +625,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                         render={({ field }) => (
                                           <FormItem>
                                             <FormLabel>Coût (MAD)</FormLabel>
-                                            <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
+                                            <FormControl><Input type="number" {...field} value={field.value ?? ''} disabled={isMaintenance} /></FormControl>
                                             <FormMessage />
                                           </FormItem>
                                         )}
@@ -640,12 +637,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                     render={({ field }) => (
                                       <FormItem>
                                         <FormLabel>Type d'intervention</FormLabel>
-                                         <Select onValueChange={(value) => {
-                                            field.onChange(value);
-                                            const kmString = getValues(`maintenanceHistory.${index}.kilometrage`);
-                                            const km = (kmString === '' || kmString === null || typeof kmString === 'undefined') ? undefined : Number(kmString);
-                                            updateScheduleFromIntervention(value, km);
-                                          }} value={field.value}>
+                                         <Select onValueChange={field.onChange} value={field.value} disabled={isMaintenance}>
                                             <FormControl>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Sélectionner un type d'intervention" />
@@ -674,7 +666,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                     render={({ field }) => (
                                       <FormItem>
                                         <FormLabel>Description</FormLabel>
-                                        <FormControl><Textarea placeholder="Détails des travaux effectués..." {...field} /></FormControl>
+                                        <FormControl><Textarea placeholder="Détails des travaux effectués..." {...field} disabled={isMaintenance} /></FormControl>
                                         <FormMessage />
                                       </FormItem>
                                     )}
@@ -692,6 +684,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                   description: '',
                                   cout: undefined,
                                 })}
+                                disabled={isMaintenance}
                               >
                                 <PlusCircle className="mr-2 h-4 w-4" />
                                 Ajouter une intervention
@@ -765,7 +758,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
         </Accordion>
 
         
-        <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isSubmitting}>
+        <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isSubmitting || isMaintenance}>
           {isSubmitting ? 'Enregistrement...' : (car ? 'Mettre à jour la voiture' : 'Ajouter une voiture')}
         </Button>
       </form>
