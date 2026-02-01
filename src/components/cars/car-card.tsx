@@ -192,13 +192,21 @@ export default function CarCard({ car }: { car: Car }) {
     // Maintenance checks
     const { kilometrage, maintenanceSchedule } = car;
     if (maintenanceSchedule) {
-        let messages: string[] = [];
-        if (maintenanceSchedule.prochainVidangeKm && kilometrage >= maintenanceSchedule.prochainVidangeKm - 1000) {
-            messages.push("Vidange " + (kilometrage >= maintenanceSchedule.prochainVidangeKm ? "requise." : "bientôt."));
+        const messages: string[] = [];
+        const checkMaintAlert = (nextKm: number | undefined, type: string, soonThreshold: number) => {
+             if (typeof nextKm !== 'number' || nextKm <= 0) return;
+             const diff = nextKm - kilometrage;
+             if (diff <= 0) {
+                 messages.push(`${type} requise.`);
+             } else if (diff <= soonThreshold) {
+                 messages.push(`${type} bientôt.`);
+             }
         }
-        if (maintenanceSchedule.prochainFiltreGasoilKm && kilometrage >= maintenanceSchedule.prochainFiltreGasoilKm - 2000) {
-            messages.push("Filtre gazole " + (kilometrage >= maintenanceSchedule.prochainFiltreGasoilKm ? "requis." : "bientôt."));
-        }
+        
+        checkMaintAlert(maintenanceSchedule.prochainVidangeKm, "Vidange", 1000);
+        checkMaintAlert(maintenanceSchedule.prochainFiltreGasoilKm, "Filtre gazole", 2000);
+        checkMaintAlert(maintenanceSchedule.prochainesPlaquettesFreinKm, "Plaquettes", 2000);
+        checkMaintAlert(maintenanceSchedule.prochaineCourroieDistributionKm, "Distribution", 5000);
         
         if (messages.length > 0) {
             maintInfo.needsAttention = true;
@@ -396,3 +404,5 @@ export default function CarCard({ car }: { car: Car }) {
     </Card>
   );
 }
+
+  

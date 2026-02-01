@@ -119,18 +119,24 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
                 const newCarMileage = Math.max(carData.kilometrage, data.kilometrage);
                 updatePayload.kilometrage = newCarMileage;
                 
-                const calculateNext = (currentKm: number, interval: number): number | null => {
-                    if (interval <= 0) return null;
-                    const next = Math.ceil(currentKm / interval) * interval;
-                    return next > currentKm ? next : next + interval;
-                };
+                const newSchedule = { ...(carData.maintenanceSchedule || {}) };
 
-                updatePayload.maintenanceSchedule = {
-                    prochainVidangeKm: calculateNext(newCarMileage, 10000),
-                    prochainFiltreGasoilKm: calculateNext(newCarMileage, 20000),
-                    prochainesPlaquettesFreinKm: calculateNext(newCarMileage, 20000),
-                    prochaineCourroieDistributionKm: calculateNext(newCarMileage, 60000),
-                };
+                data.maintenanceEvents.forEach((event: { typeIntervention: string }) => {
+                    const interventionType = event.typeIntervention.toLowerCase();
+                    if (interventionType.includes("vidange")) {
+                        newSchedule.prochainVidangeKm = newCarMileage + 10000;
+                    }
+                    if (interventionType.includes("filtre à carburant (gazole)")) {
+                        newSchedule.prochainFiltreGasoilKm = newCarMileage + 20000;
+                    }
+                    if (interventionType.includes("plaquettes de frein")) {
+                        newSchedule.prochainesPlaquettesFreinKm = newCarMileage + 20000;
+                    }
+                    if (interventionType.includes("distribution")) {
+                        newSchedule.prochaineCourroieDistributionKm = newCarMileage + 60000;
+                    }
+                });
+                updatePayload.maintenanceSchedule = newSchedule;
             }
         } else { // Starting maintenance
             updatePayload.disponibilite = 'maintenance';
@@ -336,3 +342,5 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
 }
 
     
+
+  
