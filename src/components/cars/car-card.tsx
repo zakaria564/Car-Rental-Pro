@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { Wrench, Pencil, Trash2, FileText, TriangleAlert, Gauge, Fuel, Cog, Construction } from "lucide-react";
+import { Wrench, Pencil, Trash2, FileText, TriangleAlert, Gauge, Fuel, Cog, Construction, Printer } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -15,7 +15,7 @@ import { formatCurrency, cn, getSafeDate } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import CarForm from "./car-form";
 import MaintenanceForm from "./maintenance-form";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "../ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "../ui/alert-dialog";
 import { useFirebase } from "@/firebase";
@@ -32,6 +32,8 @@ import {
 import { Separator } from "../ui/separator";
 import { format, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
+import { Logo } from "../logo";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 
 const getAvailabilityProps = (car: Car) => {
     switch (car.disponibilite) {
@@ -90,7 +92,7 @@ function CarDetails({ car }: { car: Car }) {
                 )}
                 <Separator />
                  <div className="space-y-2">
-                    <h4 className="font-semibold text-base">Documents & Expirations</h4>
+                    <h4 className="font-semibold text-base">Documents &amp; Expirations</h4>
                     <div className="flex items-center gap-2">
                         <strong>Expiration Assurance:</strong> {assuranceDate ? format(assuranceDate, 'dd/MM/yyyy', { locale: fr }) : 'N/A'}
                         {isAssuranceExpired && <Badge variant="destructive">Expirée</Badge>}
@@ -150,6 +152,88 @@ function CarDetails({ car }: { car: Car }) {
     );
 }
 
+const PrintableCarDetails: React.FC<{ car: Car }> = ({ car }) => {
+    return (
+        <div id={`printable-details-${car.id}`} className="p-1 font-sans text-sm bg-white text-black">
+            <header className="flex justify-between items-start pb-4 mb-4 border-b">
+                <div className="flex items-center gap-4">
+                    <Logo />
+                    <div>
+                        <h2 className="font-bold text-lg">Location Auto Pro</h2>
+                        <p className="text-xs text-gray-600">Fiche de suivi du véhicule</p>
+                    </div>
+                </div>
+                <div className="text-right">
+                    <h1 className="font-bold text-xl">{car.marque} {car.modele}</h1>
+                    <p className="font-mono text-base">{car.immat}</p>
+                </div>
+            </header>
+
+            <section className="mb-6">
+                <h3 className="font-bold text-base mb-2 border-b pb-1">Informations Générales</h3>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+                    <div><strong>Mise en circulation:</strong> {getSafeDate(car.dateMiseEnCirculation) ? format(getSafeDate(car.dateMiseEnCirculation)!, 'dd/MM/yyyy', { locale: fr }) : 'N/A'}</div>
+                    <div><strong>N° de châssis:</strong> {car.numChassis}</div>
+                    <div><strong>Couleur:</strong> {car.couleur}</div>
+                    <div><strong>Kilométrage:</strong> {car.kilometrage.toLocaleString()} km</div>
+                    <div><strong>Carburant:</strong> {car.carburantType}</div>
+                    <div><strong>Transmission:</strong> {car.transmission}</div>
+                    <div><strong>Puissance:</strong> {car.puissance} cv</div>
+                    <div><strong>Places:</strong> {car.nbrPlaces}</div>
+                </div>
+            </section>
+
+             <section className="mb-6">
+                <h3 className="font-bold text-base mb-2 border-b pb-1">Documents &amp; Plan d'Entretien</h3>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+                    <div><strong>Expiration Assurance:</strong> {getSafeDate(car.dateExpirationAssurance) ? format(getSafeDate(car.dateExpirationAssurance)!, 'dd/MM/yyyy', { locale: fr }) : 'N/A'}</div>
+                    <div><strong>Prochaine Visite:</strong> {getSafeDate(car.dateProchaineVisiteTechnique) ? format(getSafeDate(car.dateProchaineVisiteTechnique)!, 'dd/MM/yyyy', { locale: fr }) : 'N/A'}</div>
+                    {car.maintenanceSchedule?.prochainVidangeKm && <div><strong>Prochaine Vidange:</strong> {car.maintenanceSchedule.prochainVidangeKm.toLocaleString()} km</div>}
+                    {car.maintenanceSchedule?.prochainFiltreGasoilKm && <div><strong>Prochain Filtre Gazole:</strong> {car.maintenanceSchedule.prochainFiltreGasoilKm.toLocaleString()} km</div>}
+                    {car.maintenanceSchedule?.prochainesPlaquettesFreinKm && <div><strong>Prochaines Plaquettes:</strong> {car.maintenanceSchedule.prochainesPlaquettesFreinKm.toLocaleString()} km</div>}
+                    {car.maintenanceSchedule?.prochaineCourroieDistributionKm && <div><strong>Prochaine Distribution:</strong> {car.maintenanceSchedule.prochaineCourroieDistributionKm.toLocaleString()} km</div>}
+                </div>
+            </section>
+
+            <section>
+                <h3 className="font-bold text-base mb-2 border-b pb-1">Historique d'entretien</h3>
+                {car.maintenanceHistory && car.maintenanceHistory.length > 0 ? (
+                     <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Kilométrage</TableHead>
+                                <TableHead>Intervention</TableHead>
+                                <TableHead>Description</TableHead>
+                                <TableHead className="text-right">Coût</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                           {[...car.maintenanceHistory].sort((a, b) => {
+                                const dateA = getSafeDate(a.date);
+                                const dateB = getSafeDate(b.date);
+                                if (!dateB) return -1;
+                                if (!dateA) return 1;
+                                return dateB.getTime() - dateA.getTime();
+                            }).map((event, index) => (
+                                <TableRow key={`${index}-${getSafeDate(event.date)?.getTime()}-${event.typeIntervention}`}>
+                                    <TableCell>{getSafeDate(event.date) ? format(getSafeDate(event.date)!, 'dd/MM/yyyy') : 'N/A'}</TableCell>
+                                    <TableCell>{event.kilometrage.toLocaleString()} km</TableCell>
+                                    <TableCell className="font-medium">{event.typeIntervention}</TableCell>
+                                    <TableCell>{event.description}</TableCell>
+                                    <TableCell className="text-right">{event.cout != null ? formatCurrency(event.cout, 'MAD') : '-'}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                ) : (
+                    <p className="text-sm text-gray-500 py-4 text-center">Aucun historique d'entretien enregistré.</p>
+                )}
+            </section>
+        </div>
+    );
+};
+
 
 export default function CarCard({ car }: { car: Car }) {
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
@@ -165,7 +249,6 @@ export default function CarCard({ car }: { car: Car }) {
     const docInfo = { needsAttention: false, message: "" };
     const maintInfo = { needsAttention: false, message: "" };
 
-    // Document checks
     const assuranceDate = getSafeDate(car.dateExpirationAssurance);
     if (assuranceDate) {
       const daysDiff = differenceInDays(assuranceDate, today);
@@ -189,7 +272,6 @@ export default function CarCard({ car }: { car: Car }) {
       }
     }
 
-    // Maintenance checks
     const { kilometrage, maintenanceSchedule } = car;
     if (maintenanceSchedule) {
         const messages: string[] = [];
@@ -240,6 +322,56 @@ export default function CarCard({ car }: { car: Car }) {
         description: "Vous n'avez pas la permission de supprimer cette voiture.",
       });
     }
+  };
+
+  const handlePrint = () => {
+    const printContent = document.getElementById(`printable-details-${car.id}`);
+    if (!printContent) return;
+
+    const printWindow = window.open('', '', 'height=800,width=800');
+    if (!printWindow) {
+      toast({
+        variant: "destructive",
+        title: "Erreur d'impression",
+        description: "Veuillez autoriser les pop-ups pour imprimer.",
+      });
+      return;
+    }
+    
+    const styles = `
+      body { 
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+       }
+      .no-print { display: none !important; }
+       @page {
+        size: A4;
+        margin: 15mm;
+      }
+    `;
+
+    printWindow.document.write('<html><head><title>Fiche de suivi du véhicule</title>');
+    
+    Array.from(document.styleSheets).forEach(sheet => {
+        if (sheet.href) {
+            printWindow.document.write(`<link rel="stylesheet" href="${sheet.href}">`);
+        }
+    });
+
+    printWindow.document.write(`<style>${styles}</style>`);
+    printWindow.document.write('</head><body>');
+    printWindow.document.write(printContent.innerHTML);
+    printWindow.document.write('</body></html>');
+    
+    printWindow.document.close();
+    
+    printWindow.onload = function() {
+      setTimeout(function() {
+        printWindow.focus();
+        printWindow.print();
+        printWindow.close();
+      }, 500);
+    };
   };
 
   return (
@@ -306,7 +438,6 @@ export default function CarCard({ car }: { car: Car }) {
           
             <TooltipProvider>
                 <div className="w-full flex justify-start items-center gap-1">
-                    {/* Details Dialog */}
                     <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
                         <Tooltip>
                             <TooltipTrigger asChild>
@@ -319,15 +450,23 @@ export default function CarCard({ car }: { car: Car }) {
                             <TooltipContent><p>Fiche détails</p></TooltipContent>
                         </Tooltip>
                         <DialogContent className="sm:max-w-lg">
-                            <DialogHeader>
+                            <DialogHeader className="no-print">
                                 <DialogTitle>Détails du véhicule</DialogTitle>
                                 <DialogDescription>{car.marque} {car.modele} - {car.immat}</DialogDescription>
                             </DialogHeader>
+                            <div className="hidden">
+                                <PrintableCarDetails car={car} />
+                            </div>
                             <CarDetails car={car} />
+                            <DialogFooter className="no-print">
+                                <Button variant="outline" onClick={handlePrint}>
+                                    <Printer className="mr-2 h-4 w-4"/>
+                                    Imprimer la fiche
+                                </Button>
+                            </DialogFooter>
                         </DialogContent>
                     </Dialog>
 
-                    {/* Edit Sheet */}
                     <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                         <Tooltip>
                             <TooltipTrigger asChild>
@@ -347,7 +486,6 @@ export default function CarCard({ car }: { car: Car }) {
                         </SheetContent>
                     </Sheet>
 
-                    {/* Maintenance Sheet */}
                     <Sheet open={isMaintenanceSheetOpen} onOpenChange={setIsMaintenanceSheetOpen}>
                         <Tooltip>
                             <TooltipTrigger asChild>
@@ -371,7 +509,6 @@ export default function CarCard({ car }: { car: Car }) {
                         </SheetContent>
                     </Sheet>
 
-                    {/* Delete Alert Dialog */}
                     <AlertDialog>
                         <Tooltip>
                             <TooltipTrigger asChild>
@@ -405,4 +542,4 @@ export default function CarCard({ car }: { car: Car }) {
   );
 }
 
-  
+    
