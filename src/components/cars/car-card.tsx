@@ -108,7 +108,12 @@ function CarDetails({ car }: { car: Car }) {
                         <Separator />
                         <div className="space-y-2">
                             <h4 className="font-semibold text-base">Plan d'Entretien</h4>
-                            <div><strong>Prochaine Vidange:</strong> {car.maintenanceSchedule.prochainVidangeKm ? `${car.maintenanceSchedule.prochainVidangeKm.toLocaleString()} km` : 'N/A'}</div>
+                            {car.maintenanceSchedule.prochainVidangeKm && <div><strong>Prochaine Vidange:</strong> {car.maintenanceSchedule.prochainVidangeKm.toLocaleString()} km</div>}
+                            {car.maintenanceSchedule.prochainFiltreGasoilKm && <div><strong>Prochain Filtre Gazole:</strong> {car.maintenanceSchedule.prochainFiltreGasoilKm.toLocaleString()} km</div>}
+                            {car.maintenanceSchedule.prochainesPlaquettesFreinKm && <div><strong>Prochaines Plaquettes:</strong> {car.maintenanceSchedule.prochainesPlaquettesFreinKm.toLocaleString()} km</div>}
+                            {car.maintenanceSchedule.prochaineCourroieDistributionKm && <div><strong>Prochaine Distribution:</strong> {car.maintenanceSchedule.prochaineCourroieDistributionKm.toLocaleString()} km</div>}
+                            {getSafeDate(car.maintenanceSchedule.prochainChangementLiquideFreinDate) && <div><strong>Prochain Liquide Frein:</strong> {format(getSafeDate(car.maintenanceSchedule.prochainChangementLiquideFreinDate)!, 'dd/MM/yyyy')}</div>}
+                            {getSafeDate(car.maintenanceSchedule.prochainChangementLiquideRefroidissementDate) && <div><strong>Prochain Liquide Refroid.:</strong> {format(getSafeDate(car.maintenanceSchedule.prochainChangementLiquideRefroidissementDate)!, 'dd/MM/yyyy')}</div>}
                         </div>
                     </>
                 )}
@@ -187,6 +192,23 @@ export default function CarCard({ car }: { car: Car }) {
         if (maintenanceSchedule.prochainVidangeKm && kilometrage >= maintenanceSchedule.prochainVidangeKm - 1000) {
             messages.push("Vidange " + (kilometrage >= maintenanceSchedule.prochainVidangeKm ? "requise." : "bientôt."));
         }
+        if (maintenanceSchedule.prochainFiltreGasoilKm && kilometrage >= maintenanceSchedule.prochainFiltreGasoilKm - 2000) {
+            messages.push("Filtre gazole " + (kilometrage >= maintenanceSchedule.prochainFiltreGasoilKm ? "requis." : "bientôt."));
+        }
+        
+        const checkDate = (date: any, name: string) => {
+            const nextDate = getSafeDate(date);
+            if (nextDate) {
+                const daysDiff = differenceInDays(nextDate, today);
+                if (daysDiff < 0) {
+                    messages.push(`${name} requis.`);
+                } else if (daysDiff <= 30) {
+                    messages.push(`${name} bientôt.`);
+                }
+            }
+        };
+        checkDate(maintenanceSchedule.prochainChangementLiquideFreinDate, 'Liquide de frein');
+        checkDate(maintenanceSchedule.prochainChangementLiquideRefroidissementDate, 'Liquide de refroidissement');
         
         if (messages.length > 0) {
             maintInfo.needsAttention = true;
@@ -384,5 +406,3 @@ export default function CarCard({ car }: { car: Car }) {
     </Card>
   );
 }
-
-    

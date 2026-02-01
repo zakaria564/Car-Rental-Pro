@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "car": {
@@ -52,7 +53,13 @@
           "type": "object",
           "description": "Rappels pour le prochain entretien.",
           "properties": {
-            "prochainVidangeKm": { "type": "number", "description": "Kilométrage pour la prochaine vidange." }
+            "prochainVidangeKm": { "type": "number", "description": "Kilométrage pour la prochaine vidange." },
+            "prochainFiltreGasoilKm": { "type": "number", "description": "Kilométrage pour le prochain changement du filtre à gazole." },
+            "prochainesPlaquettesFreinKm": { "type": "number", "description": "Kilométrage pour le prochain changement des plaquettes de frein." },
+            "prochaineCourroieDistributionKm": { "type": "number", "description": "Kilométrage pour le prochain changement de la courroie de distribution." },
+            "prochaineRevisionDate": { "type": "string", "format": "date-time", "description": "Date de la prochaine révision générale." },
+            "prochainChangementLiquideFreinDate": { "type": "string", "format": "date-time", "description": "Date du prochain changement du liquide de frein." },
+            "prochainChangementLiquideRefroidissementDate": { "type": "string", "format": "date-time", "description": "Date du prochain changement du liquide de refroidissement." }
           }
         },
         "currentMaintenance": {

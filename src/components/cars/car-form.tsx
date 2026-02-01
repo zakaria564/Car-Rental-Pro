@@ -23,7 +23,7 @@ import { collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import React from "react";
-import { format } from "date-fns";
+import { format, addYears } from "date-fns";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 import { Textarea } from "../ui/textarea";
 import { carBrands, maintenanceInterventionTypes, type CarBrand } from "@/lib/car-data";
@@ -62,6 +62,12 @@ const carFormSchema = z.object({
   maintenanceHistory: z.array(maintenanceEventSchema).optional().nullable(),
   maintenanceSchedule: z.object({
     prochainVidangeKm: z.coerce.number().optional().nullable(),
+    prochainFiltreGasoilKm: z.coerce.number().optional().nullable(),
+    prochainesPlaquettesFreinKm: z.coerce.number().optional().nullable(),
+    prochaineCourroieDistributionKm: z.coerce.number().optional().nullable(),
+    prochaineRevisionDate: z.coerce.date().optional().nullable(),
+    prochainChangementLiquideFreinDate: z.coerce.date().optional().nullable(),
+    prochainChangementLiquideRefroidissementDate: z.coerce.date().optional().nullable(),
   }).optional().nullable(),
 });
 
@@ -88,7 +94,10 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
       maintenanceHistory,
       immatWW: car.immatWW ?? "",
       maintenanceSchedule: {
-        prochainVidangeKm: car.maintenanceSchedule?.prochainVidangeKm ?? null,
+        ...car.maintenanceSchedule,
+        prochaineRevisionDate: getSafeDate(car.maintenanceSchedule?.prochaineRevisionDate),
+        prochainChangementLiquideFreinDate: getSafeDate(car.maintenanceSchedule?.prochainChangementLiquideFreinDate),
+        prochainChangementLiquideRefroidissementDate: getSafeDate(car.maintenanceSchedule?.prochainChangementLiquideRefroidissementDate),
       }
     } : {
       marque: "",
@@ -110,9 +119,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
       dateProchaineVisiteTechnique: null,
       anneeVignette: new Date().getFullYear(),
       maintenanceHistory: [],
-      maintenanceSchedule: {
-        prochainVidangeKm: null,
-      }
+      maintenanceSchedule: {}
     }
   }, [car]);
 
@@ -132,14 +139,33 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     name: "maintenanceHistory",
   });
 
-  const updateScheduleFromIntervention = (type: string | undefined, km: number | undefined) => {
-    if (!type || typeof km !== 'number') return;
+  const updateScheduleFromIntervention = (type: string | undefined, km: number | undefined, date: Date | undefined) => {
+    if (!type || (typeof km !== 'number' && !date)) return;
   
     const lowerType = type.toLowerCase();
+    const today = date || new Date();
   
-    if (lowerType.includes('vidange')) {
+    if (lowerType.includes('vidange') && typeof km === 'number') {
         const vidangeInterval = 10000;
         setValue('maintenanceSchedule.prochainVidangeKm', km + vidangeInterval, { shouldValidate: true });
+    }
+    if (lowerType.includes('filtre à carburant (gazole)') && typeof km === 'number') {
+        const filtreGasoilInterval = 20000;
+        setValue('maintenanceSchedule.prochainFiltreGasoilKm', km + filtreGasoilInterval, { shouldValidate: true });
+    }
+    if (lowerType.includes('plaquettes de frein') && typeof km === 'number') {
+        const plaquettesInterval = 40000;
+        setValue('maintenanceSchedule.prochainesPlaquettesFreinKm', km + plaquettesInterval, { shouldValidate: true });
+    }
+    if (lowerType.includes('kit de distribution') && typeof km === 'number') {
+        const distributionInterval = 120000;
+        setValue('maintenanceSchedule.prochaineCourroieDistributionKm', km + distributionInterval, { shouldValidate: true });
+    }
+    if (lowerType.includes('liquide de frein')) {
+        setValue('maintenanceSchedule.prochainChangementLiquideFreinDate', addYears(today, 2), { shouldValidate: true });
+    }
+    if (lowerType.includes('liquide de refroidissement')) {
+        setValue('maintenanceSchedule.prochainChangementLiquideRefroidissementDate', addYears(today, 4), { shouldValidate: true });
     }
   };
 
@@ -162,7 +188,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     if (carDataForFirestore.maintenanceSchedule) {
       Object.keys(carDataForFirestore.maintenanceSchedule).forEach((key) => {
         const typedKey = key as keyof typeof carDataForFirestore.maintenanceSchedule;
-        if (carDataForFirestore.maintenanceSchedule[typedKey] === undefined) {
+        if (carDataForFirestore.maintenanceSchedule[typedKey] === undefined || carDataForFirestore.maintenanceSchedule[typedKey] === '') {
           carDataForFirestore.maintenanceSchedule[typedKey] = null;
         }
       });
@@ -339,23 +365,22 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                               <Input 
                                   type="number" 
                                   placeholder="54000" 
-                                  {...field}
+                                  value={field.value ?? ''}
                                   onChange={(e) => {
                                       const kmValue = e.target.value;
                                       field.onChange(e); 
-                                      if (kmValue === '') {
+                                      if (kmValue === '' || isNaN(Number(kmValue))) {
                                           if (!car) {
                                               setValue('maintenanceSchedule.prochainVidangeKm', null, { shouldValidate: true });
                                           }
                                           return;
                                       }
                                       const km = Number(kmValue);
-                                      if (!car) {
+                                      if (!car) { // Only for new cars
                                           const vidangeInterval = 10000;
                                           setValue('maintenanceSchedule.prochainVidangeKm', km + vidangeInterval, { shouldValidate: true });
                                       }
                                   }}
-                                  value={field.value ?? ''}
                               />
                           </FormControl>
                           <FormMessage />
@@ -420,7 +445,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                             <SelectItem value="Essence">Essence</SelectItem>
                             <SelectItem value="Diesel">Diesel</SelectItem>
                             <SelectItem value="Electrique">Électrique</SelectItem>
-                            <SelectItem value="Hybrid">Hybride (Essence + Électrique)</SelectItem>
+                            <SelectItem value="Hybrid">Hybride</SelectItem>
                             </SelectContent>
                         </Select>
                         <FormMessage />
@@ -586,11 +611,14 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                             value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd") : ""}
                                              onChange={(e) => {
                                                 const dateString = e.target.value;
-                                                let date = null;
+                                                let date: Date | null = null;
                                                 if (dateString) {
                                                     date = new Date(dateString);
                                                 }
                                                 field.onChange(date);
+                                                const type = getValues(`maintenanceHistory.${index}.typeIntervention`);
+                                                const km = getValues(`maintenanceHistory.${index}.kilometrage`);
+                                                updateScheduleFromIntervention(type, km, date || undefined);
                                             }}
                                           />
                                         </FormControl>
@@ -613,7 +641,8 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                                         const kmValue = e.target.value;
                                                         field.onChange(e);
                                                         const type = getValues(`maintenanceHistory.${index}.typeIntervention`);
-                                                        updateScheduleFromIntervention(type, kmValue === '' ? undefined : Number(kmValue));
+                                                        const date = getValues(`maintenanceHistory.${index}.date`);
+                                                        updateScheduleFromIntervention(type, kmValue === '' ? undefined : Number(kmValue), date);
                                                     }}
                                                 />
                                             </FormControl>
@@ -642,7 +671,8 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                          <Select onValueChange={(value) => {
                                             field.onChange(value);
                                             const km = getValues(`maintenanceHistory.${index}.kilometrage`);
-                                            updateScheduleFromIntervention(value, km);
+                                            const date = getValues(`maintenanceHistory.${index}.date`);
+                                            updateScheduleFromIntervention(value, km, date);
                                           }} value={field.value}>
                                             <FormControl>
                                             <SelectTrigger>
@@ -704,19 +734,96 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                     <FormDescription>
                         Définissez les rappels pour les entretiens importants. Le système vous alertera lorsque l'échéance approche.
                     </FormDescription>
-                    <FormField
-                        control={form.control}
-                        name="maintenanceSchedule.prochainVidangeKm"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Prochaine vidange (km)</FormLabel>
-                                <FormControl>
-                                    <Input type="number" placeholder="Calculé automatiquement" {...field} value={field.value ?? ''} readOnly />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="maintenanceSchedule.prochainVidangeKm"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Prochaine vidange (km)</FormLabel>
+                                    <FormControl>
+                                        <Input type="number" placeholder="Auto" {...field} value={field.value ?? ''} readOnly />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="maintenanceSchedule.prochainFiltreGasoilKm"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Prochain filtre gazole (km)</FormLabel>
+                                    <FormControl>
+                                        <Input type="number" placeholder="Auto" {...field} value={field.value ?? ''} readOnly />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="maintenanceSchedule.prochainesPlaquettesFreinKm"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Prochaines plaquettes (km)</FormLabel>
+                                    <FormControl>
+                                        <Input type="number" placeholder="Auto" {...field} value={field.value ?? ''} readOnly />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="maintenanceSchedule.prochaineCourroieDistributionKm"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Prochaine distribution (km)</FormLabel>
+                                    <FormControl>
+                                        <Input type="number" placeholder="Auto" {...field} value={field.value ?? ''} readOnly />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="maintenanceSchedule.prochainChangementLiquideFreinDate"
+                            render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Prochain liquide de frein</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      type="text"
+                                      placeholder="Auto"
+                                      readOnly
+                                      value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "dd/MM/yyyy") : ""}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="maintenanceSchedule.prochainChangementLiquideRefroidissementDate"
+                            render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Prochain liquide refroid.</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      type="text"
+                                      placeholder="Auto"
+                                      readOnly
+                                      value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "dd/MM/yyyy") : ""}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
                 </AccordionContent>
             </AccordionItem>
         </Accordion>

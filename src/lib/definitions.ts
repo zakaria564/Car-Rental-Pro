@@ -32,6 +32,12 @@ export type Car = {
   maintenanceHistory?: Maintenance[];
   maintenanceSchedule?: {
     prochainVidangeKm?: number;
+    prochainFiltreGasoilKm?: number;
+    prochainesPlaquettesFreinKm?: number;
+    prochaineCourroieDistributionKm?: number;
+    prochaineRevisionDate?: any; // Timestamp
+    prochainChangementLiquideFreinDate?: any; // Timestamp
+    prochainChangementLiquideRefroidissementDate?: any; // Timestamp
   };
   currentMaintenance?: {
     startDate: any; // Timestamp
