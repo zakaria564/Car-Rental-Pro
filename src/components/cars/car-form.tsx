@@ -150,21 +150,13 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
 
   React.useEffect(() => {
     const km = Number(kilometrage);
-    if (isNaN(km) || km < 0) {
-      if (isNewCar) {
-        setValue('maintenanceSchedule.prochainVidangeKm', 10000, { shouldValidate: false });
-        setValue('maintenanceSchedule.prochainFiltreGasoilKm', 20000, { shouldValidate: false });
-        setValue('maintenanceSchedule.prochainesPlaquettesFreinKm', 20000, { shouldValidate: false });
-        setValue('maintenanceSchedule.prochaineCourroieDistributionKm', 60000, { shouldValidate: false });
-      }
-      return;
-    };
+    if (isNaN(km) || km < 0) return;
 
     const calculateNextMilestone = (currentKm: number, interval: number): number => {
         if (interval <= 0) return 0;
-        if (currentKm === 0) return interval;
+        if (currentKm <= 0) return interval; // If km is 0 or less, first milestone is the interval itself.
         if (currentKm > 0 && currentKm % interval === 0) {
-           return currentKm + interval;
+            return currentKm + interval;
         }
         return Math.ceil(currentKm / interval) * interval;
     };
@@ -181,7 +173,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     const nextDistribution = calculateNextMilestone(km, 60000);
     setValue('maintenanceSchedule.prochaineCourroieDistributionKm', nextDistribution > 0 ? nextDistribution : null, { shouldValidate: false });
 
-  }, [kilometrage, isNewCar, setValue]);
+  }, [kilometrage, setValue]);
 
 
   React.useEffect(() => {
@@ -195,7 +187,33 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
 
     const carId = car?.id || doc(collection(firestore, 'cars')).id;
 
-    const carDataForFirestore: { [key: string]: any } = { ...data };
+    // 1. Determine the highest mileage
+    const historyMileages = data.maintenanceHistory?.map(h => h.kilometrage) || [];
+    const maxHistoryMileage = historyMileages.length > 0 ? Math.max(...historyMileages) : 0;
+    const finalMileage = Math.max(data.kilometrage, maxHistoryMileage);
+    
+    // 2. Recalculate schedule based on the final mileage
+    const calculateNextMilestone = (currentKm: number, interval: number): number => {
+        if (interval <= 0) return 0;
+        if (currentKm <= 0) return interval;
+        if (currentKm > 0 && currentKm % interval === 0) {
+            return currentKm + interval;
+        }
+        return Math.ceil(currentKm / interval) * interval;
+    };
+
+    const newSchedule = {
+        prochainVidangeKm: calculateNextMilestone(finalMileage, 10000),
+        prochainFiltreGasoilKm: calculateNextMilestone(finalMileage, 20000),
+        prochainesPlaquettesFreinKm: calculateNextMilestone(finalMileage, 20000),
+        prochaineCourroieDistributionKm: calculateNextMilestone(finalMileage, 60000),
+    };
+
+    const carDataForFirestore: { [key: string]: any } = { 
+      ...data,
+      kilometrage: finalMileage,
+      maintenanceSchedule: newSchedule
+    };
 
     if (carDataForFirestore.maintenanceSchedule) {
       Object.keys(carDataForFirestore.maintenanceSchedule).forEach((key) => {
@@ -205,7 +223,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
         }
       });
     }
-
+    
     for (const key in carDataForFirestore) {
       if (carDataForFirestore[key] === undefined) {
         carDataForFirestore[key] = null;
