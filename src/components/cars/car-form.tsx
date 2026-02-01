@@ -28,6 +28,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "..
 import { Textarea } from "../ui/textarea";
 import { carBrands, maintenanceInterventionTypes, type CarBrand } from "@/lib/car-data";
 import { PlusCircle, Trash2 } from "lucide-react";
+import { getSafeDate } from "@/lib/utils";
 
 const maintenanceEventSchema = z.object({
   date: z.coerce.date({ required_error: "La date est requise." }),
@@ -72,16 +73,6 @@ const carFormSchema = z.object({
 
 type CarFormValues = z.infer<typeof carFormSchema>;
 
-const getSafeDate = (date: any): Date | undefined => {
-    if (!date) return undefined;
-    if (date instanceof Date && !isNaN(date.getTime())) return date;
-    if (date.toDate) return date.toDate(); // Firestore Timestamp
-    const parsedDate = new Date(date);
-    if (isNaN(parsedDate.getTime())) return undefined;
-    // Normalize to avoid timezone issues when displaying in input type="date"
-    return new Date(parsedDate.getTime() + parsedDate.getTimezoneOffset() * 60000);
-};
-
 export default function CarForm({ car, onFinished }: { car: Car | null, onFinished: () => void }) {
   const { toast } = useToast();
   const { firestore } = useFirebase();
@@ -103,13 +94,13 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
       maintenanceHistory,
       immatWW: car.immatWW ?? "",
       maintenanceSchedule: {
-        prochainVidangeKm: car.maintenanceSchedule?.prochainVidangeKm ?? undefined,
-        prochainFiltreGasoilKm: car.maintenanceSchedule?.prochainFiltreGasoilKm ?? undefined,
-        prochaineCourroieKm: car.maintenanceSchedule?.prochaineCourroieKm ?? undefined,
+        prochainVidangeKm: car.maintenanceSchedule?.prochainVidangeKm ?? null,
+        prochainFiltreGasoilKm: car.maintenanceSchedule?.prochainFiltreGasoilKm ?? null,
+        prochaineCourroieKm: car.maintenanceSchedule?.prochaineCourroieKm ?? null,
         prochaineRevisionDate: getSafeDate(car.maintenanceSchedule?.prochaineRevisionDate),
         prochainLiquideFreinDate: getSafeDate(car.maintenanceSchedule?.prochainLiquideFreinDate),
         prochainLiquideRefroidissementDate: getSafeDate(car.maintenanceSchedule?.prochainLiquideRefroidissementDate),
-        prochainPlaquettesFreinKm: car.maintenanceSchedule?.prochainPlaquettesFreinKm ?? undefined,
+        prochainPlaquettesFreinKm: car.maintenanceSchedule?.prochainPlaquettesFreinKm ?? null,
       }
     } : {
       marque: "",
@@ -160,7 +151,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
   });
 
   const updateScheduleFromIntervention = (type: string | undefined, km: number | undefined, date: Date | undefined) => {
-    if (!type || typeof km !== 'number' || km <= 0) return;
+    if (!type || typeof km !== 'number') return;
   
     const vidangeInterval = 10000;
     const filtreGasoilInterval = 20000;
@@ -208,6 +199,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     const carDataForFirestore: { [key: string]: any } = { ...data };
 
     // Firestore doesn't accept 'undefined', so we convert to 'null'.
+    // Nested objects must also be checked.
     if (carDataForFirestore.maintenanceSchedule) {
       Object.keys(carDataForFirestore.maintenanceSchedule).forEach((key) => {
         const typedKey = key as keyof typeof carDataForFirestore.maintenanceSchedule;
@@ -217,7 +209,6 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
       });
     }
 
-    // Also handle other optional top-level fields that might be undefined
     for (const key in carDataForFirestore) {
       if (carDataForFirestore[key] === undefined) {
         carDataForFirestore[key] = null;
@@ -242,6 +233,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
         onFinished();
       })
       .catch((serverError) => {
+        console.error("Firestore Error:", serverError.message);
         const permissionError = new FirestorePermissionError({
           path: carRef.path,
           operation: isNewCar ? 'create' : 'update',
@@ -385,7 +377,23 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                         <FormItem>
                         <FormLabel>Kilométrage</FormLabel>
                         <FormControl>
-                            <Input type="number" placeholder="54000" {...field} />
+                            <Input 
+                                type="number" 
+                                placeholder="54000" 
+                                {...field}
+                                onBlur={(e) => {
+                                    field.onBlur(); // Keep react-hook-form's onBlur
+                                    const km = Number(e.target.value);
+                                    // For new cars, automatically set the first oil change schedule
+                                    if (!car && km > 0) {
+                                        const history = getValues('maintenanceHistory');
+                                        if (!history || history.length === 0) {
+                                            const vidangeInterval = 10000;
+                                            setValue('maintenanceSchedule.prochainVidangeKm', km + vidangeInterval, { shouldValidate: true });
+                                        }
+                                    }
+                                }}
+                            />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
@@ -865,7 +873,3 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     </Form>
   );
 }
-
-    
-
-    
