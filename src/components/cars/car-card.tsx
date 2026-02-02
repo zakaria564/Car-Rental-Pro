@@ -33,7 +33,7 @@ import { Separator } from "../ui/separator";
 import { format, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Logo } from "../logo";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "../ui/table";
 
 const getAvailabilityProps = (car: Car) => {
     switch (car.disponibilite) {
@@ -75,7 +75,7 @@ function CarDetails({ car }: { car: Car }) {
             return dateB.getTime() - dateA.getTime();
         });
 
-        const groups: { [key: string]: { date: Date; kilometrage: number; events: Maintenance[] } } = {};
+        const groups: { [key: string]: { date: Date; kilometrage: number; events: Maintenance[]; totalCost: number } } = {};
 
         sortedHistory.forEach(event => {
             const eventDate = getSafeDate(event.date);
@@ -86,10 +86,12 @@ function CarDetails({ car }: { car: Car }) {
                 groups[dateKey] = {
                     date: eventDate,
                     kilometrage: event.kilometrage,
-                    events: []
+                    events: [],
+                    totalCost: 0
                 };
             }
             groups[dateKey].events.push(event);
+            groups[dateKey].totalCost += event.cout ?? 0;
         });
 
         return Object.values(groups);
@@ -174,6 +176,12 @@ function CarDetails({ car }: { car: Car }) {
                                                 </div>
                                             ))}
                                         </div>
+                                        {group.totalCost > 0 && (
+                                            <div className="flex justify-between items-center mt-2 pt-2 border-t font-bold">
+                                                <p>Total</p>
+                                                <p>{formatCurrency(group.totalCost, 'MAD')}</p>
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -204,7 +212,7 @@ const PrintableCarDetails: React.FC<{ car: Car }> = ({ car }) => {
             return dateB.getTime() - dateA.getTime();
         });
 
-        const groups: { [key: string]: { date: Date; kilometrage: number; events: Maintenance[] } } = {};
+        const groups: { [key: string]: { date: Date; kilometrage: number; events: Maintenance[]; totalCost: number } } = {};
 
         sortedHistory.forEach(event => {
             const eventDate = getSafeDate(event.date);
@@ -215,10 +223,12 @@ const PrintableCarDetails: React.FC<{ car: Car }> = ({ car }) => {
                 groups[dateKey] = {
                     date: eventDate,
                     kilometrage: event.kilometrage,
-                    events: []
+                    events: [],
+                    totalCost: 0
                 };
             }
             groups[dateKey].events.push(event);
+            groups[dateKey].totalCost += event.cout ?? 0;
         });
 
         return Object.values(groups);
@@ -277,21 +287,29 @@ const PrintableCarDetails: React.FC<{ car: Car }> = ({ car }) => {
                                 <TableHead className="text-right w-[20%]">Coût</TableHead>
                             </TableRow>
                         </TableHeader>
-                        {groupedMaintenanceHistory.map((group, index) => (
-                            <TableBody key={index} className="border-t-2 border-gray-200">
-                                <TableRow className="bg-gray-50 font-semibold" style={{printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact'}}>
-                                    <TableCell colSpan={2}>{format(group.date, "dd MMMM yyyy", { locale: fr })}</TableCell>
-                                    <TableCell className="text-right">{group.kilometrage.toLocaleString()} km</TableCell>
-                                </TableRow>
-                                {group.events.map((event, eventIndex) => (
-                                    <TableRow key={eventIndex}>
-                                        <TableCell className="font-medium">{event.typeIntervention}</TableCell>
-                                        <TableCell>{event.description}</TableCell>
-                                        <TableCell className="text-right">{event.cout != null ? formatCurrency(event.cout, 'MAD') : '-'}</TableCell>
+                        <TableBody>
+                            {groupedMaintenanceHistory.map((group, index) => (
+                                <React.Fragment key={index}>
+                                    <TableRow className="bg-gray-50 font-semibold border-t-2 border-gray-300" style={{printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact'}}>
+                                        <TableCell colSpan={2}>{format(group.date, "dd MMMM yyyy", { locale: fr })}</TableCell>
+                                        <TableCell className="text-right">{group.kilometrage.toLocaleString()} km</TableCell>
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        ))}
+                                    {group.events.map((event, eventIndex) => (
+                                        <TableRow key={eventIndex}>
+                                            <TableCell className="font-medium">{event.typeIntervention}</TableCell>
+                                            <TableCell>{event.description}</TableCell>
+                                            <TableCell className="text-right">{event.cout != null ? formatCurrency(event.cout, 'MAD') : '-'}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                     {group.totalCost > 0 && (
+                                        <TableRow className="bg-gray-100 font-bold" style={{printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact'}}>
+                                            <TableCell colSpan={2} className="text-right">Total</TableCell>
+                                            <TableCell className="text-right">{formatCurrency(group.totalCost, 'MAD')}</TableCell>
+                                        </TableRow>
+                                    )}
+                                </React.Fragment>
+                            ))}
+                        </TableBody>
                     </Table>
                 ) : (
                     <p className="text-sm text-gray-500 py-4 text-center">Aucun historique d'entretien enregistré.</p>
@@ -608,5 +626,7 @@ export default function CarCard({ car }: { car: Car }) {
     </Card>
   );
 }
+
+    
 
     
