@@ -234,87 +234,108 @@ const PrintableCarDetails: React.FC<{ car: Car }> = ({ car }) => {
         return Object.values(groups);
     }, [car.maintenanceHistory]);
 
+    const PrintableHeader = () => (
+        <header className="flex justify-between items-start pb-4 mb-4 border-b">
+            <div className="flex items-center gap-4">
+                <Logo />
+                <div>
+                    <h2 className="font-bold text-lg">Location Auto Pro</h2>
+                    <p className="text-xs text-gray-600">Fiche d'intervention</p>
+                </div>
+            </div>
+            <div className="text-right">
+                <h1 className="font-bold text-xl">{car.marque} {car.modele}</h1>
+                <p className="font-mono text-base">{car.immat}</p>
+            </div>
+        </header>
+    );
+
+
     return (
-        <div id={`printable-details-${car.id}`} className="p-1 font-sans text-sm bg-white text-black">
-            <header className="flex justify-between items-start pb-4 mb-4 border-b">
-                <div className="flex items-center gap-4">
-                    <Logo />
-                    <div>
-                        <h2 className="font-bold text-lg">Location Auto Pro</h2>
-                        <p className="text-xs text-gray-600">Fiche de suivi du véhicule</p>
-                    </div>
-                </div>
-                <div className="text-right">
-                    <h1 className="font-bold text-xl">{car.marque} {car.modele}</h1>
-                    <p className="font-mono text-base">{car.immat}</p>
-                </div>
-            </header>
-
-            <section className="mb-6">
-                <h3 className="font-bold text-base mb-2 border-b pb-1">Informations Générales</h3>
-                <div className="grid grid-cols-2 gap-x-6 gap-y-1">
-                    <div><strong>Mise en circulation:</strong> {getSafeDate(car.dateMiseEnCirculation) ? format(getSafeDate(car.dateMiseEnCirculation)!, 'dd/MM/yyyy', { locale: fr }) : 'N/A'}</div>
-                    <div><strong>N° de châssis:</strong> {car.numChassis}</div>
-                    <div><strong>Couleur:</strong> {car.couleur}</div>
-                    <div><strong>Kilométrage:</strong> {car.kilometrage.toLocaleString()} km</div>
-                    <div><strong>Carburant:</strong> {car.carburantType}</div>
-                    <div><strong>Transmission:</strong> {car.transmission}</div>
-                    <div><strong>Puissance:</strong> {car.puissance} cv</div>
-                    <div><strong>Places:</strong> {car.nbrPlaces}</div>
-                </div>
-            </section>
-
-             <section className="mb-6">
-                <h3 className="font-bold text-base mb-2 border-b pb-1">Documents &amp; Plan d'Entretien</h3>
-                <div className="grid grid-cols-2 gap-x-6 gap-y-1">
-                    <div><strong>Expiration Assurance:</strong> {getSafeDate(car.dateExpirationAssurance) ? format(getSafeDate(car.dateExpirationAssurance)!, 'dd/MM/yyyy', { locale: fr }) : 'N/A'}</div>
-                    <div><strong>Prochaine Visite:</strong> {getSafeDate(car.dateProchaineVisiteTechnique) ? format(getSafeDate(car.dateProchaineVisiteTechnique)!, 'dd/MM/yyyy', { locale: fr }) : 'N/A'}</div>
-                    {car.maintenanceSchedule?.prochainVidangeKm && <div><strong>Prochaine Vidange:</strong> {car.maintenanceSchedule.prochainVidangeKm.toLocaleString()} km</div>}
-                    {car.maintenanceSchedule?.prochainFiltreGasoilKm && <div><strong>Prochain Filtre Gazole:</strong> {car.maintenanceSchedule.prochainFiltreGasoilKm.toLocaleString()} km</div>}
-                    {car.maintenanceSchedule?.prochainesPlaquettesFreinKm && <div><strong>Prochaines Plaquettes:</strong> {car.maintenanceSchedule.prochainesPlaquettesFreinKm.toLocaleString()} km</div>}
-                    {car.maintenanceSchedule?.prochaineCourroieDistributionKm && <div><strong>Prochaine Distribution:</strong> {car.maintenanceSchedule.prochaineCourroieDistributionKm.toLocaleString()} km</div>}
-                </div>
-            </section>
-
-            <section>
-                <h3 className="font-bold text-base mb-2 border-b pb-1">Historique d'entretien</h3>
-                {groupedMaintenanceHistory.length > 0 ? (
-                     <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-[30%]">Intervention</TableHead>
-                                <TableHead>Description</TableHead>
-                                <TableHead className="text-right w-[20%]">Coût</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {groupedMaintenanceHistory.map((group, index) => (
-                                <React.Fragment key={index}>
-                                    <TableRow className="bg-gray-50 font-semibold border-t-2 border-gray-300" style={{printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact'}}>
-                                        <TableCell colSpan={2}>{format(group.date, "dd MMMM yyyy", { locale: fr })}</TableCell>
-                                        <TableCell className="text-right">{group.kilometrage.toLocaleString()} km</TableCell>
-                                    </TableRow>
-                                    {group.events.map((event, eventIndex) => (
-                                        <TableRow key={eventIndex}>
-                                            <TableCell className="font-medium">{event.typeIntervention}</TableCell>
-                                            <TableCell>{event.description}</TableCell>
-                                            <TableCell className="text-right">{event.cout != null ? formatCurrency(event.cout, 'MAD') : '-'}</TableCell>
+        <div id={`printable-details-${car.id}`} className="font-sans text-sm bg-white text-black">
+            {groupedMaintenanceHistory.length > 0 ? (
+                <>
+                    {groupedMaintenanceHistory.map((group, index) => (
+                        <div key={index} className="p-1 printable-group">
+                            <PrintableHeader />
+                             <section>
+                                <h3 className="font-bold text-base mb-2 border-b pb-1">
+                                    Interventions du {format(group.date, "dd MMMM yyyy", { locale: fr })}
+                                    <span className="float-right font-normal">{group.kilometrage.toLocaleString()} km</span>
+                                </h3>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead className="w-[40%]">Intervention</TableHead>
+                                            <TableHead>Description</TableHead>
+                                            <TableHead className="text-right w-[20%]">Coût</TableHead>
                                         </TableRow>
-                                    ))}
-                                     {group.totalCost > 0 && (
-                                        <TableRow className="bg-gray-100 font-bold" style={{printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact'}}>
-                                            <TableCell colSpan={2} className="text-right">Total</TableCell>
-                                            <TableCell className="text-right">{formatCurrency(group.totalCost, 'MAD')}</TableCell>
-                                        </TableRow>
-                                    )}
-                                </React.Fragment>
-                            ))}
-                        </TableBody>
-                    </Table>
-                ) : (
-                    <p className="text-sm text-gray-500 py-4 text-center">Aucun historique d'entretien enregistré.</p>
-                )}
-            </section>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {group.events.map((event, eventIndex) => (
+                                            <TableRow key={eventIndex}>
+                                                <TableCell className="font-medium">{event.typeIntervention}</TableCell>
+                                                <TableCell>{event.description}</TableCell>
+                                                <TableCell className="text-right">{event.cout != null ? formatCurrency(event.cout, 'MAD') : '-'}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                        {group.totalCost > 0 && (
+                                            <TableRow className="bg-gray-100 font-bold" style={{printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact'}}>
+                                                <TableCell colSpan={2} className="text-right">Total des interventions</TableCell>
+                                                <TableCell className="text-right">{formatCurrency(group.totalCost, 'MAD')}</TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </section>
+                        </div>
+                    ))}
+                </>
+            ) : (
+                <div className="p-1">
+                    <header className="flex justify-between items-start pb-4 mb-4 border-b">
+                        <div className="flex items-center gap-4">
+                            <Logo />
+                            <div>
+                                <h2 className="font-bold text-lg">Location Auto Pro</h2>
+                                <p className="text-xs text-gray-600">Fiche de suivi du véhicule</p>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <h1 className="font-bold text-xl">{car.marque} {car.modele}</h1>
+                            <p className="font-mono text-base">{car.immat}</p>
+                        </div>
+                    </header>
+                    <section className="mb-6">
+                        <h3 className="font-bold text-base mb-2 border-b pb-1">Informations Générales</h3>
+                        <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+                            <div><strong>Mise en circulation:</strong> {getSafeDate(car.dateMiseEnCirculation) ? format(getSafeDate(car.dateMiseEnCirculation)!, 'dd/MM/yyyy', { locale: fr }) : 'N/A'}</div>
+                            <div><strong>N° de châssis:</strong> {car.numChassis}</div>
+                            <div><strong>Couleur:</strong> {car.couleur}</div>
+                            <div><strong>Kilométrage:</strong> {car.kilometrage.toLocaleString()} km</div>
+                            <div><strong>Carburant:</strong> {car.carburantType}</div>
+                            <div><strong>Transmission:</strong> {car.transmission}</div>
+                            <div><strong>Puissance:</strong> {car.puissance} cv</div>
+                            <div><strong>Places:</strong> {car.nbrPlaces}</div>
+                        </div>
+                    </section>
+                     <section className="mb-6">
+                        <h3 className="font-bold text-base mb-2 border-b pb-1">Documents &amp; Plan d'Entretien</h3>
+                        <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+                            <div><strong>Expiration Assurance:</strong> {getSafeDate(car.dateExpirationAssurance) ? format(getSafeDate(car.dateExpirationAssurance)!, 'dd/MM/yyyy', { locale: fr }) : 'N/A'}</div>
+                            <div><strong>Prochaine Visite:</strong> {getSafeDate(car.dateProchaineVisiteTechnique) ? format(getSafeDate(car.dateProchaineVisiteTechnique)!, 'dd/MM/yyyy', { locale: fr }) : 'N/A'}</div>
+                            {car.maintenanceSchedule?.prochainVidangeKm && <div><strong>Prochaine Vidange:</strong> {car.maintenanceSchedule.prochainVidangeKm.toLocaleString()} km</div>}
+                            {car.maintenanceSchedule?.prochainFiltreGasoilKm && <div><strong>Prochain Filtre Gazole:</strong> {car.maintenanceSchedule.prochainFiltreGasoilKm.toLocaleString()} km</div>}
+                            {car.maintenanceSchedule?.prochainesPlaquettesFreinKm && <div><strong>Prochaines Plaquettes:</strong> {car.maintenanceSchedule.prochainesPlaquettesFreinKm.toLocaleString()} km</div>}
+                            {car.maintenanceSchedule?.prochaineCourroieDistributionKm && <div><strong>Prochaine Distribution:</strong> {car.maintenanceSchedule.prochaineCourroieDistributionKm.toLocaleString()} km</div>}
+                        </div>
+                    </section>
+                    <section>
+                        <h3 className="font-bold text-base mb-2 border-b pb-1">Historique d'entretien</h3>
+                        <p className="text-sm text-gray-500 py-4 text-center">Aucun historique d'entretien enregistré.</p>
+                    </section>
+                </div>
+            )}
         </div>
     );
 };
@@ -432,6 +453,9 @@ export default function CarCard({ car }: { car: Car }) {
        @page {
         size: A4;
         margin: 15mm;
+      }
+      .printable-group:not(:last-child) {
+        page-break-after: always;
       }
     `;
 
