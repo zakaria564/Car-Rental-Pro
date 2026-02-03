@@ -34,6 +34,7 @@ import { format, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Logo } from "../logo";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "../ui/table";
+import { Input } from "../ui/input";
 
 const getAvailabilityProps = (car: Car) => {
     switch (car.disponibilite) {
@@ -48,7 +49,16 @@ const getAvailabilityProps = (car: Car) => {
     }
 };
 
-function CarDetails({ car }: { car: Car }) {
+type CarDetailsProps = {
+  car: Car;
+  groupedMaintenanceHistory: any[];
+  filteredHistory: any[];
+  historySearchTerm: string;
+  setHistorySearchTerm: (term: string) => void;
+};
+
+
+function CarDetails({ car, groupedMaintenanceHistory, filteredHistory, historySearchTerm, setHistorySearchTerm }: CarDetailsProps) {
     const today = new Date();
     const availability = getAvailabilityProps(car);
     
@@ -61,42 +71,6 @@ function CarDetails({ car }: { car: Car }) {
     const isVisiteExpired = visiteDate && visiteDate < today;
     const daysUntilVisiteExpires = visiteDate ? differenceInDays(visiteDate, today) : null;
     const isVisiteExpiringSoon = !isVisiteExpired && daysUntilVisiteExpires !== null && daysUntilVisiteExpires >= 0 && daysUntilVisiteExpires <= 7;
-
-    const groupedMaintenanceHistory = React.useMemo(() => {
-        if (!car.maintenanceHistory || car.maintenanceHistory.length === 0) {
-            return [];
-        }
-
-        const sortedHistory = [...car.maintenanceHistory].sort((a, b) => {
-            const dateA = getSafeDate(a.date);
-            const dateB = getSafeDate(b.date);
-            if (!dateB) return -1;
-            if (!dateA) return 1;
-            return dateB.getTime() - dateA.getTime();
-        });
-
-        const groups: { [key: string]: { date: Date; kilometrage: number; events: Maintenance[]; totalCost: number } } = {};
-
-        sortedHistory.forEach(event => {
-            const eventDate = getSafeDate(event.date);
-            if (!eventDate) return;
-            const dateKey = format(eventDate, 'yyyy-MM-dd');
-            
-            if (!groups[dateKey]) {
-                groups[dateKey] = {
-                    date: eventDate,
-                    kilometrage: event.kilometrage,
-                    events: [],
-                    totalCost: 0
-                };
-            }
-            groups[dateKey].events.push(event);
-            groups[dateKey].totalCost += event.cout ?? 0;
-        });
-
-        return Object.values(groups);
-    }, [car.maintenanceHistory]);
-
 
     return (
         <ScrollArea className="h-[70vh] pr-4">
@@ -157,16 +131,24 @@ function CarDetails({ car }: { car: Car }) {
                     <>
                         <Separator />
                         <div className="space-y-3">
-                            <h4 className="font-semibold text-base">Historique d'entretien</h4>
+                           <div className="flex justify-between items-center">
+                                <h4 className="font-semibold text-base">Historique d'entretien</h4>
+                                <Input
+                                    placeholder="Filtrer par date ou type..."
+                                    value={historySearchTerm}
+                                    onChange={(e) => setHistorySearchTerm(e.target.value)}
+                                    className="h-8 max-w-[180px]"
+                                />
+                            </div>
                              <div className="space-y-3">
-                                {groupedMaintenanceHistory.map((group, index) => (
+                                {filteredHistory.map((group, index) => (
                                     <div key={index} className="text-xs p-3 bg-muted rounded-md border">
                                         <div className="flex justify-between items-center mb-2 pb-2 border-b">
                                             <p className="font-bold text-sm">{format(group.date, 'dd MMMM yyyy', { locale: fr })}</p>
                                             <p className="text-sm text-muted-foreground">{group.kilometrage.toLocaleString()} km</p>
                                         </div>
                                         <div className="space-y-2">
-                                            {group.events.map((event, eventIndex) => (
+                                            {group.events.map((event: Maintenance, eventIndex: number) => (
                                                 <div key={eventIndex} className="flex justify-between items-start gap-2">
                                                     <div className="flex-1">
                                                         <p className="font-semibold">{event.typeIntervention}</p>
@@ -184,6 +166,9 @@ function CarDetails({ car }: { car: Car }) {
                                         )}
                                     </div>
                                 ))}
+                                {filteredHistory.length === 0 && (
+                                    <p className="text-center text-muted-foreground py-4">Aucune intervention ne correspond à votre recherche.</p>
+                                )}
                             </div>
                         </div>
                     </>
@@ -198,41 +183,8 @@ function CarDetails({ car }: { car: Car }) {
     );
 }
 
-const PrintableCarDetails: React.FC<{ car: Car }> = ({ car }) => {
-    const groupedMaintenanceHistory = React.useMemo(() => {
-        if (!car.maintenanceHistory || car.maintenanceHistory.length === 0) {
-            return [];
-        }
-
-        const sortedHistory = [...car.maintenanceHistory].sort((a, b) => {
-            const dateA = getSafeDate(a.date);
-            const dateB = getSafeDate(b.date);
-            if (!dateB) return -1;
-            if (!dateA) return 1;
-            return dateB.getTime() - dateA.getTime();
-        });
-
-        const groups: { [key: string]: { date: Date; kilometrage: number; events: Maintenance[]; totalCost: number } } = {};
-
-        sortedHistory.forEach(event => {
-            const eventDate = getSafeDate(event.date);
-            if (!eventDate) return;
-            const dateKey = format(eventDate, 'yyyy-MM-dd');
-            
-            if (!groups[dateKey]) {
-                groups[dateKey] = {
-                    date: eventDate,
-                    kilometrage: event.kilometrage,
-                    events: [],
-                    totalCost: 0
-                };
-            }
-            groups[dateKey].events.push(event);
-            groups[dateKey].totalCost += event.cout ?? 0;
-        });
-
-        return Object.values(groups);
-    }, [car.maintenanceHistory]);
+const PrintableCarDetails: React.FC<{ car: Car; history: any[] }> = ({ car, history }) => {
+    const groupedMaintenanceHistory = history;
 
     const PrintableHeader = () => (
         <header className="flex justify-between items-start pb-4 mb-4 border-b">
@@ -272,7 +224,7 @@ const PrintableCarDetails: React.FC<{ car: Car }> = ({ car }) => {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {group.events.map((event, eventIndex) => (
+                                        {group.events.map((event: Maintenance, eventIndex: number) => (
                                             <TableRow key={eventIndex}>
                                                 <TableCell className="font-medium">{event.typeIntervention}</TableCell>
                                                 <TableCell>{event.description}</TableCell>
@@ -345,10 +297,59 @@ export default function CarCard({ car }: { car: Car }) {
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = React.useState(false);
   const [isMaintenanceSheetOpen, setIsMaintenanceSheetOpen] = React.useState(false);
+  const [historySearchTerm, setHistorySearchTerm] = React.useState("");
 
   const { firestore } = useFirebase();
   const { toast } = useToast();
   const availability = getAvailabilityProps(car);
+  
+  const groupedMaintenanceHistory = React.useMemo(() => {
+    if (!car.maintenanceHistory || car.maintenanceHistory.length === 0) {
+        return [];
+    }
+
+    const sortedHistory = [...car.maintenanceHistory].sort((a, b) => {
+        const dateA = getSafeDate(a.date);
+        const dateB = getSafeDate(b.date);
+        if (!dateB) return -1;
+        if (!dateA) return 1;
+        return dateB.getTime() - dateA.getTime();
+    });
+
+    const groups: { [key: string]: { date: Date; kilometrage: number; events: Maintenance[]; totalCost: number } } = {};
+
+    sortedHistory.forEach(event => {
+        const eventDate = getSafeDate(event.date);
+        if (!eventDate) return;
+        const dateKey = format(eventDate, 'yyyy-MM-dd');
+        
+        if (!groups[dateKey]) {
+            groups[dateKey] = {
+                date: eventDate,
+                kilometrage: event.kilometrage,
+                events: [],
+                totalCost: 0
+            };
+        }
+        groups[dateKey].events.push(event);
+        groups[dateKey].totalCost += event.cout ?? 0;
+    });
+
+    return Object.values(groups);
+  }, [car.maintenanceHistory]);
+
+  const filteredHistory = React.useMemo(() => {
+    const searchTermFormatted = historySearchTerm.trim();
+    const searchTermLower = searchTermFormatted.toLowerCase();
+    if (!searchTermFormatted) {
+        return groupedMaintenanceHistory;
+    }
+    return groupedMaintenanceHistory.filter(group => {
+        const groupDate = format(group.date, 'dd/MM/yyyy');
+        return groupDate.includes(searchTermFormatted) || 
+               group.events.some((e: Maintenance) => e.typeIntervention.toLowerCase().includes(searchTermLower));
+    });
+  }, [groupedMaintenanceHistory, historySearchTerm]);
 
   const { documentAttention, maintenanceAttention } = React.useMemo(() => {
     const today = new Date();
@@ -564,9 +565,15 @@ export default function CarCard({ car }: { car: Car }) {
                                 <DialogDescription>{car.marque} {car.modele} - {car.immat}</DialogDescription>
                             </DialogHeader>
                             <div className="hidden">
-                                <PrintableCarDetails car={car} />
+                                <PrintableCarDetails car={car} history={filteredHistory} />
                             </div>
-                            <CarDetails car={car} />
+                            <CarDetails 
+                                car={car} 
+                                groupedMaintenanceHistory={groupedMaintenanceHistory}
+                                filteredHistory={filteredHistory}
+                                historySearchTerm={historySearchTerm}
+                                setHistorySearchTerm={setHistorySearchTerm}
+                            />
                             <DialogFooter className="no-print">
                                 <Button variant="outline" onClick={handlePrint}>
                                     <Printer className="mr-2 h-4 w-4"/>
@@ -650,7 +657,3 @@ export default function CarCard({ car }: { car: Car }) {
     </Card>
   );
 }
-
-    
-
-    
