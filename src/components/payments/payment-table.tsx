@@ -206,7 +206,6 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
     if (!firestore || !rental?.id) return;
 
     const rentalRef = doc(firestore, 'rentals', rental.id);
-    const carRef = doc(firestore, 'cars', rental.vehicule.carId);
     const paymentsQuery = query(collection(firestore, 'payments'), where("rentalId", "==", rental.id));
 
     try {
@@ -218,8 +217,9 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
         });
 
         batch.delete(rentalRef);
-        batch.update(carRef, { disponibilite: 'disponible' });
 
+        const carRef = doc(firestore, 'cars', rental.vehicule.carId);
+        batch.update(carRef, { disponibilite: 'disponible' });
 
         await batch.commit();
 
