@@ -515,43 +515,40 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
 
   const handleDeleteRental = async (rental: Rental) => {
     if (!firestore || !rental?.id) return;
-    
+
     const rentalDocRef = doc(firestore, 'rentals', rental.id);
     const paymentsQuery = query(collection(firestore, 'payments'), where("rentalId", "==", rental.id));
-    
+
     try {
-      const batch = writeBatch(firestore);
-      
-      const paymentsSnapshot = await getDocs(paymentsQuery);
-      paymentsSnapshot.forEach(paymentDoc => {
-          batch.delete(paymentDoc.ref);
-      });
-      
-      batch.delete(rentalDocRef);
-      
-      // Also set the car back to available
-      const carRef = doc(firestore, 'cars', rental.vehicule.carId);
-      batch.update(carRef, { disponibilite: 'disponible' });
+        const batch = writeBatch(firestore);
 
+        const paymentsSnapshot = await getDocs(paymentsQuery);
+        paymentsSnapshot.forEach(paymentDoc => {
+            batch.delete(paymentDoc.ref);
+        });
 
-      await batch.commit();
+        batch.delete(rentalDocRef);
 
-      toast({
-        title: "Contrat supprimé",
-        description: "Le contrat et ses paiements associés ont été supprimés.",
-      });
+        const carRef = doc(firestore, 'cars', rental.vehicule.carId);
+        batch.update(carRef, { disponibilite: 'disponible' });
 
-    } catch (serverError) {
-      const permissionError = new FirestorePermissionError({
-          path: rentalDocRef.path,
-          operation: 'delete'
-      }, serverError as Error);
-      errorEmitter.emit('permission-error', permissionError);
-      toast({
-          variant: "destructive",
-          title: "Erreur de suppression",
-          description: "Impossible de supprimer ce contrat et ses paiements.",
-      });
+        await batch.commit();
+
+        toast({
+            title: "Contrat supprimé",
+            description: "Le contrat et ses paiements associés ont été supprimés.",
+        });
+    } catch (serverError: any) {
+        const permissionError = new FirestorePermissionError({
+            path: rentalDocRef.path,
+            operation: 'delete'
+        }, serverError as Error);
+        errorEmitter.emit('permission-error', permissionError);
+        toast({
+            variant: "destructive",
+            title: "Erreur de suppression",
+            description: serverError.message || "Impossible de supprimer ce contrat et ses paiements.",
+        });
     }
 
     setIsAlertOpen(false);
