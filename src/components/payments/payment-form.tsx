@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -119,21 +118,41 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
   }, [selectedRentalId, rentals]);
 
   const financialSummary = React.useMemo(() => {
-    if (!selectedRental) return { total: 0, paye: 0, reste: 0 };
+    if (!selectedRental) return { total: 0, paye: 0, reste: 0, formattedReste: "" };
     
     const total = calculateTotal(selectedRental);
     const paye = selectedRental.location.montantPaye || 0;
     const reste = total - paye;
 
-    return { total, paye, reste };
+    return { total, paye, reste, formattedReste: formatCurrency(reste, 'MAD') };
   }, [selectedRental]);
 
   async function onSubmit(data: PaymentFormValues) {
     if (!firestore || !selectedRental) return;
+    
+    const isNewPayment = !payment;
+
+    if (isNewPayment) {
+        if (financialSummary.reste <= 0) {
+            form.setError("rentalId", {
+                type: "manual",
+                message: "Ce contrat est déjà entièrement payé.",
+            });
+            return;
+        }
+
+        if (data.amount > financialSummary.reste) {
+            form.setError("amount", {
+                type: "manual",
+                message: `Le montant ne peut pas dépasser le reste à payer de ${financialSummary.formattedReste}.`,
+            });
+            return;
+        }
+    }
+
     setIsSubmitting(true);
 
     const paymentId = payment?.id || doc(collection(firestore, 'payments')).id;
-    const isNewPayment = !payment;
     const rentalRef = doc(firestore, 'rentals', selectedRental.id);
     const paymentRef = doc(firestore, 'payments', paymentId);
 
@@ -148,16 +167,16 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
             const currentPaidAmount = currentRentalData.location.montantPaye || 0;
             const newPaidAmount = currentPaidAmount + data.amount;
 
-            // 1. Create the payment document payload
+            // Create the payment document payload
             const paymentPayload = {
               ...data,
               clientName: selectedRental.locataire.nomPrenom,
             };
             
-            // 2. Set the new payment document
+            // Set the new payment document
             transaction.set(paymentRef, paymentPayload, { merge: !isNewPayment });
 
-            // 3. Update the rental document
+            // Update the rental document
             transaction.update(rentalRef, { 'location.montantPaye': newPaidAmount });
         });
 
@@ -216,7 +235,7 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
                         </div>
                          <div className="flex justify-between border-t mt-2 pt-2">
                             <span className="font-semibold">Reste à payer:</span>
-                            <span className="font-semibold text-destructive">{formatCurrency(financialSummary.reste, 'MAD')}</span>
+                            <span className="font-semibold text-destructive">{financialSummary.formattedReste}</span>
                         </div>
                     </div>
                 </div>
@@ -313,5 +332,3 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
     </Form>
   );
 }
-
-    
