@@ -70,7 +70,7 @@ const calculateTotal = (rental: Rental): number => {
 
     if (from && to && pricePerDay > 0) {
         const daysDiff = differenceInCalendarDays(startOfDay(to), startOfDay(from));
-        const rentalDays = daysDiff < 1 ? 1 : daysDiff + 1;
+        const rentalDays = daysDiff === 0 ? 1 : daysDiff;
         return rentalDays * pricePerDay;
     }
 
@@ -314,7 +314,7 @@ function RentalDetails({ rental }: { rental: Rental }) {
     const rentalDuration = () => {
         if (safeDebutDate && safeFinDate) {
             const daysDiff = differenceInCalendarDays(startOfDay(safeFinDate), startOfDay(safeDebutDate));
-            return daysDiff < 1 ? 1 : daysDiff + 1;
+            return daysDiff === 0 ? 1 : daysDiff;
         }
         return rental.location.nbrJours || 0;
     };
@@ -520,20 +520,18 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     const paymentsQuery = query(collection(firestore, 'payments'), where("rentalId", "==", rental.id));
     
     try {
-        const paymentsSnapshot = await getDocs(paymentsQuery);
-
         await runTransaction(firestore, async (transaction) => {
-            const carRef = doc(firestore, 'cars', rental.vehicule.carId);
-            const carDoc = await transaction.get(carRef);
-
+            const paymentsSnapshot = await getDocs(paymentsQuery);
             paymentsSnapshot.forEach(paymentDoc => {
                 transaction.delete(paymentDoc.ref);
             });
     
             transaction.delete(rentalDocRef);
     
+            const carRef = doc(firestore, 'cars', rental.vehicule.carId);
+            const carDoc = await transaction.get(carRef);
             if (carDoc.exists()) {
-                transaction.update(carRef, { disponibilite: 'disponible' });
+              transaction.update(carRef, { disponibilite: 'disponible' });
             }
         });
 

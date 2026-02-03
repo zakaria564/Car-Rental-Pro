@@ -37,7 +37,7 @@ import { Invoice } from "./invoice";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { useFirebase } from "@/firebase";
-import { doc, runTransaction, query, where, getDocs, collection } from "firebase/firestore";
+import { doc, runTransaction, query, where, getDocs, collection, getDoc } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 
@@ -142,7 +142,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
 
     if (from && to && pricePerDay > 0) {
         const daysDiff = differenceInCalendarDays(startOfDay(to), startOfDay(from));
-        const rentalDays = daysDiff < 1 ? 1 : daysDiff + 1;
+        const rentalDays = daysDiff === 0 ? 1 : daysDiff;
         return rentalDays * pricePerDay;
     }
 
@@ -209,18 +209,17 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
     const paymentsQuery = query(collection(firestore, 'payments'), where("rentalId", "==", rental.id));
 
     try {
-        const paymentsSnapshot = await getDocs(paymentsQuery);
-
         await runTransaction(firestore, async (transaction) => {
-            const carRef = doc(firestore, 'cars', rental.vehicule.carId);
-            const carDoc = await transaction.get(carRef);
-
+            const paymentsSnapshot = await getDocs(paymentsQuery);
             paymentsSnapshot.forEach(doc => {
                 transaction.delete(doc.ref);
             });
     
             transaction.delete(rentalRef);
     
+            // Safely update car status
+            const carRef = doc(firestore, 'cars', rental.vehicule.carId);
+            const carDoc = await transaction.get(carRef);
             if (carDoc.exists()) {
                 transaction.update(carRef, { disponibilite: 'disponible' });
             }
