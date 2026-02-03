@@ -155,6 +155,9 @@ function CarDetails({ car, groupedMaintenanceHistory, filteredHistory, historyFi
                                         onSelect={setHistoryFilterDate}
                                         initialFocus
                                         locale={fr}
+                                        captionLayout="dropdown-nav"
+                                        fromYear={new Date().getFullYear() - 10}
+                                        toYear={new Date().getFullYear()}
                                       />
                                     </PopoverContent>
                                   </Popover>
