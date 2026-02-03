@@ -1,9 +1,8 @@
-
 "use client";
 
 import * as React from "react";
 import Image from "next/image";
-import { Wrench, Pencil, Trash2, FileText, TriangleAlert, Gauge, Fuel, Cog, Construction, Printer } from "lucide-react";
+import { Wrench, Pencil, Trash2, FileText, TriangleAlert, Gauge, Fuel, Cog, Construction, Printer, CalendarIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -34,7 +33,9 @@ import { format, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Logo } from "../logo";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "../ui/table";
-import { Input } from "../ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { Calendar } from "../ui/calendar";
+
 
 const getAvailabilityProps = (car: Car) => {
     switch (car.disponibilite) {
@@ -53,12 +54,12 @@ type CarDetailsProps = {
   car: Car;
   groupedMaintenanceHistory: any[];
   filteredHistory: any[];
-  historySearchTerm: string;
-  setHistorySearchTerm: (term: string) => void;
+  historyFilterDate: Date | undefined;
+  setHistoryFilterDate: (date: Date | undefined) => void;
 };
 
 
-function CarDetails({ car, groupedMaintenanceHistory, filteredHistory, historySearchTerm, setHistorySearchTerm }: CarDetailsProps) {
+function CarDetails({ car, groupedMaintenanceHistory, filteredHistory, historyFilterDate, setHistoryFilterDate }: CarDetailsProps) {
     const today = new Date();
     const availability = getAvailabilityProps(car);
     
@@ -133,12 +134,36 @@ function CarDetails({ car, groupedMaintenanceHistory, filteredHistory, historySe
                         <div className="space-y-3">
                            <div className="flex justify-between items-center">
                                 <h4 className="font-semibold text-base">Historique d'entretien</h4>
-                                <Input
-                                    placeholder="Filtrer par date ou type..."
-                                    value={historySearchTerm}
-                                    onChange={(e) => setHistorySearchTerm(e.target.value)}
-                                    className="h-8 max-w-[180px]"
-                                />
+                                <div className="flex items-center gap-2">
+                                  <Popover>
+                                    <PopoverTrigger asChild>
+                                      <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                          "w-[240px] justify-start text-left font-normal h-8",
+                                          !historyFilterDate && "text-muted-foreground"
+                                        )}
+                                      >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {historyFilterDate ? format(historyFilterDate, "dd MMMM yyyy", { locale: fr }) : <span>Choisir une date</span>}
+                                      </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0">
+                                      <Calendar
+                                        mode="single"
+                                        selected={historyFilterDate}
+                                        onSelect={setHistoryFilterDate}
+                                        initialFocus
+                                        locale={fr}
+                                      />
+                                    </PopoverContent>
+                                  </Popover>
+                                  {historyFilterDate && (
+                                    <Button variant="ghost" size="sm" onClick={() => setHistoryFilterDate(undefined)}>
+                                        Effacer
+                                    </Button>
+                                  )}
+                                </div>
                             </div>
                              <div className="space-y-3">
                                 {filteredHistory.map((group, index) => (
@@ -297,7 +322,7 @@ export default function CarCard({ car }: { car: Car }) {
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = React.useState(false);
   const [isMaintenanceSheetOpen, setIsMaintenanceSheetOpen] = React.useState(false);
-  const [historySearchTerm, setHistorySearchTerm] = React.useState("");
+  const [historyFilterDate, setHistoryFilterDate] = React.useState<Date | undefined>();
 
   const { firestore } = useFirebase();
   const { toast } = useToast();
@@ -339,17 +364,15 @@ export default function CarCard({ car }: { car: Car }) {
   }, [car.maintenanceHistory]);
 
   const filteredHistory = React.useMemo(() => {
-    const searchTermFormatted = historySearchTerm.trim();
-    const searchTermLower = searchTermFormatted.toLowerCase();
-    if (!searchTermFormatted) {
+    if (!historyFilterDate) {
         return groupedMaintenanceHistory;
     }
+    const filterDateStr = format(historyFilterDate, 'yyyy-MM-dd');
     return groupedMaintenanceHistory.filter(group => {
-        const groupDate = format(group.date, 'dd/MM/yyyy');
-        return groupDate.includes(searchTermFormatted) || 
-               group.events.some((e: Maintenance) => e.typeIntervention.toLowerCase().includes(searchTermLower));
+        const groupDateStr = format(group.date, 'yyyy-MM-dd');
+        return groupDateStr === filterDateStr;
     });
-  }, [groupedMaintenanceHistory, historySearchTerm]);
+  }, [groupedMaintenanceHistory, historyFilterDate]);
 
   const { documentAttention, maintenanceAttention } = React.useMemo(() => {
     const today = new Date();
@@ -571,8 +594,8 @@ export default function CarCard({ car }: { car: Car }) {
                                 car={car} 
                                 groupedMaintenanceHistory={groupedMaintenanceHistory}
                                 filteredHistory={filteredHistory}
-                                historySearchTerm={historySearchTerm}
-                                setHistorySearchTerm={setHistorySearchTerm}
+                                historyFilterDate={historyFilterDate}
+                                setHistoryFilterDate={setHistoryFilterDate}
                             />
                             <DialogFooter className="no-print">
                                 <Button variant="outline" onClick={handlePrint}>
