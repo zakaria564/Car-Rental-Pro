@@ -218,7 +218,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
         });
 
         batch.delete(rentalRef);
-        batch.update(carRef, { disponible: true });
+        batch.update(carRef, { disponibilite: 'disponible' });
 
 
         await batch.commit();
@@ -232,7 +232,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
         const permissionError = new FirestorePermissionError({
             path: rentalRef.path,
             operation: 'delete',
-        }, serverError);
+        }, serverError as Error);
         errorEmitter.emit('permission-error', permissionError);
 
         toast({
