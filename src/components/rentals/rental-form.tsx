@@ -352,7 +352,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
 
     if (from && to) {
         const daysDiff = differenceInCalendarDays(startOfDay(to), startOfDay(from));
-        return daysDiff <= 0 ? 1 : daysDiff;
+        return daysDiff >= 0 ? daysDiff + 1 : 1;
     }
     return 0;
   }, [dateRange, dateRetour, mode, rental]);
@@ -479,7 +479,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             const rentalRef = doc(firestore, 'rentals', rental.id);
 
             const dayDiff = differenceInCalendarDays(startOfDay(dateRange.to), startOfDay(dateRange.from));
-            const finalRentalDays = dayDiff <= 0 ? 1 : dayDiff;
+            const finalRentalDays = dayDiff >= 0 ? dayDiff + 1 : 1;
 
             const finalAmountToPay = finalRentalDays * rental.location.prixParJour;
 
@@ -513,7 +513,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             }
             
             const dayDiff = differenceInCalendarDays(startOfDay(dateRange.to), startOfDay(dateRange.from));
-            const rentalDays = dayDiff <= 0 ? 1 : dayDiff;
+            const rentalDays = dayDiff >= 0 ? dayDiff + 1 : 1;
             const totalAmount = rentalDays * selectedCar.prixParJour;
             
             const safeDateMiseEnCirculation = timestampToDate(selectedCar.dateMiseEnCirculation);

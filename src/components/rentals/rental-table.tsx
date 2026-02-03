@@ -70,7 +70,7 @@ const calculateTotal = (rental: Rental): number => {
 
     if (from && to && pricePerDay > 0) {
         const daysDiff = differenceInCalendarDays(startOfDay(to), startOfDay(from));
-        const rentalDays = daysDiff === 0 ? 1 : daysDiff;
+        const rentalDays = daysDiff >= 0 ? daysDiff + 1 : 1;
         return rentalDays * pricePerDay;
     }
 
@@ -314,7 +314,7 @@ function RentalDetails({ rental }: { rental: Rental }) {
     const rentalDuration = () => {
         if (safeDebutDate && safeFinDate) {
             const daysDiff = differenceInCalendarDays(startOfDay(safeFinDate), startOfDay(safeDebutDate));
-            return daysDiff === 0 ? 1 : daysDiff;
+            return daysDiff >= 0 ? daysDiff + 1 : 1;
         }
         return rental.location.nbrJours || 0;
     };
