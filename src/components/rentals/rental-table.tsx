@@ -46,7 +46,7 @@ import { Dialog, DialogContent, DialogDescription as DialogDesc, DialogFooter, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import Image from "next/image";
 import { ScrollArea } from "../ui/scroll-area";
-import { doc, writeBatch, getDoc, collection, getDocs, query, where } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs, query, where, runTransaction } from "firebase/firestore";
 import { useFirebase } from "@/firebase";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
@@ -70,7 +70,7 @@ const calculateTotal = (rental: Rental): number => {
 
     if (from && to && pricePerDay > 0) {
         const daysDiff = differenceInCalendarDays(startOfDay(to), startOfDay(from));
-        const rentalDays = daysDiff < 1 ? 1 : daysDiff;
+        const rentalDays = daysDiff < 1 ? 1 : daysDiff + 1;
         return rentalDays * pricePerDay;
     }
 
@@ -314,7 +314,7 @@ function RentalDetails({ rental }: { rental: Rental }) {
     const rentalDuration = () => {
         if (safeDebutDate && safeFinDate) {
             const daysDiff = differenceInCalendarDays(startOfDay(safeFinDate), startOfDay(safeDebutDate));
-            return daysDiff < 1 ? 1 : daysDiff;
+            return daysDiff < 1 ? 1 : daysDiff + 1;
         }
         return rental.location.nbrJours || 0;
     };
@@ -518,21 +518,24 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
 
     const rentalDocRef = doc(firestore, 'rentals', rental.id);
     const paymentsQuery = query(collection(firestore, 'payments'), where("rentalId", "==", rental.id));
-
+    
     try {
-        const batch = writeBatch(firestore);
-
         const paymentsSnapshot = await getDocs(paymentsQuery);
-        paymentsSnapshot.forEach(paymentDoc => {
-            batch.delete(paymentDoc.ref);
+
+        await runTransaction(firestore, async (transaction) => {
+            const carRef = doc(firestore, 'cars', rental.vehicule.carId);
+            const carDoc = await transaction.get(carRef);
+
+            paymentsSnapshot.forEach(paymentDoc => {
+                transaction.delete(paymentDoc.ref);
+            });
+    
+            transaction.delete(rentalDocRef);
+    
+            if (carDoc.exists()) {
+                transaction.update(carRef, { disponibilite: 'disponible' });
+            }
         });
-
-        batch.delete(rentalDocRef);
-
-        const carRef = doc(firestore, 'cars', rental.vehicule.carId);
-        batch.update(carRef, { disponibilite: 'disponible' });
-
-        await batch.commit();
 
         toast({
             title: "Contrat supprimé",

@@ -37,7 +37,7 @@ import { Invoice } from "./invoice";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { useFirebase } from "@/firebase";
-import { doc, runTransaction, writeBatch, query, where, getDocs, collection, updateDoc } from "firebase/firestore";
+import { doc, runTransaction, query, where, getDocs, collection } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 
@@ -142,7 +142,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
 
     if (from && to && pricePerDay > 0) {
         const daysDiff = differenceInCalendarDays(startOfDay(to), startOfDay(from));
-        const rentalDays = daysDiff < 1 ? 1 : daysDiff;
+        const rentalDays = daysDiff < 1 ? 1 : daysDiff + 1;
         return rentalDays * pricePerDay;
     }
 
@@ -209,19 +209,22 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
     const paymentsQuery = query(collection(firestore, 'payments'), where("rentalId", "==", rental.id));
 
     try {
-        const batch = writeBatch(firestore);
-
         const paymentsSnapshot = await getDocs(paymentsQuery);
-        paymentsSnapshot.forEach(doc => {
-            batch.delete(doc.ref);
+
+        await runTransaction(firestore, async (transaction) => {
+            const carRef = doc(firestore, 'cars', rental.vehicule.carId);
+            const carDoc = await transaction.get(carRef);
+
+            paymentsSnapshot.forEach(doc => {
+                transaction.delete(doc.ref);
+            });
+    
+            transaction.delete(rentalRef);
+    
+            if (carDoc.exists()) {
+                transaction.update(carRef, { disponibilite: 'disponible' });
+            }
         });
-
-        batch.delete(rentalRef);
-
-        const carRef = doc(firestore, 'cars', rental.vehicule.carId);
-        batch.update(carRef, { disponibilite: 'disponible' });
-
-        await batch.commit();
 
         toast({
             title: "Contrat supprimé",
