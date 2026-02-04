@@ -70,8 +70,7 @@ const calculateTotal = (rental: Rental): number => {
 
     if (from && to && pricePerDay > 0) {
         const daysDiff = differenceInCalendarDays(startOfDay(to), startOfDay(from));
-        const rentalDays = daysDiff === 0 ? 1 : daysDiff;
-        return rentalDays * pricePerDay;
+        return (daysDiff >= 1 ? daysDiff : 1) * pricePerDay;
     }
 
     // Fallbacks
@@ -314,7 +313,7 @@ function RentalDetails({ rental }: { rental: Rental }) {
     const rentalDuration = () => {
         if (safeDebutDate && safeFinDate) {
             const daysDiff = differenceInCalendarDays(startOfDay(safeFinDate), startOfDay(safeDebutDate));
-            return daysDiff === 0 ? 1 : daysDiff;
+            return daysDiff >= 1 ? daysDiff : 1;
         }
         return rental.location.nbrJours || 0;
     };
@@ -369,6 +368,8 @@ function RentalDetails({ rental }: { rental: Rental }) {
                             <h4 className="font-semibold">Période &amp; Coût :</h4>
                             <div><strong>Début:</strong> {safeDebutDate ? format(safeDebutDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</div>
                             <div><strong>Fin Prévue:</strong> {safeFinDate ? format(safeFinDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</div>
+                            <div><strong>Lieu de départ:</strong> {rental.location.lieuDepart || 'Agence'}</div>
+                            <div><strong>Lieu de retour:</strong> {rental.location.lieuRetour || 'Agence'}</div>
                             <div><strong>Durée:</strong> {rentalDuration()} jour(s)</div>
                             <div className="no-print"><strong>Dépôt de Caution:</strong> {formatCurrency(rental.location.depot || 0, 'MAD')}</div>
                         </div>

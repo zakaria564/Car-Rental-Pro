@@ -158,6 +158,8 @@ export type Rental = {
   location: {
     dateDebut: any; // Timestamp
     dateFin: any; // Timestamp
+    lieuDepart?: string;
+    lieuRetour?: string;
     prixParJour: number;
     nbrJours: number;
     depot?: number;

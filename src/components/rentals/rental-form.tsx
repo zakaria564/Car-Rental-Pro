@@ -47,6 +47,8 @@ const baseSchema = z.object({
     from: z.date({ required_error: "Une date de début est requise." }),
     to: z.date({ required_error: "Une date de fin est requise." }),
   }),
+  lieuDepart: z.string().optional(),
+  lieuRetour: z.string().optional(),
   caution: z.preprocess(
     (val) => (val === "" || val === null || val === undefined ? undefined : Number(val)),
     z.coerce.number({invalid_type_error: "Veuillez entrer un nombre."}).min(0, "La caution ne peut pas être négative.").optional()
@@ -162,6 +164,8 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
       conducteur2_clientId: "_none_",
       voitureId: "",
       dateRange: undefined,
+      lieuDepart: "Agence",
+      lieuRetour: "Agence",
       kilometrageDepart: '' as any,
       caution: undefined,
       carburantNiveauDepart: 0.5,
@@ -284,6 +288,8 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             conducteur2_clientId: rentalConducteur2?.id ?? '_none_',
             voitureId: rental.vehicule.carId,
             dateRange: { from: getSafeDate(rental.location.dateDebut)!, to: getSafeDate(rental.location.dateFin)! },
+            lieuDepart: rental.location.lieuDepart || "Agence",
+            lieuRetour: rental.location.lieuRetour || "Agence",
             caution: rental.location.depot,
             
             kilometrageDepart: livraisonData?.kilometrage,
@@ -352,7 +358,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
 
     if (from && to) {
         const daysDiff = differenceInCalendarDays(startOfDay(to), startOfDay(from));
-        return daysDiff === 0 ? 1 : daysDiff;
+        return daysDiff >= 1 ? daysDiff : 1;
     }
     return 0;
   }, [dateRange, dateRetour, mode, rental]);
@@ -459,6 +465,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             const updatePayload = {
                 receptionInspectionId: receptionInspectionId,
                 'location.dateFin': data.dateRetour,
+                'location.lieuRetour': data.lieuRetour,
                 'location.nbrJours': finalRentalDays,
                 'location.montantTotal': finalAmountToPay,
                 statut: 'terminee' as 'terminee',
@@ -475,16 +482,17 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             onFinished();
 
         } else if (mode === 'edit' && rental) {
-            const { dateRange } = data;
+            const { dateRange, lieuRetour } = data;
             const rentalRef = doc(firestore, 'rentals', rental.id);
 
             const dayDiff = differenceInCalendarDays(startOfDay(dateRange.to), startOfDay(dateRange.from));
-            const finalRentalDays = dayDiff === 0 ? 1 : dayDiff;
+            const finalRentalDays = dayDiff >= 1 ? dayDiff : 1;
 
             const finalAmountToPay = finalRentalDays * rental.location.prixParJour;
 
             const updatePayload = {
                 'location.dateFin': dateRange.to,
+                'location.lieuRetour': lieuRetour,
                 'location.nbrJours': finalRentalDays,
                 'location.montantTotal': finalAmountToPay,
             };
@@ -500,6 +508,8 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                 conducteur2_clientId,
                 dateRange,
                 caution,
+                lieuDepart,
+                lieuRetour,
             } = data;
 
             const selectedCar = cars.find(c => c.id === voitureId);
@@ -513,7 +523,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             }
             
             const dayDiff = differenceInCalendarDays(startOfDay(dateRange.to), startOfDay(dateRange.from));
-            const rentalDays = dayDiff === 0 ? 1 : dayDiff;
+            const rentalDays = dayDiff >= 1 ? dayDiff : 1;
             const totalAmount = rentalDays * selectedCar.prixParJour;
             
             const safeDateMiseEnCirculation = timestampToDate(selectedCar.dateMiseEnCirculation);
@@ -555,6 +565,8 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                 location: {
                     dateDebut: dateRange.from,
                     dateFin: dateRange.to,
+                    lieuDepart: lieuDepart || 'Agence',
+                    lieuRetour: lieuRetour || 'Agence',
                     prixParJour: selectedCar.prixParJour,
                     nbrJours: rentalDays,
                     depot: caution || 0,
@@ -727,6 +739,34 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                         </FormItem>
                       )}
                     />
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="lieuDepart"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Lieu de départ</FormLabel>
+                                <FormControl>
+                                <Input placeholder="Agence" {...field} value={field.value ?? ''} readOnly={mode !== 'new'} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="lieuRetour"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Lieu de retour</FormLabel>
+                                <FormControl>
+                                <Input placeholder="Agence" {...field} value={field.value ?? ''} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                    </div>
                      <FormField
                       control={form.control}
                       name="caution"

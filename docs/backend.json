@@ -195,6 +195,8 @@
           "properties": {
             "dateDebut": { "type": "string", "format": "date-time" },
             "dateFin": { "type": "string", "format": "date-time" },
+            "lieuDepart": { "type": "string", "description": "Lieu de départ de la location." },
+            "lieuRetour": { "type": "string", "description": "Lieu de retour de la location." },
             "prixParJour": { "type": "number" },
             "nbrJours": { "type": "number" },
             "depot": { "type": "number" },
