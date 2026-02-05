@@ -50,9 +50,11 @@ const calculateTotal = (rental: Rental): number => {
     const pricePerDay = rental.location.prixParJour || 0;
 
     if (from && to && pricePerDay > 0) {
-        const daysDiff = differenceInCalendarDays(startOfDay(to), startOfDay(from));
-        const rentalDays = daysDiff === 0 ? 1 : daysDiff;
-        return rentalDays * pricePerDay;
+        if (startOfDay(from).getTime() === startOfDay(to).getTime()) {
+            return pricePerDay;
+        }
+        const daysDiff = differenceInCalendarDays(to, from);
+        return daysDiff * pricePerDay;
     }
 
     // Fallbacks
@@ -176,6 +178,11 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
             
             // Set the new payment document
             transaction.set(paymentRef, paymentPayload, { merge: !isNewPayment });
+            
+            if (isNewPayment) {
+              const archivedPaymentRef = doc(firestore, 'archived_payments', paymentId);
+              transaction.set(archivedPaymentRef, paymentPayload);
+            }
 
             // Update the rental document
             transaction.update(rentalRef, { 'location.montantPaye': newPaidAmount });
@@ -333,3 +340,5 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
     </Form>
   );
 }
+
+    

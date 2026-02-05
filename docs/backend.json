@@ -273,6 +273,10 @@
         "schema": { "$ref": "#/entities/rental" },
         "description": "Stores rental contract documents."
     },
+    "/archived_rentals/{rentalId}": {
+        "schema": { "$ref": "#/entities/rental" },
+        "description": "Stores archived rental contract documents for long-term record-keeping."
+    },
     "/inspections/{inspectionId}": {
         "schema": { "$ref": "#/entities/inspection" },
         "description": "Stores vehicle inspection events."
@@ -284,6 +288,12 @@
     "/payments/{paymentId}": {
       "schema": { "$ref": "#/entities/payment" },
       "description": "Stores payment records."
+    },
+    "/archived_payments/{paymentId}": {
+      "schema": { "$ref": "#/entities/payment" },
+      "description": "Stores archived payment records for long-term record-keeping."
     }
   }
 }
+
+    

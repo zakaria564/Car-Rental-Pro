@@ -357,8 +357,11 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
     const to = (mode === 'check-in' && rental) ? dateRetour : dateRange?.to;
 
     if (from && to) {
-        const daysDiff = differenceInCalendarDays(startOfDay(to), startOfDay(from));
-        return daysDiff >= 1 ? daysDiff : 1;
+        if (startOfDay(from).getTime() === startOfDay(to).getTime()) {
+            return 1;
+        }
+        const daysDiff = differenceInCalendarDays(to, from);
+        return daysDiff;
     }
     return 0;
   }, [dateRange, dateRetour, mode, rental]);
@@ -528,6 +531,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             
             const safeDateMiseEnCirculation = timestampToDate(selectedCar.dateMiseEnCirculation);
             const newRentalRef = doc(collection(firestore, 'rentals'));
+            const newArchivedRentalRef = doc(collection(firestore, 'archived_rentals', newRentalRef.id));
             
             const livraisonInspectionId = handleInspection(newRentalRef.id, selectedCar.id, 'depart', data, batch);
             const carRef = doc(firestore, 'cars', selectedCar.id);
@@ -578,6 +582,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             };
             
             batch.set(newRentalRef, rentalPayload);
+            batch.set(newArchivedRentalRef, rentalPayload);
             batch.update(carRef, { disponibilite: 'louee' });
             
             await batch.commit();
@@ -1125,5 +1130,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
     </Form>
   );
 }
+
+    
 
     
