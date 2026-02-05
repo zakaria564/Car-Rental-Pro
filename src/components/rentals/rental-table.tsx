@@ -538,7 +538,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     
             transaction.delete(rentalDocRef);
     
-            if (carDoc.exists()) {
+             if (carDoc.exists()) {
                 transaction.update(carRef, { disponibilite: 'disponible' });
             }
         });
@@ -790,10 +790,10 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       <div className="w-full">
         <div className="flex items-center py-4 gap-2">
           <Input
-            placeholder="Filtrer par client..."
-            value={(table.getColumn("client")?.getFilterValue() as string) ?? ""}
+            placeholder="Filtrer par numéro de contrat..."
+            value={(table.getColumn("contractNumber")?.getFilterValue() as string) ?? ""}
             onChange={(event) =>
-              table.getColumn("client")?.setFilterValue(event.target.value)
+              table.getColumn("contractNumber")?.setFilterValue(event.target.value)
             }
             className="max-w-sm"
           />
