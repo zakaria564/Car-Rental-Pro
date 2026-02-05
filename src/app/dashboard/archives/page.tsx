@@ -4,15 +4,18 @@ import ArchiveTable from "@/components/archives/archive-table";
 import React from "react";
 import { useFirebase } from "@/firebase";
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
-import type { Rental } from "@/lib/definitions";
+import type { Rental, Payment } from "@/lib/definitions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ArchivedPaymentsTable from "@/components/archives/archived-payments-table";
 
 export default function ArchivesPage() {
   const [archivedRentals, setArchivedRentals] = React.useState<Rental[]>([]);
+  const [archivedPayments, setArchivedPayments] = React.useState<Payment[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   let firestore: any;
@@ -29,19 +32,27 @@ export default function ArchivesPage() {
   React.useEffect(() => {
     if (!firestore) return;
     
+    const loadedStatus = { rentals: false, payments: false };
+    const checkAllLoaded = () => {
+        if (loadedStatus.rentals && loadedStatus.payments) {
+            setLoading(false);
+        }
+    };
+
     const rentalsQuery = query(collection(firestore, "archived_rentals"), orderBy("createdAt", "desc"));
-    const unsubscribe = onSnapshot(rentalsQuery, (snapshot) => {
+    const unsubRentals = onSnapshot(rentalsQuery, (snapshot) => {
       const rentalsData = snapshot.docs.map((doc) => ({ 
         ...(doc.data() as Omit<Rental, 'id'>),
         id: doc.id,
       } as Rental));
-
       setArchivedRentals(rentalsData);
-      setLoading(false);
-      
+      if (!loadedStatus.rentals) {
+          loadedStatus.rentals = true;
+          checkAllLoaded();
+      }
     }, (serverError) => {
       setLoading(false);
-      setError("Impossible de charger les archives. Vérifiez vos permissions.");
+      setError("Impossible de charger les archives des contrats.");
       const permissionError = new FirestorePermissionError({
         path: collection(firestore, "archived_rentals").path,
         operation: 'list'
@@ -49,27 +60,76 @@ export default function ArchivesPage() {
       errorEmitter.emit('permission-error', permissionError);
     });
 
-    return () => unsubscribe();
+    const paymentsQuery = query(collection(firestore, "archived_payments"), orderBy("paymentDate", "desc"));
+    const unsubPayments = onSnapshot(paymentsQuery, (snapshot) => {
+      const paymentsData = snapshot.docs.map((doc) => ({ 
+        ...(doc.data() as Omit<Payment, 'id'>),
+        id: doc.id,
+      } as Payment));
+      setArchivedPayments(paymentsData);
+      if (!loadedStatus.payments) {
+          loadedStatus.payments = true;
+          checkAllLoaded();
+      }
+    }, (serverError) => {
+      setLoading(false);
+      setError(prev => (prev ? prev + " " : "") + "Impossible de charger les archives des paiements.");
+      const permissionError = new FirestorePermissionError({
+        path: collection(firestore, "archived_payments").path,
+        operation: 'list'
+      }, serverError as Error);
+      errorEmitter.emit('permission-error', permissionError);
+    });
+
+    return () => {
+      unsubRentals();
+      unsubPayments();
+    };
   }, [firestore]);
 
   return (
     <>
       <DashboardHeader title="Archives" description="Consultez tous vos contrats et paiements archivés." />
-      {loading ? (
-        <div className="space-y-2">
-            <Skeleton className="h-12 w-full" />
-            <Skeleton className="h-12 w-full" />
-            <Skeleton className="h-12 w-full" />
-        </div>
-      ) : error ? (
-         <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Erreur de chargement</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : (
-        <ArchiveTable rentals={archivedRentals} />
-      )}
+      <Tabs defaultValue="contracts" className="w-full">
+        <TabsList>
+          <TabsTrigger value="contracts">Contrats</TabsTrigger>
+          <TabsTrigger value="payments">Paiements</TabsTrigger>
+        </TabsList>
+        <TabsContent value="contracts">
+          {loading ? (
+            <div className="space-y-2 mt-4">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+            </div>
+          ) : error ? (
+             <Alert variant="destructive" className="mt-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Erreur de chargement</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          ) : (
+            <ArchiveTable rentals={archivedRentals} />
+          )}
+        </TabsContent>
+        <TabsContent value="payments">
+           {loading ? (
+            <div className="space-y-2 mt-4">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+            </div>
+          ) : error ? (
+             <Alert variant="destructive" className="mt-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Erreur de chargement</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          ) : (
+            <ArchivedPaymentsTable payments={archivedPayments} />
+          )}
+        </TabsContent>
+      </Tabs>
     </>
   );
 }

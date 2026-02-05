@@ -176,6 +176,7 @@ export type Contrat = Rental;
 export type Payment = {
   id: string;
   rentalId: string;
+  contractNumber: string;
   clientName: string;
   amount: number;
   paymentDate: any; // Timestamp

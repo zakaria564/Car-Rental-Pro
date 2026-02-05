@@ -249,13 +249,14 @@
       "type": "object",
       "properties": {
         "rentalId": { "type": "string", "description": "Reference to the rental contract." },
+        "contractNumber": { "type": "string", "description": "The contract number this payment is for." },
         "clientName": { "type": "string", "description": "Name of the client who paid."},
         "amount": { "type": "number", "description": "Amount paid."},
         "paymentDate": { "type": "string", "format": "date-time", "description": "Timestamp of the payment."},
         "paymentMethod": { "type": "string", "enum": ["Especes", "Carte bancaire", "Virement", "Avance"], "description": "Payment method."},
         "status": { "type": "string", "enum": ["complete", "en_attente"], "description": "Payment status."}
       },
-      "required": ["rentalId", "clientName", "amount", "paymentDate", "paymentMethod", "status"]
+      "required": ["rentalId", "contractNumber", "clientName", "amount", "paymentDate", "paymentMethod", "status"]
     }
   },
   "auth": {

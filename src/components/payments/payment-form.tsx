@@ -174,6 +174,7 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
             const paymentPayload = {
               ...data,
               clientName: selectedRental.locataire.nomPrenom,
+              contractNumber: selectedRental.contractNumber,
             };
             
             // Set the new payment document
@@ -340,5 +341,4 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
     </Form>
   );
 }
-
     
