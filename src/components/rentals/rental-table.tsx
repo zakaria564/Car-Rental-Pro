@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from "react";
@@ -521,13 +522,12 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
 
   const handleDeleteRental = async (rental: Rental) => {
     if (!firestore || !rental?.id) return;
-
+    
     const rentalDocRef = doc(firestore, 'rentals', rental.id);
     const paymentsQuery = query(collection(firestore, 'payments'), where("rentalId", "==", rental.id));
     
     try {
         await runTransaction(firestore, async (transaction) => {
-            // First, get the car to check if it exists before trying to update it
             const carRef = doc(firestore, 'cars', rental.vehicule.carId);
             const carDoc = await transaction.get(carRef);
 
@@ -538,17 +538,17 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     
             transaction.delete(rentalDocRef);
     
-            // Only update the car if it still exists
             if (carDoc.exists()) {
-              transaction.update(carRef, { disponibilite: 'disponible' });
+                transaction.update(carRef, { disponibilite: 'disponible' });
             }
         });
 
         toast({
             title: "Contrat supprimé",
-            description: "Le contrat et ses paiements associés ont été supprimés.",
+            description: "Le contrat et ses paiements associés ont été supprimés avec succès.",
         });
     } catch (serverError: any) {
+        console.error("Erreur de transaction lors de la suppression:", serverError);
         const permissionError = new FirestorePermissionError({
             path: rentalDocRef.path,
             operation: 'delete'
@@ -623,7 +623,8 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       header: "Voiture",
     },
     {
-      accessorKey: "locataire.nomPrenom",
+      id: "client",
+      accessorFn: (row) => row.locataire.nomPrenom,
       header: "Client",
     },
     {
@@ -786,9 +787,9 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
         <div className="flex items-center py-4 gap-2">
           <Input
             placeholder="Filtrer par client..."
-            value={(table.getColumn("locataire.nomPrenom")?.getFilterValue() as string) ?? ""}
+            value={(table.getColumn("client")?.getFilterValue() as string) ?? ""}
             onChange={(event) =>
-              table.getColumn("locataire.nomPrenom")?.setFilterValue(event.target.value)
+              table.getColumn("client")?.setFilterValue(event.target.value)
             }
             className="max-w-sm"
           />
