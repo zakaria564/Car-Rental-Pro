@@ -555,7 +555,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             
             const safeDateMiseEnCirculation = timestampToDate(selectedCar.dateMiseEnCirculation);
             const newRentalRef = doc(collection(firestore, 'rentals'));
-            const newArchivedRentalRef = doc(collection(firestore, 'archived_rentals', newRentalRef.id));
+            const newArchivedRentalRef = doc(firestore, 'archived_rentals', newRentalRef.id);
             
             const livraisonInspectionId = handleInspection(newRentalRef.id, selectedCar.id, 'depart', data, batch);
             const carRef = doc(firestore, 'cars', selectedCar.id);
@@ -1155,5 +1155,3 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
     </Form>
   );
 }
-
-    
