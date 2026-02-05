@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -12,7 +13,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { MoreHorizontal, Printer, FileText } from "lucide-react";
+import { MoreHorizontal, Printer, FileText, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -22,6 +23,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -39,13 +41,47 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription as DialogDesc, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RentalDetails } from "../rentals/rental-contract-views";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useFirebase } from "@/firebase";
+import { deleteDoc, doc } from "firebase/firestore";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
 
 export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
   const { toast } = useToast();
+  const { firestore } = useFirebase();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [isDetailsOpen, setIsDetailsOpen] = React.useState(false);
   const [selectedRental, setSelectedRental] = React.useState<Rental | null>(null);
+  const [rentalToDelete, setRentalToDelete] = React.useState<Rental | null>(null);
+
+  const handleDeleteArchivedRental = async (rentalId: string) => {
+    if (!firestore) return;
+    const rentalDocRef = doc(firestore, 'archived_rentals', rentalId);
+    
+    try {
+        await deleteDoc(rentalDocRef);
+        toast({
+            title: "Archive supprimée",
+            description: "Le contrat a été supprimé des archives.",
+        });
+    } catch(serverError) {
+        const permissionError = new FirestorePermissionError({
+            path: rentalDocRef.path,
+            operation: 'delete'
+        }, serverError as Error);
+        errorEmitter.emit('permission-error', permissionError);
+        toast({
+            variant: "destructive",
+            title: "Erreur de suppression",
+            description: "Vous n'avez pas la permission de supprimer cette archive.",
+        });
+    } finally {
+        setRentalToDelete(null); // Close the dialog
+    }
+  };
+
 
   const handlePrint = () => {
     const printContent = document.getElementById('printable-contract');
@@ -180,6 +216,14 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
                 <Printer className="mr-2 h-4 w-4" />
                 Imprimer
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                onSelect={() => setRentalToDelete(rental)}
+              >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Supprimer
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         );
@@ -272,6 +316,28 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
             </DialogContent>
         )}
       </Dialog>
+      
+      <AlertDialog open={!!rentalToDelete} onOpenChange={(open) => !open && setRentalToDelete(null)}>
+        {rentalToDelete && (
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Supprimer cette archive ?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Cette action est irréversible. Le contrat archivé N° {rentalToDelete.contractNumber} sera définitivement supprimé. Le contrat actif ne sera pas affecté.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                    <AlertDialogAction 
+                        onClick={() => handleDeleteArchivedRental(rentalToDelete.id)} 
+                        className="bg-destructive hover:bg-destructive/90"
+                    >
+                        Supprimer
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        )}
+      </AlertDialog>
     </>
   );
 }
