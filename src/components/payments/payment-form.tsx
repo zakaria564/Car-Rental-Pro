@@ -224,7 +224,7 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
                 <SelectContent>
                   {rentals.map(rental => (
                     <SelectItem key={rental.id} value={rental.id}>
-                      {rental.locataire.nomPrenom} - {rental.vehicule.marque} ({rental.id.substring(0, 6).toUpperCase()})
+                      {rental.locataire.nomPrenom} - {rental.vehicule.marque} ({rental.contractNumber})
                     </SelectItem>
                   ))}
                 </SelectContent>
