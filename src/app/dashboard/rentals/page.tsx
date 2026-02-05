@@ -1,3 +1,4 @@
+
 'use client';
 import { DashboardHeader } from "@/components/dashboard-header";
 import RentalTable from "@/components/rentals/rental-table";
@@ -43,8 +44,14 @@ export default function RentalsPage() {
     
     const rentalsQuery = query(collection(firestore, "rentals"), orderBy("createdAt", "desc"));
     const unsubRentals = onSnapshot(rentalsQuery, (snapshot) => {
-      const rentalsData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Rental));
+      const rentalsData = snapshot.docs.map((doc, index) => ({ 
+        ...(doc.data() as Omit<Rental, 'id'>),
+        id: doc.id,
+        contractNumber: snapshot.size - index
+      } as Rental));
+
       setRentals(rentalsData);
+      
       if (!loadedStatus.rentals) {
         loadedStatus.rentals = true;
         checkAllLoaded();

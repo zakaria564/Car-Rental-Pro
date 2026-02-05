@@ -614,17 +614,25 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     
     return [
     {
-      accessorKey: "vehicule",
-      header: "Voiture",
-      cell: ({ row }) => {
-        const rental = row.original;
-        return rental.vehicule.marque;
-      }
+      id: "contractNumber",
+      header: "Contrat N°",
+      cell: ({ row }) => `N° ${row.original.contractNumber || row.index + 1}`
     },
     {
-      accessorKey: "locataire",
+      accessorKey: "vehicule.marque",
+      header: "Voiture",
+    },
+    {
+      accessorKey: "locataire.nomPrenom",
       header: "Client",
-      cell: ({ row }) => row.original.locataire.nomPrenom,
+    },
+    {
+      accessorKey: "location.dateDebut",
+      header: "Date départ",
+      cell: ({ row }) => {
+        const date = getSafeDate(row.original.location.dateDebut);
+        return date ? format(date, "dd/MM/yyyy", { locale: fr }) : "N/A";
+      },
     },
     {
       accessorKey: "location.dateFin",
@@ -635,36 +643,10 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       }
     },
     {
-      accessorKey: "location.montantTotal",
-      header: () => <div className="text-right">Montant Total</div>,
-      cell: ({ row }) => {
-        const total = calculateTotal(row.original);
-        return (
-            <div className="text-right font-medium">
-            {formatCurrency(total, 'MAD')}
-            </div>
-        );
-      },
-    },
-    {
-      accessorKey: "location.montantPaye",
-      header: () => <div className="text-right">Reste à Payer</div>,
-      cell: ({ row }) => {
-          const rental = row.original;
-          const total = calculateTotal(rental);
-          const reste = total - (rental.location.montantPaye || 0);
-          return (
-            <div className={cn("text-right font-medium", reste > 0 && "text-destructive")}>
-              {formatCurrency(reste, 'MAD')}
-            </div>
-          )
-      }
-    },
-    {
       accessorKey: "statut",
       header: "Statut",
       cell: ({ row }) => (
-        <Badge variant={row.getValue("statut") === 'en_cours' ? 'default' : 'outline'} className={row.getValue("statut") === 'en_cours' ? "bg-orange-500/20 text-orange-700" : ""}>
+        <Badge variant={row.getValue("statut") === 'en_cours' ? 'default' : 'outline'} className={cn(row.getValue("statut") === 'en_cours' && "bg-blue-500/20 text-blue-700")}>
           {row.getValue("statut") === 'en_cours' ? "En cours" : "Terminée"}
         </Badge>
       ),
@@ -804,9 +786,9 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
         <div className="flex items-center py-4 gap-2">
           <Input
             placeholder="Filtrer par client..."
-            value={(table.getColumn("locataire")?.getFilterValue() as string) ?? ""}
+            value={(table.getColumn("locataire.nomPrenom")?.getFilterValue() as string) ?? ""}
             onChange={(event) =>
-              table.getColumn("locataire")?.setFilterValue(event.target.value)
+              table.getColumn("locataire.nomPrenom")?.setFilterValue(event.target.value)
             }
             className="max-w-sm"
           />

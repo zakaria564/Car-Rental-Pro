@@ -96,6 +96,7 @@ export type Inspection = {
 
 export type Rental = {
   id: string;
+  contractNumber?: number;
   locataire: {
     cin: string;
     nomPrenom: string;
