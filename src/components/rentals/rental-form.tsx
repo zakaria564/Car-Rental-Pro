@@ -32,7 +32,7 @@ import { Textarea } from "../ui/textarea";
 import { Slider } from "../ui/slider";
 import CarDamageDiagram, { carParts } from "./car-damage-diagram";
 import { useFirebase } from "@/firebase";
-import { collection, doc, serverTimestamp, setDoc, writeBatch, Timestamp, updateDoc, getDoc, getDocs, query, where, orderBy, limit } from "firebase/firestore";
+import { collection, doc, serverTimestamp, setDoc, writeBatch, Timestamp, updateDoc, getDoc, getDocs, query, where, orderBy, limit, runTransaction } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { Skeleton } from "../ui/skeleton";
@@ -401,7 +401,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
     setIsSubmitting(true);
     const userId = auth.currentUser.uid;
     
-    const handleInspection = (
+    const handleInspectionInBatch = (
         rentalId: string, 
         carId: string, 
         type: 'depart' | 'retour',
@@ -454,32 +454,74 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
 
 
     try {
-        const batch = writeBatch(firestore);
-
         if (mode === 'check-in' && rental) {
-            const receptionInspectionId = handleInspection(rental.id, rental.vehicule.carId, 'retour', data, batch);
-            
             const rentalRef = doc(firestore, 'rentals', rental.id);
             const archivedRentalRef = doc(firestore, 'archived_rentals', rental.id);
             const carDocRef = doc(firestore, 'cars', rental.vehicule.carId);
+
+            const receptionInspectionRef = doc(collection(firestore, 'inspections'));
             
-            const finalRentalDays = rentalDaysForUI;
-            const finalAmountToPay = finalRentalDays * rental.location.prixParJour;
+            await runTransaction(firestore, async (transaction) => {
+                const rentalDoc = await transaction.get(rentalRef);
+                if (!rentalDoc.exists()) {
+                    throw new Error("Contrat de location introuvable.");
+                }
 
-            const updatePayload = {
-                receptionInspectionId: receptionInspectionId,
-                'location.dateFin': data.dateRetour,
-                'location.lieuRetour': data.lieuRetour,
-                'location.nbrJours': finalRentalDays,
-                'location.montantTotal': finalAmountToPay,
-                statut: 'terminee' as const,
-            };
+                // Create inspection document and its sub-collection within the transaction
+                const receptionInspectionId = receptionInspectionRef.id;
+                const photoUrls = data.photosRetour ? data.photosRetour.map((item: { url: string }) => item.url.trim()).filter((url: string) => url) : [];
+                const inspectionPayload: Omit<Inspection, 'id' | 'damages'> = {
+                    vehicleId: rental.vehicule.carId,
+                    rentalId: rental.id,
+                    userId: userId,
+                    timestamp: data.dateRetour,
+                    type: 'retour',
+                    notes: data.dommagesRetourNotes,
+                    kilometrage: data.kilometrageRetour!,
+                    carburantNiveau: data.carburantNiveauRetour!,
+                    roueSecours: data.roueSecoursRetour!,
+                    posteRadio: data.posteRadioRetour!,
+                    lavage: data.lavageRetour!,
+                    cric: data.cricRetour!,
+                    giletTriangle: data.giletTriangleRetour!,
+                    doubleCles: data.doubleClesRetour!,
+                    photos: photoUrls,
+                };
+                transaction.set(receptionInspectionRef, inspectionPayload);
 
-            batch.update(rentalRef, updatePayload);
-            batch.update(archivedRentalRef, updatePayload);
-            batch.update(carDocRef, { kilometrage: data.kilometrageRetour, disponibilite: 'disponible' });
+                const damages = data.dommagesRetour;
+                if (damages) {
+                    for (const partId of Object.keys(damages)) {
+                        const damageType = damages[partId as keyof typeof damages];
+                        if (!damageType) continue;
+                        const partInfo = carParts.find(p => p.id === partId);
+                        const damageDocRef = doc(collection(firestore, `inspections/${receptionInspectionId}/damages`));
+                        const damagePayload: Omit<Damage, 'id'> = {
+                            partName: partId,
+                            damageType: damageType,
+                            positionX: partInfo?.x || 0,
+                            positionY: partInfo?.y || 0,
+                        };
+                        transaction.set(damageDocRef, damagePayload);
+                    }
+                }
 
-            await batch.commit();
+                const finalRentalDays = rentalDaysForUI;
+                const finalAmountToPay = finalRentalDays * rental.location.prixParJour;
+                const updatePayload = {
+                    receptionInspectionId: receptionInspectionId,
+                    'location.dateFin': data.dateRetour,
+                    'location.lieuRetour': data.lieuRetour,
+                    'location.nbrJours': finalRentalDays,
+                    'location.montantTotal': finalAmountToPay,
+                    statut: 'terminee' as const,
+                };
+
+                transaction.update(rentalRef, updatePayload);
+                transaction.update(archivedRentalRef, updatePayload); // This will now execute reliably
+                transaction.update(carDocRef, { kilometrage: data.kilometrageRetour, disponibilite: 'disponible' });
+            });
+
             toast({
                 title: "Location terminée",
                 description: `La réception pour ${rental.locataire.nomPrenom} a été enregistrée.`,
@@ -507,6 +549,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             onFinished();
 
         } else { // mode === 'new'
+            const batch = writeBatch(firestore);
             const {
                 voitureId,
                 clientId,
@@ -557,7 +600,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             const safeDateMiseEnCirculation = timestampToDate(selectedCar.dateMiseEnCirculation);
             const newRentalRef = doc(collection(firestore, 'rentals'));
             
-            const livraisonInspectionId = handleInspection(newRentalRef.id, selectedCar.id, 'depart', data, batch);
+            const livraisonInspectionId = handleInspectionInBatch(newRentalRef.id, selectedCar.id, 'depart', data, batch);
             const carRef = doc(firestore, 'cars', selectedCar.id);
 
             const rentalPayload: Omit<Rental, 'id'> & {createdAt: any} = {
