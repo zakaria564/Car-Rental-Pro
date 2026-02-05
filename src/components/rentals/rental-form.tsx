@@ -361,7 +361,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             return 1;
         }
         const daysDiff = differenceInCalendarDays(to, from);
-        return daysDiff;
+        return daysDiff > 0 ? daysDiff : 1;
     }
     return 0;
   }, [dateRange, dateRetour, mode, rental]);
@@ -550,7 +550,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             const newContractNumber = `${prefix}${nextSeq.toString().padStart(3, '0')}`;
             
             const dayDiff = differenceInCalendarDays(startOfDay(dateRange.to), startOfDay(dateRange.from));
-            const rentalDays = dayDiff >= 1 ? dayDiff : 1;
+            const rentalDays = dayDiff > 0 ? dayDiff : 1;
             const totalAmount = rentalDays * selectedCar.prixParJour;
             
             const safeDateMiseEnCirculation = timestampToDate(selectedCar.dateMiseEnCirculation);
