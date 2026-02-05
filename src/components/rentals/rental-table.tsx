@@ -69,8 +69,11 @@ const calculateTotal = (rental: Rental): number => {
     const pricePerDay = rental.location.prixParJour || 0;
 
     if (from && to && pricePerDay > 0) {
-        const daysDiff = differenceInCalendarDays(startOfDay(to), startOfDay(from));
-        return (daysDiff >= 1 ? daysDiff : 1) * pricePerDay;
+        if (startOfDay(from).getTime() === startOfDay(to).getTime()) {
+            return pricePerDay;
+        }
+        const daysDiff = differenceInCalendarDays(to, from);
+        return (daysDiff || 1) * pricePerDay;
     }
 
     // Fallbacks
@@ -312,8 +315,10 @@ function RentalDetails({ rental }: { rental: Rental }) {
 
     const rentalDuration = () => {
         if (safeDebutDate && safeFinDate) {
-            const daysDiff = differenceInCalendarDays(startOfDay(safeFinDate), startOfDay(safeDebutDate));
-            return daysDiff >= 1 ? daysDiff : 1;
+             if (startOfDay(safeDebutDate).getTime() === startOfDay(safeFinDate).getTime()) {
+                return 1;
+            }
+            return differenceInCalendarDays(safeFinDate, safeDebutDate) || 1;
         }
         return rental.location.nbrJours || 0;
     };
@@ -522,6 +527,10 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     
     try {
         await runTransaction(firestore, async (transaction) => {
+            // First, get the car to check if it exists before trying to update it
+            const carRef = doc(firestore, 'cars', rental.vehicule.carId);
+            const carDoc = await transaction.get(carRef);
+
             const paymentsSnapshot = await getDocs(paymentsQuery);
             paymentsSnapshot.forEach(paymentDoc => {
                 transaction.delete(paymentDoc.ref);
@@ -529,8 +538,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     
             transaction.delete(rentalDocRef);
     
-            const carRef = doc(firestore, 'cars', rental.vehicule.carId);
-            const carDoc = await transaction.get(carRef);
+            // Only update the car if it still exists
             if (carDoc.exists()) {
               transaction.update(carRef, { disponibilite: 'disponible' });
             }
@@ -555,8 +563,56 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
 
     setIsAlertOpen(false);
   };
-
-  const columns: ColumnDef<Rental>[] = [
+  
+  const columns: ColumnDef<Rental>[] = React.useMemo(() => {
+    if (isDashboard) {
+      return [
+        {
+          accessorKey: "vehicule.marque",
+          header: "Voiture",
+        },
+        {
+          accessorKey: "locataire.nomPrenom",
+          header: "Client",
+        },
+        {
+          accessorKey: "vehicule.immatriculation",
+          header: "Immatriculation",
+        },
+        {
+          accessorKey: "location.dateDebut",
+          header: "Date départ",
+          cell: ({ row }) => {
+            const date = getSafeDate(row.original.location.dateDebut);
+            return date ? format(date, "dd/MM/yyyy", { locale: fr }) : "N/A";
+          },
+        },
+        {
+          accessorKey: "location.dateFin",
+          header: "Date de retour",
+          cell: ({ row }) => {
+            const date = getSafeDate(row.original.location.dateFin);
+            return date ? format(date, "dd/MM/yyyy", { locale: fr }) : "Date invalide";
+          },
+        },
+        {
+          accessorKey: "statut",
+          header: "Statut",
+          cell: ({ row }) => (
+            <Badge
+              variant={row.getValue("statut") === "en_cours" ? "default" : "outline"}
+              className={cn(
+                row.getValue("statut") === "en_cours" && "bg-blue-500/20 text-blue-700"
+              )}
+            >
+              {row.getValue("statut") === "en_cours" ? "En cours" : "Terminée"}
+            </Badge>
+          ),
+        },
+      ];
+    }
+    
+    return [
     {
       accessorKey: "vehicule",
       header: "Voiture",
@@ -574,11 +630,8 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       accessorKey: "location.dateFin",
       header: "Date de retour",
       cell: ({ row }) => {
-          const date = row.original.location.dateFin;
-          if (date && date.toDate) {
-            return format(date.toDate(), "dd/MM/yyyy", { locale: fr });
-          }
-          return "Date invalide";
+          const date = getSafeDate(row.original.location.dateFin);
+          return date ? format(date, "dd/MM/yyyy", { locale: fr }) : "Date invalide";
       }
     },
     {
@@ -677,6 +730,8 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       },
     },
   ];
+  }, [isDashboard, setFormMode, setIsAlertOpen, setIsDetailsOpen, setIsSheetOpen, setRentalForModal]);
+
 
   const table = useReactTable({
     data: rentals,
@@ -878,5 +933,3 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     </>
   );
 }
-
-    
