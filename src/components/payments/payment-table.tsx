@@ -62,7 +62,7 @@ const RentalStatementDialog = ({ rental, payments, onDeletePaymentClick, onPrint
       <DialogHeader>
         <DialogTitle>Relevé de compte</DialogTitle>
         <DialogDescription>
-          Contrat {rental.id.substring(0,8).toUpperCase()} pour {rental.locataire.nomPrenom}
+          Contrat {rental.contractNumber} pour {rental.locataire.nomPrenom}
         </DialogDescription>
       </DialogHeader>
       <div className="rounded-md border">
@@ -305,9 +305,8 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
 
   const columns: ColumnDef<Rental>[] = [
     {
-      accessorKey: "id",
-      header: "Contrat ID",
-      cell: ({ row }) => <div className="font-mono text-xs">{row.original.id?.substring(0, 8).toUpperCase()}</div>,
+      accessorKey: "contractNumber",
+      header: "Contrat N°",
     },
     {
       id: "client",
@@ -326,6 +325,10 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
     {
         accessorKey: "vehicule.marque",
         header: "Voiture",
+    },
+    {
+        accessorKey: "vehicule.immatriculation",
+        header: "Immatriculation",
     },
     {
       id: "montantTotal",
@@ -459,10 +462,10 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
         <div className="w-full">
             <div className="flex items-center py-4 gap-2">
                 <Input
-                placeholder="Filtrer par client..."
-                value={(table.getColumn("client")?.getFilterValue() as string) ?? ""}
+                placeholder="Filtrer par N° de contrat..."
+                value={(table.getColumn("contractNumber")?.getFilterValue() as string) ?? ""}
                 onChange={(event) =>
-                    table.getColumn("client")?.setFilterValue(event.target.value)
+                    table.getColumn("contractNumber")?.setFilterValue(event.target.value)
                 }
                 className="max-w-sm"
                 />

@@ -47,7 +47,7 @@ export const Invoice: React.FC<InvoiceProps> = ({ rental, payments, totalAmount 
                 </div>
                 <div className="text-right">
                     <h1 className="font-bold text-3xl uppercase text-gray-800">Facture / Relevé</h1>
-                    <p className="text-gray-600">Contrat N°: <span className="font-mono">{rental.id.substring(0, 8).toUpperCase()}</span></p>
+                    <p className="text-gray-600">Contrat N°: <span className="font-mono">{rental.contractNumber}</span></p>
                     <p className="text-gray-600">Date: {format(today, "dd/MM/yyyy", { locale: fr })}</p>
                 </div>
             </header>

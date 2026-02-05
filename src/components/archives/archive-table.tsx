@@ -105,24 +105,35 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
 
   const columns: ColumnDef<Rental>[] = [
     {
-      accessorKey: "id",
+      accessorKey: "contractNumber",
       header: "Contrat N°",
-      cell: (info) => info.getValue() ? `...${(info.getValue() as string).slice(-6)}` : 'N/A'
     },
     {
       accessorKey: "vehicule.marque",
       header: "Voiture",
     },
     {
+      accessorKey: "vehicule.immatriculation",
+      header: "Immatriculation",
+    },
+    {
       id: "client",
       accessorFn: (row) => row.locataire.nomPrenom,
       header: "Client",
     },
-    {
-      accessorKey: "createdAt",
-      header: "Date Création",
+     {
+      accessorKey: "location.dateDebut",
+      header: "Date départ",
       cell: ({ row }) => {
-        const date = row.original.createdAt?.toDate ? row.original.createdAt.toDate() : null;
+        const date = row.original.location.dateDebut?.toDate ? row.original.location.dateDebut.toDate() : null;
+        return date ? format(date, "dd/MM/yyyy", { locale: fr }) : "N/A";
+      },
+    },
+    {
+      accessorKey: "location.dateFin",
+      header: "Date retour",
+      cell: ({ row }) => {
+        const date = row.original.location.dateFin?.toDate ? row.original.location.dateFin.toDate() : null;
         return date ? format(date, "dd/MM/yyyy", { locale: fr }) : "N/A";
       },
     },
@@ -196,10 +207,10 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
       <div className="w-full">
         <div className="flex items-center py-4 gap-2">
           <Input
-            placeholder="Filtrer par client..."
-            value={(table.getColumn("client")?.getFilterValue() as string) ?? ""}
+            placeholder="Filtrer par N° de contrat..."
+            value={(table.getColumn("contractNumber")?.getFilterValue() as string) ?? ""}
             onChange={(event) =>
-              table.getColumn("client")?.setFilterValue(event.target.value)
+              table.getColumn("contractNumber")?.setFilterValue(event.target.value)
             }
             className="max-w-sm"
           />
@@ -249,7 +260,7 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
         {selectedRental && (
             <DialogContent className="sm:max-w-4xl">
                 <DialogHeader className="no-print">
-                    <DialogTitle>Détails du contrat archivé #{selectedRental.id?.substring(0,6)}</DialogTitle>
+                    <DialogTitle>Détails du contrat archivé #{selectedRental.contractNumber}</DialogTitle>
                 </DialogHeader>
                 <RentalDetails rental={selectedRental} isArchived={true} />
                 <DialogFooter className="no-print">
