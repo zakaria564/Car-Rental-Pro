@@ -472,7 +472,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                 'location.lieuRetour': data.lieuRetour,
                 'location.nbrJours': finalRentalDays,
                 'location.montantTotal': finalAmountToPay,
-                statut: 'terminee' as 'terminee',
+                statut: 'terminee' as const,
             };
 
             batch.update(rentalRef, updatePayload);
@@ -527,7 +527,6 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                  throw new Error("Client ou voiture invalides. Veuillez réessayer.");
             }
 
-            // Generate contract number
             const now = new Date();
             const year = now.getFullYear();
             const month = (now.getMonth() + 1).toString().padStart(2, '0');
@@ -621,10 +620,22 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
         }
     } catch (error: any) {
         console.error("Submission error:", error);
+        const isPermissionError = error.code === 'permission-denied';
+        
+        if (isPermissionError) {
+             const permissionError = new FirestorePermissionError({
+                path: `rentals`,
+                operation: mode === 'new' ? 'create' : 'update',
+            }, error as Error);
+            errorEmitter.emit('permission-error', permissionError);
+        }
+
         toast({
             variant: "destructive",
             title: "Erreur",
-            description: error.message || "Une erreur est survenue lors de l'enregistrement."
+            description: isPermissionError 
+                ? "Permission refusée. Impossible de sauvegarder le contrat."
+                : error.message || "Une erreur est survenue lors de l'enregistrement."
         });
     } finally {
         setIsSubmitting(false);
