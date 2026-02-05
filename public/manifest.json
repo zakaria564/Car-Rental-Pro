@@ -1,22 +1,10 @@
-
 {
-  "name": "Car Rental Pro",
-  "short_name": "Car Rental",
-  "description": "A web application for managing car rentals.",
-  "icons": [
-    {
-      "src": "/icon-192.png",
-      "type": "image/png",
-      "sizes": "192x192"
-    },
-    {
-      "src": "/icon-512.png",
-      "type": "image/png",
-      "sizes": "512x512"
-    }
-  ],
-  "start_url": "/",
+  "name": "Location Auto Pro",
+  "short_name": "Location Pro",
+  "description": "Un logiciel complet de gestion de location de voitures.",
+  "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#F0F4F8",
-  "theme_color": "#2962FF"
+  "theme_color": "#2962FF",
+  "icons": []
 }
