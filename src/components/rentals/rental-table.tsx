@@ -616,15 +616,16 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     {
       id: "contractNumber",
       header: "Contrat N°",
-      cell: ({ row }) => `N° ${row.original.contractNumber || row.index + 1}`
+      accessorFn: (row) => `${row.contractNumber || row.index + 1}`,
+      cell: (info) => `N° ${info.getValue() as string}`,
     },
     {
       accessorKey: "vehicule.marque",
       header: "Voiture",
     },
     {
-      accessorKey: "vehicule.immatriculation",
-      header: "Immatriculation",
+        accessorKey: "vehicule.immatriculation",
+        header: "Immatriculation",
     },
     {
       id: "client",
