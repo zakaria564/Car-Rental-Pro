@@ -37,7 +37,7 @@ const calculateTotal = (rental: Rental): number => {
             return pricePerDay;
         }
         const daysDiff = differenceInCalendarDays(to, from) || 1;
-        return daysDiff;
+        return daysDiff * pricePerDay;
     }
     if (typeof rental.location.montantTotal === 'number' && !isNaN(rental.location.montantTotal) && rental.location.montantTotal > 0) {
       return rental.location.montantTotal;

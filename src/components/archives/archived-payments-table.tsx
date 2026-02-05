@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -12,8 +13,8 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { MoreHorizontal, Trash2 } from "lucide-react";
-import { format } from "date-fns";
+import { MoreHorizontal, Trash2, FileText, Printer } from "lucide-react";
+import { format, differenceInCalendarDays, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -33,8 +35,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import type { Payment } from "@/lib/definitions";
+import type { Payment, Rental } from "@/lib/definitions";
 import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -42,13 +43,48 @@ import { useFirebase } from "@/firebase";
 import { deleteDoc, doc } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
+import { Invoice } from "../payments/invoice";
 
-export default function ArchivedPaymentsTable({ payments }: { payments: Payment[] }) {
+const getSafeDate = (date: any): Date | null => {
+    if (!date) return null;
+    if (date.toDate) return date.toDate();
+    if (date instanceof Date) return date;
+    const d = new Date(date);
+    return isNaN(d.getTime()) ? null : d;
+};
+
+const calculateTotal = (rental: Rental): number => {
+    const from = getSafeDate(rental.location.dateDebut);
+    const to = getSafeDate(rental.location.dateFin);
+    const pricePerDay = rental.location.prixParJour || 0;
+
+    if (from && to && pricePerDay > 0) {
+        if (startOfDay(from).getTime() === startOfDay(to).getTime()) {
+            return pricePerDay;
+        }
+        const daysDiff = differenceInCalendarDays(to, from) || 1;
+        return daysDiff * pricePerDay;
+    }
+    if (typeof rental.location.montantTotal === 'number' && !isNaN(rental.location.montantTotal) && rental.location.montantTotal > 0) {
+      return rental.location.montantTotal;
+    }
+    if (rental.location.nbrJours && pricePerDay > 0) {
+      return rental.location.nbrJours * pricePerDay;
+    }
+    return 0;
+};
+
+
+export default function ArchivedPaymentsTable({ payments, rentals }: { payments: Payment[], rentals: Rental[] }) {
   const { toast } = useToast();
   const { firestore } = useFirebase();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [paymentToDelete, setPaymentToDelete] = React.useState<Payment | null>(null);
+  
+  const [statementRental, setStatementRental] = React.useState<Rental | null>(null);
+  const [isStatementOpen, setIsStatementOpen] = React.useState(false);
 
   const handleDeleteArchivedPayment = async (paymentId: string) => {
     if (!firestore) return;
@@ -74,6 +110,56 @@ export default function ArchivedPaymentsTable({ payments }: { payments: Payment[
     } finally {
         setPaymentToDelete(null);
     }
+  };
+
+  const handlePrintInvoice = () => {
+    const printContent = document.getElementById('printable-invoice');
+    if (!printContent) return;
+
+    const printWindow = window.open('', '', 'fullscreen=yes');
+    if (!printWindow) {
+      toast({
+        variant: "destructive",
+        title: "Erreur d'impression",
+        description: "Veuillez autoriser les pop-ups pour imprimer.",
+      });
+      return;
+    }
+    
+    const styles = `
+      body { 
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+       }
+      .no-print { display: none !important; }
+       @page {
+        size: A4;
+        margin: 15mm;
+      }
+    `;
+
+    printWindow.document.write('<html><head><title>Facture</title>');
+    
+    Array.from(document.styleSheets).forEach(sheet => {
+        if (sheet.href) {
+            printWindow.document.write(`<link rel="stylesheet" href="${sheet.href}">`);
+        }
+    });
+
+    printWindow.document.write(`<style>${styles}</style>`);
+    printWindow.document.write('</head><body>');
+    printWindow.document.write(printContent.innerHTML);
+    printWindow.document.write('</body></html>');
+    
+    printWindow.document.close();
+    
+    printWindow.onload = function() {
+      setTimeout(function() {
+        printWindow.focus();
+        printWindow.print();
+        printWindow.close();
+      }, 500);
+    };
   };
 
   const columns: ColumnDef<Payment>[] = [
@@ -110,6 +196,20 @@ export default function ArchivedPaymentsTable({ payments }: { payments: Payment[
       enableHiding: false,
       cell: ({ row }) => {
         const payment = row.original;
+        const handleViewStatement = () => {
+            const rental = rentals.find(r => r.contractNumber === payment.contractNumber);
+            if (rental) {
+                setStatementRental(rental);
+                setIsStatementOpen(true);
+            } else {
+                toast({
+                    variant: "destructive",
+                    title: "Contrat non trouvé",
+                    description: "Le contrat archivé correspondant à ce paiement n'a pas été trouvé.",
+                });
+            }
+        };
+
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -120,6 +220,11 @@ export default function ArchivedPaymentsTable({ payments }: { payments: Payment[
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
+               <DropdownMenuItem onSelect={handleViewStatement}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Voir le relevé
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem 
                 className="text-destructive focus:text-destructive focus:bg-destructive/10"
                 onSelect={() => setPaymentToDelete(payment)}
@@ -199,6 +304,61 @@ export default function ArchivedPaymentsTable({ payments }: { payments: Payment[
           <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Suivant</Button>
         </div>
       </div>
+      
+       <Dialog open={isStatementOpen} onOpenChange={(open) => {
+            setIsStatementOpen(open);
+            if (!open) setStatementRental(null);
+        }}>
+          {statementRental && (
+             <>
+                <div className="hidden">
+                    <Invoice 
+                        rental={statementRental} 
+                        payments={payments.filter(p => p.contractNumber === statementRental.contractNumber)}
+                        totalAmount={calculateTotal(statementRental)}
+                    />
+                </div>
+                <DialogContent className="sm:max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Relevé de compte (Archive)</DialogTitle>
+                        <DialogDescription>
+                            Contrat {statementRental.contractNumber} pour {statementRental.locataire.nomPrenom}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="rounded-md border">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Méthode</TableHead>
+                                <TableHead className="text-right">Montant</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {payments.filter(p => p.contractNumber === statementRental.contractNumber).length > 0 ? payments.filter(p => p.contractNumber === statementRental.contractNumber).map(p => (
+                            <TableRow key={p.id}>
+                                <TableCell>{p.paymentDate?.toDate ? format(p.paymentDate.toDate(), "dd/MM/yyyy", { locale: fr }) : 'N/A'}</TableCell>
+                                <TableCell>{p.paymentMethod}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(p.amount, 'MAD')}</TableCell>
+                            </TableRow>
+                            )) : (
+                            <TableRow>
+                                <TableCell colSpan={3} className="h-24 text-center">Aucun paiement archivé pour ce contrat.</TableCell>
+                            </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={handlePrintInvoice}>
+                            <Printer className="mr-2 h-4 w-4"/>
+                            Imprimer le relevé
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </>
+          )}
+        </Dialog>
       
       <AlertDialog open={!!paymentToDelete} onOpenChange={(open) => !open && setPaymentToDelete(null)}>
         {paymentToDelete && (

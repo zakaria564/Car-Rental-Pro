@@ -1,3 +1,4 @@
+
 'use client';
 import { DashboardHeader } from "@/components/dashboard-header";
 import ArchiveTable from "@/components/archives/archive-table";
@@ -39,8 +40,7 @@ export default function ArchivesPage() {
         }
     };
 
-    const rentalsQuery = query(collection(firestore, "archived_rentals"));
-    const unsubRentals = onSnapshot(rentalsQuery, (snapshot) => {
+    const unsubRentals = onSnapshot(collection(firestore, "archived_rentals"), (snapshot) => {
       const rentalsData = snapshot.docs.map((doc) => ({ 
         ...(doc.data() as Omit<Rental, 'id'>),
         id: doc.id,
@@ -67,8 +67,7 @@ export default function ArchivesPage() {
       errorEmitter.emit('permission-error', permissionError);
     });
 
-    const paymentsQuery = query(collection(firestore, "archived_payments"));
-    const unsubPayments = onSnapshot(paymentsQuery, (snapshot) => {
+    const unsubPayments = onSnapshot(collection(firestore, "archived_payments"), (snapshot) => {
       const paymentsData = snapshot.docs.map((doc) => ({ 
         ...(doc.data() as Omit<Payment, 'id'>),
         id: doc.id,
@@ -140,7 +139,7 @@ export default function ArchivesPage() {
                 <AlertDescription>{error}</AlertDescription>
             </Alert>
           ) : (
-            <ArchivedPaymentsTable payments={archivedPayments} />
+            <ArchivedPaymentsTable payments={archivedPayments} rentals={archivedRentals} />
           )}
         </TabsContent>
       </Tabs>
