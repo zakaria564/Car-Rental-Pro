@@ -623,6 +623,10 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       header: "Voiture",
     },
     {
+      accessorKey: "vehicule.immatriculation",
+      header: "Immatriculation",
+    },
+    {
       id: "client",
       accessorFn: (row) => row.locataire.nomPrenom,
       header: "Client",
