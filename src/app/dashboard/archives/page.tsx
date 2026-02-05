@@ -39,12 +39,19 @@ export default function ArchivesPage() {
         }
     };
 
-    const rentalsQuery = query(collection(firestore, "archived_rentals"), orderBy("createdAt", "desc"));
+    const rentalsQuery = query(collection(firestore, "archived_rentals"));
     const unsubRentals = onSnapshot(rentalsQuery, (snapshot) => {
       const rentalsData = snapshot.docs.map((doc) => ({ 
         ...(doc.data() as Omit<Rental, 'id'>),
         id: doc.id,
       } as Rental));
+
+      rentalsData.sort((a, b) => {
+        const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+        const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+        return dateB - dateA;
+      });
+
       setArchivedRentals(rentalsData);
       if (!loadedStatus.rentals) {
           loadedStatus.rentals = true;
@@ -60,12 +67,19 @@ export default function ArchivesPage() {
       errorEmitter.emit('permission-error', permissionError);
     });
 
-    const paymentsQuery = query(collection(firestore, "archived_payments"), orderBy("paymentDate", "desc"));
+    const paymentsQuery = query(collection(firestore, "archived_payments"));
     const unsubPayments = onSnapshot(paymentsQuery, (snapshot) => {
       const paymentsData = snapshot.docs.map((doc) => ({ 
         ...(doc.data() as Omit<Payment, 'id'>),
         id: doc.id,
       } as Payment));
+
+      paymentsData.sort((a, b) => {
+        const dateA = a.paymentDate?.toDate ? a.paymentDate.toDate().getTime() : 0;
+        const dateB = b.paymentDate?.toDate ? b.paymentDate.toDate().getTime() : 0;
+        return dateB - dateA;
+      });
+      
       setArchivedPayments(paymentsData);
       if (!loadedStatus.payments) {
           loadedStatus.payments = true;
