@@ -460,6 +460,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             const receptionInspectionId = handleInspection(rental.id, rental.vehicule.carId, 'retour', data, batch);
             
             const rentalRef = doc(firestore, 'rentals', rental.id);
+            const archivedRentalRef = doc(firestore, 'archived_rentals', rental.id);
             const carDocRef = doc(firestore, 'cars', rental.vehicule.carId);
             
             const finalRentalDays = rentalDaysForUI;
@@ -475,6 +476,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             };
 
             batch.update(rentalRef, updatePayload);
+            batch.update(archivedRentalRef, updatePayload);
             batch.update(carDocRef, { kilometrage: data.kilometrageRetour, disponibilite: 'disponible' });
 
             await batch.commit();
@@ -555,7 +557,6 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             
             const safeDateMiseEnCirculation = timestampToDate(selectedCar.dateMiseEnCirculation);
             const newRentalRef = doc(collection(firestore, 'rentals'));
-            const newArchivedRentalRef = doc(firestore, 'archived_rentals', newRentalRef.id);
             
             const livraisonInspectionId = handleInspection(newRentalRef.id, selectedCar.id, 'depart', data, batch);
             const carRef = doc(firestore, 'cars', selectedCar.id);
@@ -607,6 +608,7 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             };
             
             batch.set(newRentalRef, rentalPayload);
+            const newArchivedRentalRef = doc(firestore, 'archived_rentals', newRentalRef.id);
             batch.set(newArchivedRentalRef, rentalPayload);
             batch.update(carRef, { disponibilite: 'louee' });
             
