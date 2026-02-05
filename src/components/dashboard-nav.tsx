@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Car, Users, KeyRound, LayoutDashboard, CreditCard } from 'lucide-react';
+import { Car, Users, KeyRound, LayoutDashboard, CreditCard, Archive } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import React from 'react';
@@ -15,6 +15,7 @@ const navItems = [
   { href: '/dashboard/clients', icon: Users, label: 'Clients' },
   { href: '/dashboard/rentals', icon: KeyRound, label: 'Contrats' },
   { href: '/dashboard/payments', icon: CreditCard, label: 'Comptabilité' },
+  { href: '/dashboard/archives', icon: Archive, label: 'Archives' },
 ];
 
 export function DashboardNav() {
