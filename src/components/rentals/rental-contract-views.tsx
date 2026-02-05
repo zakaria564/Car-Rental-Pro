@@ -4,10 +4,10 @@ import React from 'react';
 import { format, differenceInCalendarDays, startOfDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Image from 'next/image';
-import type { Rental, Damage, Inspection, DamageType } from "@/lib/definitions";
+import type { Rental, Damage, Inspection, DamageType, Payment } from "@/lib/definitions";
 import { damageTypes } from "@/lib/definitions";
 import { formatCurrency, cn } from "@/lib/utils";
-import { doc, getDoc, collection, getDocs } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs, query, where } from "firebase/firestore";
 import { useFirebase } from "@/firebase";
 import { ScrollArea } from "../ui/scroll-area";
 import CarDamageDiagram, { carParts } from "./car-damage-diagram";
@@ -35,8 +35,8 @@ const calculateTotal = (rental: Rental): number => {
         if (startOfDay(from).getTime() === startOfDay(to).getTime()) {
             return pricePerDay;
         }
-        const daysDiff = differenceInCalendarDays(to, from);
-        return (daysDiff || 1) * pricePerDay;
+        const daysDiff = differenceInCalendarDays(to, from) || 1;
+        return daysDiff * pricePerDay;
     }
     if (typeof rental.location.montantTotal === 'number' && !isNaN(rental.location.montantTotal) && rental.location.montantTotal > 0) {
       return rental.location.montantTotal;
@@ -261,11 +261,39 @@ export const ConditionsGenerales = () => (
   );
 
 export function RentalDetails({ rental, isArchived = false }: { rental: Rental, isArchived?: boolean }) {
+    const { firestore } = useFirebase();
+    const [archivedPayments, setArchivedPayments] = React.useState<Payment[]>([]);
+    const [paymentsLoading, setPaymentsLoading] = React.useState(isArchived);
+
+    React.useEffect(() => {
+        if (!isArchived || !firestore || !rental.id) {
+            setPaymentsLoading(false);
+            return;
+        }
+
+        const fetchPayments = async () => {
+            try {
+                const paymentsQuery = query(collection(firestore, "archived_payments"), where("rentalId", "==", rental.id));
+                const querySnapshot = await getDocs(paymentsQuery);
+                const paymentsData = querySnapshot.docs.map(doc => ({...doc.data(), id: doc.id } as Payment));
+                setArchivedPayments(paymentsData);
+            } catch (error) {
+                console.error("Error fetching archived payments:", error);
+            } finally {
+                setPaymentsLoading(false);
+            }
+        };
+
+        fetchPayments();
+    }, [isArchived, firestore, rental.id]);
+
     const safeDebutDate = getSafeDate(rental.location.dateDebut);
     const safeFinDate = getSafeDate(rental.location.dateFin);
 
     const totalAmount = calculateTotal(rental);
-    const amountPaid = rental.location.montantPaye || 0;
+    const amountPaid = isArchived
+        ? archivedPayments.reduce((acc, payment) => acc + payment.amount, 0)
+        : rental.location.montantPaye || 0;
     const amountRemaining = totalAmount - amountPaid;
 
     const rentalDuration = () => {
@@ -273,7 +301,8 @@ export function RentalDetails({ rental, isArchived = false }: { rental: Rental, 
              if (startOfDay(safeDebutDate).getTime() === startOfDay(safeFinDate).getTime()) {
                 return 1;
             }
-            return differenceInCalendarDays(safeFinDate, safeDebutDate) || 1;
+            const daysDiff = differenceInCalendarDays(safeFinDate, safeDebutDate) || 1;
+            return daysDiff;
         }
         return rental.location.nbrJours || 0;
     };
@@ -335,8 +364,17 @@ export function RentalDetails({ rental, isArchived = false }: { rental: Rental, 
                         </div>
                         <div className="space-y-1 mt-auto pt-2 border-t no-print">
                             <div className="flex justify-between"><span>Montant Total:</span> <span className="font-medium">{formatCurrency(totalAmount, 'MAD')}</span></div>
-                            <div className="flex justify-between text-green-600"><span>Montant Payé:</span> <span className="font-medium">{formatCurrency(amountPaid, 'MAD')}</span></div>
-                            <div className="flex justify-between font-bold"><span>Reste à Payer:</span> <span>{formatCurrency(amountRemaining, 'MAD')}</span></div>
+                            {paymentsLoading ? (
+                                <div className="space-y-1">
+                                    <Skeleton className="h-5 w-3/4" />
+                                    <Skeleton className="h-5 w-full" />
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="flex justify-between text-green-600"><span>Montant Payé:</span> <span className="font-medium">{formatCurrency(amountPaid, 'MAD')}</span></div>
+                                    <div className="flex justify-between font-bold"><span>Reste à Payer:</span> <span>{formatCurrency(amountRemaining, 'MAD')}</span></div>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
