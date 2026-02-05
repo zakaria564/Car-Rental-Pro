@@ -32,7 +32,7 @@ import { Textarea } from "../ui/textarea";
 import { Slider } from "../ui/slider";
 import CarDamageDiagram, { carParts } from "./car-damage-diagram";
 import { useFirebase } from "@/firebase";
-import { collection, doc, serverTimestamp, setDoc, writeBatch, Timestamp, updateDoc, getDoc, getDocs } from "firebase/firestore";
+import { collection, doc, serverTimestamp, setDoc, writeBatch, Timestamp, updateDoc, getDoc, getDocs, query, where, orderBy, limit } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { Skeleton } from "../ui/skeleton";
@@ -524,6 +524,30 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             if (!selectedCar || !selectedClient) {
                  throw new Error("Client ou voiture invalides. Veuillez réessayer.");
             }
+
+            // Generate contract number
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = (now.getMonth() + 1).toString().padStart(2, '0');
+            const prefix = `C-${year}-${month}-`;
+
+            const rentalsRef = collection(firestore, "rentals");
+            const q = query(
+                rentalsRef,
+                where("contractNumber", ">=", prefix),
+                where("contractNumber", "<", prefix + '\uf8ff'),
+                orderBy("contractNumber", "desc"),
+                limit(1)
+            );
+            
+            const querySnapshot = await getDocs(q);
+            let nextSeq = 1;
+            if (!querySnapshot.empty) {
+                const lastContractNumber = querySnapshot.docs[0].data().contractNumber;
+                const lastSeq = parseInt(lastContractNumber.split('-').pop() || '0', 10);
+                nextSeq = lastSeq + 1;
+            }
+            const newContractNumber = `${prefix}${nextSeq.toString().padStart(3, '0')}`;
             
             const dayDiff = differenceInCalendarDays(startOfDay(dateRange.to), startOfDay(dateRange.from));
             const rentalDays = dayDiff >= 1 ? dayDiff : 1;
@@ -531,12 +555,13 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             
             const safeDateMiseEnCirculation = timestampToDate(selectedCar.dateMiseEnCirculation);
             const newRentalRef = doc(collection(firestore, 'rentals'));
-            const newArchivedRentalRef = doc(firestore, 'archived_rentals', newRentalRef.id);
+            const newArchivedRentalRef = doc(collection(firestore, 'archived_rentals', newRentalRef.id));
             
             const livraisonInspectionId = handleInspection(newRentalRef.id, selectedCar.id, 'depart', data, batch);
             const carRef = doc(firestore, 'cars', selectedCar.id);
 
             const rentalPayload: Omit<Rental, 'id'> & {createdAt: any} = {
+                contractNumber: newContractNumber,
                 locataire: {
                     cin: selectedClient.cin,
                     nomPrenom: selectedClient.nom,

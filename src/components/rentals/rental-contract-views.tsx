@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -36,7 +37,7 @@ const calculateTotal = (rental: Rental): number => {
             return pricePerDay;
         }
         const daysDiff = differenceInCalendarDays(to, from) || 1;
-        return daysDiff * pricePerDay;
+        return daysDiff;
     }
     if (typeof rental.location.montantTotal === 'number' && !isNaN(rental.location.montantTotal) && rental.location.montantTotal > 0) {
       return rental.location.montantTotal;
@@ -315,7 +316,7 @@ export function RentalDetails({ rental, isArchived = false }: { rental: Rental, 
             <div className="text-center mb-4 flex flex-col items-center">
                 <Logo />
                 <h2 className="text-xl font-bold tracking-wider mt-2">CONTRAT DE LOCATION & ÉTAT DES LIEUX {isArchived && '(ARCHIVÉ)'}</h2>
-                <p className="text-muted-foreground text-sm">Contrat N°: {rental.id?.substring(0, 8).toUpperCase()}</p>
+                <p className="text-muted-foreground text-sm">Contrat N°: {rental.contractNumber}</p>
                 <div className="text-xs mt-1">
                     <span>Location Auto Pro, Agdal, Rabat, Maroc</span> | <span>Tél: +212 537 00 00 00</span>
                 </div>

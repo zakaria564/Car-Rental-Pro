@@ -110,6 +110,7 @@
       "description": "Represents a rental contract.",
       "type": "object",
       "properties": {
+        "contractNumber": { "type": "string", "description": "Structured contract number (e.g., C-YYYY-MM-SEQ)." },
         "locataire": {
           "type": "object",
           "properties": {
@@ -207,7 +208,7 @@
         "statut": { "type": "string", "enum": ["en_cours", "terminee"] },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["locataire", "vehicule", "location", "statut"]
+      "required": ["locataire", "vehicule", "location", "statut", "contractNumber"]
     },
     "inspection": {
       "title": "Inspection",
@@ -295,5 +296,3 @@
     }
   }
 }
-
-    

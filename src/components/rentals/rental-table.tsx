@@ -231,10 +231,8 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     
     return [
     {
-      id: "contractNumber",
+      accessorKey: "contractNumber",
       header: "Contrat N°",
-      accessorFn: (row) => `${row.contractNumber || ''}`,
-      cell: (info) => `N° ${info.getValue() as string}`,
     },
     {
       accessorKey: "vehicule.marque",
@@ -500,7 +498,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
         {rentalForModal && (
             <DialogContent className="sm:max-w-4xl">
                 <DialogHeader className="no-print">
-                    <DialogTitle>Détails du contrat de location #{rentalForModal.id?.substring(0,6)}</DialogTitle>
+                    <DialogTitle>Détails du contrat de location #{rentalForModal.contractNumber}</DialogTitle>
                     <DialogDesc>
                       Créé le {rentalForModal.createdAt?.toDate ? format(rentalForModal.createdAt.toDate(), "dd LLL, y 'à' HH:mm", { locale: fr }) : 'N/A'}
                     </DialogDesc>

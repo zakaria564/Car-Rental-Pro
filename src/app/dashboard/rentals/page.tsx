@@ -44,10 +44,9 @@ export default function RentalsPage() {
     
     const rentalsQuery = query(collection(firestore, "rentals"), orderBy("createdAt", "desc"));
     const unsubRentals = onSnapshot(rentalsQuery, (snapshot) => {
-      const rentalsData = snapshot.docs.map((doc, index) => ({ 
+      const rentalsData = snapshot.docs.map((doc) => ({ 
         ...(doc.data() as Omit<Rental, 'id'>),
         id: doc.id,
-        contractNumber: snapshot.size - index
       } as Rental));
 
       setRentals(rentalsData);
