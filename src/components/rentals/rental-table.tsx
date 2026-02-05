@@ -49,6 +49,7 @@ import { useFirebase } from "@/firebase";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { RentalDetails } from "./rental-contract-views";
+import { ScrollArea } from "../ui/scroll-area";
 
 
 type RentalTableProps = {
@@ -140,6 +141,8 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     try {
         await runTransaction(firestore, async (transaction) => {
             const carRef = doc(firestore, 'cars', rental.vehicule.carId);
+            
+            // First check if car document exists before trying to update it
             const carDoc = await transaction.get(carRef);
 
             // Delete associated payments
@@ -332,7 +335,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       },
     },
   ];
-  }, [isDashboard, setFormMode, setIsAlertOpen, setIsDetailsOpen, setIsSheetOpen, setRentalForModal]);
+  }, [isDashboard, setFormMode, setIsAlertOpen, setIsDetailsOpen, setIsSheetOpen, setRentalForModal, firestore, toast]);
 
 
   const table = useReactTable({
@@ -478,13 +481,15 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
                 </SheetDescription>
               )}
             </SheetHeader>
-            <RentalForm 
-              key={rentalForModal?.id || 'new-rental'}
-              rental={rentalForModal} 
-              clients={clients} 
-              cars={cars} 
-              mode={formMode}
-              onFinished={() => setIsSheetOpen(false)} />
+            <ScrollArea className="flex-grow pr-6">
+              <RentalForm 
+                key={rentalForModal?.id || 'new-rental'}
+                rental={rentalForModal} 
+                clients={clients} 
+                cars={cars} 
+                mode={formMode}
+                onFinished={() => setIsSheetOpen(false)} />
+            </ScrollArea>
         </SheetContent>
       </Sheet>
 
