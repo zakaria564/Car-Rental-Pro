@@ -2,8 +2,9 @@
 
 import { useFirebase } from '@/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { cn } from '@/lib/utils';
 
-export function UserAvatar() {
+export function UserAvatar({ className }: { className?: string }) {
     const { auth, companySettings } = useFirebase();
     const user = auth.currentUser;
 
@@ -21,8 +22,8 @@ export function UserAvatar() {
     const logoUrl = companySettings?.logoUrl;
 
     return (
-        <Avatar>
-            {logoUrl && <AvatarImage src={logoUrl} alt="Logo de l'agence" />}
+        <Avatar className={cn(className)}>
+            {logoUrl && <AvatarImage src={logoUrl} alt="Logo de l'agence" className="object-cover" />}
             <AvatarFallback>{fallback}</AvatarFallback>
         </Avatar>
     );
