@@ -13,6 +13,7 @@ import { Search, Bell } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { DashboardNav } from '@/components/dashboard-nav';
 import { Logo } from '@/components/logo';
+import Link from 'next/link';
 
 export default function DashboardLayout({
   children,
@@ -65,7 +66,9 @@ export default function DashboardLayout({
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Mon Compte</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Paramètres</DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/settings">Paramètres</Link>
+              </DropdownMenuItem>
               <DropdownMenuItem>Support</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem>Déconnexion</DropdownMenuItem>
