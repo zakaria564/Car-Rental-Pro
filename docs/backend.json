@@ -267,6 +267,10 @@
       "schema": { "$ref": "#/entities/car" },
       "description": "Stores car documents."
     },
+    "/archived_cars/{carId}": {
+      "schema": { "$ref": "#/entities/car" },
+      "description": "Stores archived car documents after they are removed from the active fleet."
+    },
     "/clients/{clientId}": {
       "schema": { "$ref": "#/entities/client" },
       "description": "Stores client documents."
