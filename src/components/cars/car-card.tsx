@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { Wrench, Pencil, Trash2, FileText, TriangleAlert, Gauge, Fuel, Cog, Construction, Printer, CalendarIcon, Archive } from "lucide-react";
+import { Wrench, Pencil, FileText, TriangleAlert, Gauge, Fuel, Cog, Construction, Printer } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -17,12 +17,8 @@ import CarForm from "./car-form";
 import MaintenanceForm from "./maintenance-form";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "../ui/scroll-area";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "../ui/alert-dialog";
 import { useFirebase } from "@/firebase";
-import { deleteDoc, doc, updateDoc, runTransaction } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
-import { errorEmitter } from "@/firebase/error-emitter";
-import { FirestorePermissionError } from "@/firebase/errors";
 import {
   Tooltip,
   TooltipContent,
@@ -52,7 +48,6 @@ export default function CarCard({ car }: { car: Car }) {
   const [isMaintenanceSheetOpen, setIsMaintenanceSheetOpen] = React.useState(false);
   const [historyFilterDate, setHistoryFilterDate] = React.useState<Date | undefined>();
 
-  const { firestore } = useFirebase();
   const { toast } = useToast();
   const availability = getAvailabilityProps(car);
   
@@ -156,44 +151,6 @@ export default function CarCard({ car }: { car: Car }) {
 
     return { documentAttention: docInfo, maintenanceAttention: maintInfo };
   }, [car]);
-
-
-  const handleArchiveCar = async (carId: string) => {
-    if (!firestore) return;
-    const carRef = doc(firestore, 'cars', carId);
-    const archivedCarRef = doc(firestore, 'archived_cars', carId);
-
-    try {
-      await runTransaction(firestore, async (transaction) => {
-        const carDoc = await transaction.get(carRef);
-        if (!carDoc.exists()) {
-          throw new Error("La voiture que vous essayez d'archiver n'existe pas.");
-        }
-        
-        // Copy the car data to the archive
-        transaction.set(archivedCarRef, carDoc.data());
-        
-        // Delete the original car document
-        transaction.delete(carRef);
-      });
-
-      toast({
-        title: "Voiture archivée",
-        description: "La voiture a été retirée de la flotte active et archivée.",
-      });
-    } catch (serverError: any) {
-      const permissionError = new FirestorePermissionError({
-          path: carRef.path,
-          operation: 'delete'
-      }, serverError as Error);
-      errorEmitter.emit('permission-error', permissionError);
-      toast({
-        variant: "destructive",
-        title: "Erreur d'archivage",
-        description: serverError.message || "Impossible d'archiver la voiture.",
-      });
-    }
-  };
 
   const handlePrint = () => {
     const printContent = document.getElementById(`printable-details-${car.id}`);
@@ -321,7 +278,7 @@ export default function CarCard({ car }: { car: Car }) {
                                     </Button>
                                 </DialogTrigger>
                             </TooltipTrigger>
-                            <TooltipContent><p>Fiche détails</p></TooltipContent>
+                            <TooltipContent><p>Voir détails et historique d'entretien</p></TooltipContent>
                         </Tooltip>
                         <DialogContent className="sm:max-w-lg">
                             <DialogHeader className="no-print">
@@ -341,7 +298,7 @@ export default function CarCard({ car }: { car: Car }) {
                             <DialogFooter className="no-print">
                                 <Button variant="outline" onClick={handlePrint}>
                                     <Printer className="mr-2 h-4 w-4"/>
-                                    Imprimer la fiche
+                                    Imprimer l'historique
                                 </Button>
                             </DialogFooter>
                         </DialogContent>
@@ -388,31 +345,6 @@ export default function CarCard({ car }: { car: Car }) {
                             </ScrollArea>
                         </SheetContent>
                     </Sheet>
-
-                    <AlertDialog>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="outline" size="icon" className="h-9 w-9 text-amber-700" disabled={car.disponibilite === 'louee'}>
-                                        <Archive className="h-4 w-4" />
-                                    </Button>
-                                </AlertDialogTrigger>
-                            </TooltipTrigger>
-                            <TooltipContent><p>Archiver</p></TooltipContent>
-                        </Tooltip>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Êtes-vous sûr de vouloir archiver?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                Cette action retirera la voiture {car.marque} {car.modele} de la flotte active et la placera dans les archives. Vous pourrez toujours consulter son historique.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleArchiveCar(car.id)} className="bg-primary hover:bg-primary/90">Archiver</AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
                 </div>
             </TooltipProvider>
 
