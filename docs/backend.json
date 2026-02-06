@@ -257,6 +257,22 @@
         "status": { "type": "string", "enum": ["complete", "en_attente"], "description": "Payment status."}
       },
       "required": ["rentalId", "contractNumber", "clientName", "amount", "paymentDate", "paymentMethod", "status"]
+    },
+    "companySettings": {
+      "title": "Company Settings",
+      "description": "Global settings for the rental agency.",
+      "type": "object",
+      "properties": {
+        "companyName": {
+          "type": "string",
+          "description": "Name of the rental agency."
+        },
+        "logoUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL of the company logo."
+        }
+      }
     }
   },
   "auth": {
@@ -298,6 +314,10 @@
     "/archived_payments/{paymentId}": {
       "schema": { "$ref": "#/entities/payment" },
       "description": "Stores archived payment records for long-term record-keeping."
+    },
+    "/settings/company": {
+      "schema": { "$ref": "#/entities/companySettings" },
+      "description": "Stores global company settings like logo and name."
     }
   }
 }

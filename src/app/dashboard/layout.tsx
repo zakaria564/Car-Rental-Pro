@@ -1,5 +1,6 @@
 
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { UserAvatar } from '@/components/user-avatar';
+import { SidebarBrand } from '@/components/sidebar-brand';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -12,7 +13,6 @@ import {
 import { Search, Bell } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { DashboardNav } from '@/components/dashboard-nav';
-import { Logo } from '@/components/logo';
 import Link from 'next/link';
 
 export default function DashboardLayout({
@@ -25,10 +25,7 @@ export default function DashboardLayout({
       <div className="hidden border-r bg-card md:block">
         <div className="flex h-full max-h-screen flex-col gap-2">
           <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-            <a href="/dashboard" className="flex items-center gap-2 font-semibold">
-              <Logo />
-              <span className="">Location Auto Pro</span>
-            </a>
+            <SidebarBrand />
             <Button variant="outline" size="icon" className="ml-auto h-8 w-8">
               <Bell className="h-4 w-4" />
               <span className="sr-only">Activer les notifications</span>
@@ -57,9 +54,7 @@ export default function DashboardLayout({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="secondary" size="icon" className="rounded-full">
-                <Avatar>
-                  <AvatarFallback>AD</AvatarFallback>
-                </Avatar>
+                <UserAvatar />
                 <span className="sr-only">Menu utilisateur</span>
               </Button>
             </DropdownMenuTrigger>

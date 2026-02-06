@@ -3,10 +3,16 @@
 
 import { FirebaseApp } from 'firebase/app';
 import { Auth } from 'firebase/auth';
-import { Firestore } from 'firebase/firestore';
+import { Firestore, doc, onSnapshot } from 'firebase/firestore';
 import { FirebaseStorage } from 'firebase/storage';
 import React, { createContext, useContext } from 'react';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
+
+// New interface for company settings
+interface CompanySettings {
+  logoUrl?: string;
+  companyName?: string;
+}
 
 // Define the context shape
 interface FirebaseContextType {
@@ -14,6 +20,7 @@ interface FirebaseContextType {
   firestore: Firestore | null;
   auth: Auth | null;
   storage: FirebaseStorage | null;
+  companySettings: CompanySettings | null; // Add company settings to context
 }
 
 // Create the context
@@ -22,13 +29,13 @@ const FirebaseContext = createContext<FirebaseContextType>({
     firestore: null,
     auth: null,
     storage: null,
+    companySettings: null, // Default value
 });
 
 // Custom hook to use the Firebase context
 export function useFirebase() {
   const context = useContext(FirebaseContext);
   if (!context) {
-    // This error should not be thrown if the provider is correctly set up.
     throw new Error('useFirebase must be used within a FirebaseProvider');
   }
    if (!context.app || !context.firestore || !context.auth || !context.storage) {
@@ -36,7 +43,7 @@ export function useFirebase() {
     // We throw to signal that services are not ready. Components should handle this.
     throw new Error('Firebase services are not yet available.');
   }
-  return context as { app: FirebaseApp; firestore: Firestore; auth: Auth; storage: FirebaseStorage };
+  return context as { app: FirebaseApp; firestore: Firestore; auth: Auth; storage: FirebaseStorage; companySettings: CompanySettings | null };
 }
 
 // Provider component
@@ -50,8 +57,35 @@ export function FirebaseProvider({
   auth: Auth | null;
   storage: FirebaseStorage | null;
 }) {
+  const [companySettings, setCompanySettings] = React.useState<CompanySettings | null>(null);
+
+  React.useEffect(() => {
+    if (!value.firestore) return;
+
+    const settingsRef = doc(value.firestore, 'settings', 'company');
+    const unsubscribe = onSnapshot(settingsRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setCompanySettings(docSnap.data() as CompanySettings);
+      } else {
+        // Provide a default if no settings are found in Firestore
+        setCompanySettings({ companyName: "Location Auto Pro", logoUrl: "" });
+      }
+    }, (error) => {
+      console.error("Failed to fetch company settings:", error);
+      // Set default on error to prevent crashes
+      setCompanySettings({ companyName: "Location Auto Pro", logoUrl: "" });
+    });
+
+    return () => unsubscribe();
+  }, [value.firestore]);
+
+  const providerValue = {
+    ...value,
+    companySettings,
+  };
+
   return (
-    <FirebaseContext.Provider value={value}>
+    <FirebaseContext.Provider value={providerValue}>
         {children}
         <FirebaseErrorListener />
     </FirebaseContext.Provider>
