@@ -531,6 +531,8 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
         } else if (mode === 'edit' && rental) {
             const { dateRange, lieuRetour } = data;
             const rentalRef = doc(firestore, 'rentals', rental.id);
+            const archivedRentalRef = doc(firestore, 'archived_rentals', rental.id);
+            const batch = writeBatch(firestore);
 
             const dayDiff = differenceInCalendarDays(startOfDay(dateRange.to), startOfDay(dateRange.from));
             const finalRentalDays = dayDiff >= 1 ? dayDiff : 1;
@@ -544,7 +546,11 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                 'location.montantTotal': finalAmountToPay,
             };
 
-            await updateDoc(rentalRef, updatePayload);
+            batch.update(rentalRef, updatePayload);
+            batch.update(archivedRentalRef, updatePayload);
+            
+            await batch.commit();
+            
             toast({ title: "Contrat mis à jour", description: `La location a été étendue jusqu'au ${format(dateRange.to, "dd/MM/yyyy")}.` });
             onFinished();
 
