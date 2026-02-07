@@ -22,9 +22,12 @@ export function UserAvatar({ className }: { className?: string }) {
     const logoUrl = companySettings?.logoUrl;
 
     return (
-        <Avatar className={cn(className)}>
-            {logoUrl && <AvatarImage src={logoUrl} alt="Logo de l'agence" className="object-contain" />}
-            <AvatarFallback>{fallback}</AvatarFallback>
+        <Avatar className={cn("bg-secondary", className)}>
+            {logoUrl ? (
+                <AvatarImage src={logoUrl} alt="Logo de l'agence" className="object-contain" />
+            ) : (
+                <AvatarFallback className="bg-transparent text-secondary-foreground">{fallback}</AvatarFallback>
+            )}
         </Avatar>
     );
 }
