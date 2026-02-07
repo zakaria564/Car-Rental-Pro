@@ -23,7 +23,7 @@ export function UserAvatar({ className }: { className?: string }) {
 
     return (
         <Avatar className={cn(className)}>
-            {logoUrl && <AvatarImage src={logoUrl} alt="Logo de l'agence" className="object-cover" />}
+            {logoUrl && <AvatarImage src={logoUrl} alt="Logo de l'agence" className="object-contain" />}
             <AvatarFallback>{fallback}</AvatarFallback>
         </Avatar>
     );
