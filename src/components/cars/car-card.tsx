@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { Wrench, Pencil, FileText, TriangleAlert, Gauge, Fuel, Cog, Construction, Printer } from "lucide-react";
+import { Wrench, Pencil, FileText, TriangleAlert, Gauge, Fuel, Cog, Construction, Printer, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +27,10 @@ import {
 } from "@/components/ui/tooltip"
 import { differenceInDays, format } from "date-fns";
 import { CarDetails, PrintableCarDetails } from "./car-details-view";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { doc, getDoc, writeBatch } from "firebase/firestore";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
 
 
 const getAvailabilityProps = (car: Car) => {
@@ -47,10 +51,69 @@ export default function CarCard({ car }: { car: Car }) {
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = React.useState(false);
   const [isMaintenanceSheetOpen, setIsMaintenanceSheetOpen] = React.useState(false);
   const [historyFilterDate, setHistoryFilterDate] = React.useState<Date | undefined>();
+  const [isArchiveAlertOpen, setIsArchiveAlertOpen] = React.useState(false);
 
   const { toast } = useToast();
+  const { firestore } = useFirebase();
   const availability = getAvailabilityProps(car);
   
+  const handleArchiveCar = async () => {
+    if (!firestore || !car) return;
+
+    if (car.disponibilite === 'louee') {
+        toast({
+            variant: "destructive",
+            title: "Action impossible",
+            description: "Vous ne pouvez pas supprimer une voiture actuellement en location.",
+        });
+        return;
+    }
+
+    const carRef = doc(firestore, "cars", car.id);
+    const archivedCarRef = doc(firestore, "archived_cars", car.id);
+
+    try {
+        const batch = writeBatch(firestore);
+
+        const carSnap = await getDoc(carRef);
+        if (!carSnap.exists()) {
+            toast({
+                variant: "destructive",
+                title: "Erreur",
+                description: "La voiture n'a pas été trouvée.",
+            });
+            return;
+        }
+        
+        const carData = carSnap.data();
+
+        batch.set(archivedCarRef, carData);
+        batch.delete(carRef);
+
+        await batch.commit();
+
+        toast({
+            title: "Voiture supprimée (archivée)",
+            description: `${car.marque} ${car.modele} a été déplacée vers les archives.`,
+        });
+
+    } catch (serverError: any) {
+         const permissionError = new FirestorePermissionError({
+            path: carRef.path,
+            operation: 'delete',
+        }, serverError as Error);
+        errorEmitter.emit('permission-error', permissionError);
+
+        toast({
+            variant: "destructive",
+            title: "Erreur de suppression",
+            description: "Impossible de supprimer la voiture. Vérifiez vos permissions.",
+        });
+    } finally {
+      setIsArchiveAlertOpen(false);
+    }
+  }
+
   const groupedMaintenanceHistory = React.useMemo(() => {
     if (!car.maintenanceHistory || car.maintenanceHistory.length === 0) {
         return [];
@@ -345,6 +408,34 @@ export default function CarCard({ car }: { car: Car }) {
                             </ScrollArea>
                         </SheetContent>
                     </Sheet>
+                    
+                    <AlertDialog open={isArchiveAlertOpen} onOpenChange={setIsArchiveAlertOpen}>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <AlertDialogTrigger asChild>
+                                     <Button variant="outline" size="icon" className="h-9 w-9 text-destructive hover:bg-destructive/10 hover:text-destructive" disabled={car.disponibilite === 'louee'}>
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </AlertDialogTrigger>
+                            </TooltipTrigger>
+                            <TooltipContent><p>Supprimer le véhicule</p></TooltipContent>
+                        </Tooltip>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Supprimer ce véhicule ?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Cette action retirera le véhicule de votre flotte active et le déplacera dans les archives. Il ne sera plus disponible à la location, mais son historique sera conservé. Êtes-vous sûr de vouloir continuer ?
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleArchiveCar} className="bg-destructive hover:bg-destructive/90">
+                                    Supprimer
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+
                 </div>
             </TooltipProvider>
 
@@ -353,5 +444,3 @@ export default function CarCard({ car }: { car: Car }) {
     </Card>
   );
 }
-
-    
