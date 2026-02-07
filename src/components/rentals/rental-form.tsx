@@ -19,7 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Rental, Car as CarType, Client, DamageType, Damage, Inspection } from "@/lib/definitions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { CalendarIcon, Plus, Trash2, ExternalLink } from "lucide-react";
+import { CalendarIcon, Plus, Trash2, ExternalLink, CheckCircle, DollarSign } from "lucide-react";
 import { Calendar } from "../ui/calendar";
 import { cn, formatCurrency } from "@/lib/utils";
 import { format, differenceInCalendarDays, startOfDay } from "date-fns";
@@ -36,6 +36,7 @@ import { collection, doc, serverTimestamp, setDoc, writeBatch, Timestamp, update
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { Skeleton } from "../ui/skeleton";
+import PaymentForm from "../payments/payment-form";
 
 const damageTypeEnum = z.enum(['R', 'E', 'C', 'X']);
 
@@ -110,15 +111,20 @@ type RentalFormProps = {
     rental: Rental | null,
     clients: Client[],
     cars: CarType[],
+    rentals: Rental[],
     onFinished: () => void,
     mode: 'new' | 'edit' | 'check-in'
 };
 
-export default function RentalForm({ rental, clients, cars, onFinished, mode }: RentalFormProps) {
+export default function RentalForm({ rental, clients, cars, rentals, onFinished, mode }: RentalFormProps) {
   const { toast } = useToast();
   const { firestore, auth } = useFirebase();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isLoadingDefaults, setIsLoadingDefaults] = React.useState(mode !== 'new');
+  
+  const [newlyCreatedRental, setNewlyCreatedRental] = React.useState<Rental | null>(null);
+  const [showPaymentForm, setShowPaymentForm] = React.useState(false);
+
 
   const rentalFormSchema = React.useMemo(() => {
     if (mode === 'check-in') {
@@ -665,7 +671,13 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
                 title: "Contrat créé",
                 description: `Le contrat pour ${selectedClient.nom} a été créé avec succès.`,
             });
-            onFinished();
+            
+            const tempRentalForUI: Rental = {
+                id: newRentalRef.id,
+                ...rentalPayload,
+                createdAt: Timestamp.now(),
+            };
+            setNewlyCreatedRental(tempRentalForUI);
         }
     } catch (error: any) {
         console.error("Submission error:", error);
@@ -709,6 +721,45 @@ export default function RentalForm({ rental, clients, cars, onFinished, mode }: 
             <Skeleton className="h-10 w-full" />
         </div>
     );
+  }
+  
+  if (showPaymentForm && newlyCreatedRental) {
+    const rentalsForPayment = [newlyCreatedRental, ...rentals.filter(r => r.id !== newlyCreatedRental!.id)];
+    return (
+        <div className="mt-4">
+            <h4 className="text-lg font-semibold mb-1">Ajouter un paiement</h4>
+            <p className="text-sm text-muted-foreground mb-4">pour le contrat N° {newlyCreatedRental.contractNumber}</p>
+            <PaymentForm
+                payment={null}
+                rentals={rentalsForPayment}
+                onFinished={() => {
+                    setNewlyCreatedRental(null);
+                    setShowPaymentForm(false);
+                    onFinished();
+                }}
+                preselectedRentalId={newlyCreatedRental.id}
+            />
+        </div>
+    );
+  }
+
+  if (newlyCreatedRental) {
+      return (
+          <div className="flex flex-col items-center justify-center h-full text-center p-8 mt-8">
+              <CheckCircle className="w-16 h-16 text-green-500 mb-4" />
+              <h3 className="text-xl font-semibold">Contrat créé avec succès !</h3>
+              <p className="text-muted-foreground mt-2 mb-6">
+                  Le contrat N° {newlyCreatedRental.contractNumber} pour {newlyCreatedRental.locataire.nomPrenom} a été créé.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 w-full">
+                  <Button onClick={() => setShowPaymentForm(true)} className="w-full">
+                      <DollarSign className="mr-2" />
+                      Ajouter un paiement
+                  </Button>
+                  <Button variant="outline" onClick={onFinished} className="w-full">Fermer</Button>
+              </div>
+          </div>
+      );
   }
 
   return (

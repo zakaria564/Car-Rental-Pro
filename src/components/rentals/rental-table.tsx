@@ -485,6 +485,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
                 rental={rentalForModal} 
                 clients={clients} 
                 cars={cars} 
+                rentals={rentals}
                 mode={formMode}
                 onFinished={() => setIsSheetOpen(false)} />
             </ScrollArea>
