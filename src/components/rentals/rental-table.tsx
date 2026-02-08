@@ -271,17 +271,17 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     {
       accessorKey: "contractNumber",
       header: "Contrat N°",
-      cell: ({ row }) => (row.getIsGrouped() ? null : cell.renderValue()),
+      cell: ({ row }) => (row.getIsGrouped() ? null : row.getValue("contractNumber")),
     },
     {
       accessorKey: "vehicule.marque",
       header: "Voiture",
-      cell: ({ row }) => (row.getIsGrouped() ? null : row.renderValue()),
+      cell: ({ row }) => (row.getIsGrouped() ? null : row.original.vehicule.marque),
     },
     {
         accessorKey: "vehicule.immatriculation",
         header: "Immatriculation",
-        cell: ({ row }) => (row.getIsGrouped() ? null : row.renderValue()),
+        cell: ({ row }) => (row.getIsGrouped() ? null : row.original.vehicule.immatriculation),
     },
     {
       id: "client",
@@ -745,5 +745,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
 
 
 
+
+    
 
     
