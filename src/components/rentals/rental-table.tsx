@@ -6,15 +6,18 @@ import * as React from "react";
 import {
   ColumnDef,
   ColumnFiltersState,
+  GroupingState,
   SortingState,
   flexRender,
   getCoreRowModel,
+  getExpandedRowModel,
   getFilteredRowModel,
+  getGroupedRowModel,
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { PlusCircle, MoreHorizontal, Printer, Pencil, CheckCircle, FileText, Triangle, Car, Gavel } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Printer, Pencil, CheckCircle, FileText, Triangle, Car, Gavel, ChevronDown, ChevronRight } from "lucide-react";
 import { format, differenceInCalendarDays, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -64,6 +67,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
   const { firestore } = useFirebase();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [grouping, setGrouping] = React.useState<GroupingState>(['client']);
   const [formMode, setFormMode] = React.useState<'new' | 'edit' | 'check-in'>('new');
 
   // State for the modals
@@ -246,6 +250,27 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       id: "client",
       accessorFn: (row) => row.locataire.nomPrenom,
       header: "Client",
+       cell: ({ row }) => {
+        if (row.getIsGrouped()) {
+            return (
+                <Button
+                    variant="ghost"
+                    onClick={() => row.toggleExpanded()}
+                    className="w-full text-left justify-start pl-2"
+                >
+                    <span className="flex items-center gap-2 font-semibold">
+                        {row.getIsExpanded() ? (
+                            <ChevronDown className="h-4 w-4" />
+                        ) : (
+                            <ChevronRight className="h-4 w-4" />
+                        )}
+                        {row.getValue("client")} ({row.subRows.length} contrats)
+                    </span>
+                </Button>
+            );
+        }
+        return <div className="pl-4">{row.getValue("client")}</div>;
+      },
     },
     {
       accessorKey: "location.dateDebut",
@@ -345,6 +370,9 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    onGroupingChange: setGrouping,
+    getExpandedRowModel: getExpandedRowModel(),
+    getGroupedRowModel: getGroupedRowModel(),
     initialState: {
         pagination: {
             pageSize: isDashboard ? 5 : 10,
@@ -353,6 +381,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     state: {
       sorting,
       columnFilters,
+      grouping,
     },
   });
   
@@ -545,5 +574,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     </>
   );
 }
+
+    
 
     
