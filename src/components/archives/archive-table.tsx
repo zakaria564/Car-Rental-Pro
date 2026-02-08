@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -179,7 +178,7 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
       cell: ({ row }) => (
         <Badge
           variant={row.getValue("statut") === "en_cours" ? "default" : "outline"}
-          className={cn(row.getValue("statut") === "en_cours" ? "bg-yellow-500/20 text-yellow-700" : "bg-gray-500/20 text-gray-700")}
+          className={cn(row.getValue("statut") === "en_cours" ? "bg-yellow-500/20 text-yellow-700" : "bg-green-100 text-green-800 border-green-300")}
         >
           {row.getValue("statut") === 'en_cours' ? "Non Terminé" : "Terminée"}
         </Badge>
