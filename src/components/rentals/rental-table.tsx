@@ -219,16 +219,19 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
         {
           accessorKey: "statut",
           header: "Statut",
-          cell: ({ row }) => (
-            <Badge
-              variant={row.getValue("statut") === "en_cours" ? "default" : "outline"}
-              className={cn(
-                row.getValue("statut") === "en_cours" && "bg-blue-500/20 text-blue-700"
-              )}
-            >
-              {row.getValue("statut") === "en_cours" ? "En cours" : "Terminée"}
-            </Badge>
-          ),
+          cell: ({ cell }) => {
+            const status = cell.getValue() as string;
+            return (
+              <Badge
+                variant={status === "en_cours" ? "default" : "outline"}
+                className={cn(
+                  status === "en_cours" && "bg-blue-500/20 text-blue-700"
+                )}
+              >
+                {status === "en_cours" ? "En cours" : "Terminée"}
+              </Badge>
+            );
+          },
         },
       ];
     }
@@ -237,17 +240,17 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     {
       accessorKey: "contractNumber",
       header: "Contrat N°",
-      cell: ({ row }) => row.getIsGrouped() ? null : row.getValue("contractNumber"),
+      cell: ({ row, cell }) => (row.getIsGrouped() ? null : cell.getValue()),
     },
     {
       accessorKey: "vehicule.marque",
       header: "Voiture",
-      cell: ({ row }) => row.getIsGrouped() ? null : row.getValue("vehicule.marque"),
+      cell: ({ row, cell }) => (row.getIsGrouped() ? null : cell.getValue()),
     },
     {
         accessorKey: "vehicule.immatriculation",
         header: "Immatriculation",
-        cell: ({ row }) => row.getIsGrouped() ? null : row.getValue("vehicule.immatriculation"),
+        cell: ({ row, cell }) => (row.getIsGrouped() ? null : cell.getValue()),
     },
     {
       id: "client",
@@ -296,11 +299,12 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     {
       accessorKey: "statut",
       header: "Statut",
-      cell: ({ row }) => {
+      cell: ({ row, cell }) => {
         if (row.getIsGrouped()) return null;
+        const status = cell.getValue() as string;
         return (
-            <Badge variant={row.getValue("statut") === 'en_cours' ? 'default' : 'outline'} className={cn(row.getValue("statut") === 'en_cours' && "bg-blue-500/20 text-blue-700")}>
-            {row.getValue("statut") === 'en_cours' ? "En cours" : "Terminée"}
+            <Badge variant={status === 'en_cours' ? 'default' : 'outline'} className={cn(status === 'en_cours' && "bg-blue-500/20 text-blue-700")}>
+            {status === 'en_cours' ? "En cours" : "Terminée"}
             </Badge>
         );
       },
