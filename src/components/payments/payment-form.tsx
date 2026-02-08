@@ -206,8 +206,8 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="mt-4 flex flex-grow flex-col">
-        <ScrollArea className="flex-grow min-h-0 pr-4 -mr-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full mt-4">
+        <ScrollArea className="flex-grow pr-6 -mr-6">
             <div className="space-y-4">
                 <FormField
                   control={form.control}
@@ -314,7 +314,7 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
                 />
             </div>
         </ScrollArea>
-        <div className="mt-4 border-t pt-4">
+        <div className="mt-auto pt-4 border-t">
             <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isSubmitting}>
               {isSubmitting ? 'Enregistrement...' : (payment ? 'Mettre à jour' : 'Ajouter le paiement')}
             </Button>
