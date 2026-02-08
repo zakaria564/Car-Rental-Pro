@@ -413,6 +413,14 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
             }
             className="max-w-sm"
           />
+          <Input
+            placeholder="Filtrer par client..."
+            value={(table.getColumn("client")?.getFilterValue() as string) ?? ""}
+            onChange={(event) =>
+              table.getColumn("client")?.setFilterValue(event.target.value)
+            }
+            className="max-w-sm"
+          />
            <Button className="ml-auto bg-primary hover:bg-primary/90" onClick={() => {
               setRentalForModal(null);
               setFormMode('new');
@@ -537,3 +545,5 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     </>
   );
 }
+
+    
