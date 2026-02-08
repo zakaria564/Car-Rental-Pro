@@ -46,7 +46,7 @@ export default function DashboardLayout({
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-12 w-40 rounded-md p-0 focus-visible:ring-0 focus-visible:ring-offset-0">
+              <Button variant="ghost" className="relative h-[52px] w-40 rounded-md p-0 focus-visible:ring-0 focus-visible:ring-offset-0">
                 <UserAvatar className="h-full w-full" />
                 <span className="sr-only">Menu utilisateur</span>
               </Button>
