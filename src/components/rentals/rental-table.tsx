@@ -95,7 +95,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
   const { firestore } = useFirebase();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [grouping, setGrouping] = React.useState<GroupingState>(['client']);
+  const [grouping, setGrouping] = React.useState<GroupingState>(isDashboard ? [] : ['client']);
   const [formMode, setFormMode] = React.useState<'new' | 'edit' | 'check-in'>('new');
 
   // State for the modals
