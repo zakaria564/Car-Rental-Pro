@@ -255,8 +255,8 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
                 variant={"outline"}
                 className={cn(
                   status === "en_cours"
-                    ? "bg-yellow-100 text-yellow-800 border-yellow-200"
-                    : "bg-green-100 text-green-800 border-green-200"
+                    ? "bg-yellow-500/20 text-yellow-700"
+                    : "bg-green-100 text-green-800 border-green-300"
                 )}
               >
                 {status === "en_cours" ? "En cours" : "Terminée"}
@@ -271,17 +271,23 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     {
       accessorKey: "contractNumber",
       header: "Contrat N°",
-      cell: ({ row }) => (row.getIsGrouped() ? null : row.original.contractNumber),
+      cell: ({ row }) => {
+        return row.getIsGrouped() ? null : row.original.contractNumber;
+      },
     },
     {
       accessorKey: "vehicule.marque",
       header: "Voiture",
-      cell: ({ row }) => (row.getIsGrouped() ? null : row.original.vehicule.marque),
+      cell: ({ row }) => {
+          return row.getIsGrouped() ? null : row.original.vehicule.marque;
+      },
     },
     {
         accessorKey: "vehicule.immatriculation",
         header: "Immatriculation",
-        cell: ({ row }) => (row.getIsGrouped() ? null : row.original.vehicule.immatriculation),
+        cell: ({ row }) => {
+            return row.getIsGrouped() ? null : row.original.vehicule.immatriculation;
+        },
     },
     {
       id: "client",
@@ -306,7 +312,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
                 </Button>
             );
         }
-        return <div className="pl-4">{row.getValue("client")}</div>;
+        return null;
       },
     },
     {
@@ -338,8 +344,8 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
                 variant={"outline"}
                 className={cn(
                   status === "en_cours"
-                    ? "bg-yellow-100 text-yellow-800 border-yellow-200"
-                    : "bg-green-100 text-green-800 border-green-200"
+                    ? "bg-yellow-500/20 text-yellow-700"
+                    : "bg-green-100 text-green-800 border-green-300"
                 )}
               >
                 {status === "en_cours" ? "En cours" : "Terminée"}
@@ -378,7 +384,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
             <TooltipProvider>
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                        <Badge variant="secondary" className="bg-orange-100 text-orange-800 border-orange-300">
                             Partiel
                         </Badge>
                     </TooltipTrigger>
@@ -723,27 +729,16 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
                     </SheetDescription>
                 )}
             </SheetHeader>
-            <PaymentForm 
-                payment={null} 
-                rentals={rentals} 
-                onFinished={() => setIsPaymentSheetOpen(false)}
-                preselectedRentalId={rentalForModal?.id}
-            />
+            <div className="flex-grow overflow-hidden">
+                <PaymentForm 
+                    payment={null} 
+                    rentals={rentals} 
+                    onFinished={() => setIsPaymentSheetOpen(false)}
+                    preselectedRentalId={rentalForModal?.id}
+                />
+            </div>
         </SheetContent>
       </Sheet>
     </>
   );
 }
-
-    
-
-    
-
-    
-
-
-
-
-    
-
-    
