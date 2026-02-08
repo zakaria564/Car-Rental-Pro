@@ -17,7 +17,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { PlusCircle, MoreHorizontal, Printer, Pencil, CheckCircle, FileText, ChevronDown, ChevronRight } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Printer, Pencil, CheckCircle, FileText, ChevronDown, ChevronRight, DollarSign } from "lucide-react";
 import { format, differenceInCalendarDays, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -59,6 +59,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import PaymentForm from "../payments/payment-form";
 
 
 type RentalTableProps = {
@@ -101,6 +102,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = React.useState(false);
   const [isAlertOpen, setIsAlertOpen] = React.useState(false);
+  const [isPaymentSheetOpen, setIsPaymentSheetOpen] = React.useState(false);
   
   // Unified state for the rental being acted upon
   const [rentalForModal, setRentalForModal] = React.useState<Rental | null>(null);
@@ -269,17 +271,17 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     {
       accessorKey: "contractNumber",
       header: "Contrat N°",
-      cell: ({ row, cell }) => (row.getIsGrouped() ? null : cell.getValue()),
+      cell: ({ row }) => (row.getIsGrouped() ? null : cell.renderValue()),
     },
     {
       accessorKey: "vehicule.marque",
       header: "Voiture",
-      cell: ({ row, cell }) => (row.getIsGrouped() ? null : cell.renderValue()),
+      cell: ({ row }) => (row.getIsGrouped() ? null : row.renderValue()),
     },
     {
         accessorKey: "vehicule.immatriculation",
         header: "Immatriculation",
-        cell: ({ row, cell }) => (row.getIsGrouped() ? null : cell.renderValue()),
+        cell: ({ row }) => (row.getIsGrouped() ? null : row.renderValue()),
     },
     {
       id: "client",
@@ -328,9 +330,9 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     {
       accessorKey: "statut",
       header: "Statut",
-      cell: ({ row, cell }) => {
+      cell: ({ row }) => {
         if (row.getIsGrouped()) return null;
-        const status = cell.getValue() as string;
+        const status = row.original.statut;
         return (
             <Badge
                 variant={"outline"}
@@ -422,6 +424,10 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       cell: ({ row }) => {
         if (row.getIsGrouped()) return null;
         const rental = row.original;
+        const total = calculateTotal(rental);
+        const paid = rental.location.montantPaye || 0;
+        const remaining = total - paid;
+
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -440,6 +446,16 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
                 Voir les détails
               </DropdownMenuItem>
               
+              {remaining > 0.01 && (
+                  <DropdownMenuItem onSelect={() => {
+                      setRentalForModal(rental);
+                      setIsPaymentSheetOpen(true);
+                  }}>
+                      <DollarSign className="mr-2 h-4 w-4" />
+                      Encaisser un paiement
+                  </DropdownMenuItem>
+              )}
+
               {rental.statut === 'en_cours' && (
                   <>
                     <DropdownMenuItem onSelect={() => {
@@ -691,6 +707,32 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
             </AlertDialogContent>
         )}
       </AlertDialog>
+
+      <Sheet open={isPaymentSheetOpen} onOpenChange={(open) => {
+          setIsPaymentSheetOpen(open);
+          if (!open) {
+            setRentalForModal(null);
+          }
+      }}>
+        <SheetContent className="sm:max-w-md">
+            <SheetHeader>
+                <SheetTitle>Ajouter un paiement</SheetTitle>
+                {rentalForModal && (
+                    <SheetDescription>
+                        Contrat N° {rentalForModal.contractNumber}
+                    </SheetDescription>
+                )}
+            </SheetHeader>
+            <ScrollArea className="h-full pr-4">
+                <PaymentForm 
+                    payment={null} 
+                    rentals={rentals} 
+                    onFinished={() => setIsPaymentSheetOpen(false)}
+                    preselectedRentalId={rentalForModal?.id}
+                />
+            </ScrollArea>
+        </SheetContent>
+      </Sheet>
     </>
   );
 }
@@ -702,3 +744,6 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     
 
 
+
+
+    
