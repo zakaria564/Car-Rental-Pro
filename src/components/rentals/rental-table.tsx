@@ -106,6 +106,28 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
   
   // Unified state for the rental being acted upon
   const [rentalForModal, setRentalForModal] = React.useState<Rental | null>(null);
+  
+  const openSheet = React.useCallback((mode: 'new' | 'edit' | 'check-in', rental: Rental | null) => {
+    setRentalForModal(rental);
+    setFormMode(mode);
+    setIsSheetOpen(true);
+  }, []);
+
+  const openDetails = React.useCallback((rental: Rental) => {
+      setRentalForModal(rental);
+      setIsDetailsOpen(true);
+  }, []);
+
+  const openAlert = React.useCallback((rental: Rental) => {
+      setRentalForModal(rental);
+      setIsAlertOpen(true);
+  }, []);
+  
+  const openPaymentSheet = React.useCallback((rental: Rental) => {
+      setRentalForModal(rental);
+      setIsPaymentSheetOpen(true);
+  }, []);
+
 
   const handlePrint = () => {
     const printContent = document.getElementById('printable-contract');
@@ -467,19 +489,13 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem onSelect={() => {
-                setRentalForModal(rental);
-                setIsDetailsOpen(true);
-              }}>
+              <DropdownMenuItem onSelect={() => openDetails(rental)}>
                 <FileText className="mr-2 h-4 w-4"/>
                 Voir les détails
               </DropdownMenuItem>
               
               {remaining > 0.01 && (
-                  <DropdownMenuItem onSelect={() => {
-                      setRentalForModal(rental);
-                      setIsPaymentSheetOpen(true);
-                  }}>
+                  <DropdownMenuItem onSelect={() => openPaymentSheet(rental)}>
                       <DollarSign className="mr-2 h-4 w-4" />
                       Encaisser un paiement
                   </DropdownMenuItem>
@@ -487,19 +503,11 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
 
               {rental.statut === 'en_cours' && (
                   <>
-                    <DropdownMenuItem onSelect={() => {
-                        setRentalForModal(rental);
-                        setFormMode('edit');
-                        setIsSheetOpen(true);
-                    }}>
+                    <DropdownMenuItem onSelect={() => openSheet('edit', rental)}>
                         <Pencil className="mr-2 h-4 w-4" />
                         Modifier/Prolonger
                     </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => {
-                        setRentalForModal(rental);
-                        setFormMode('check-in');
-                        setIsSheetOpen(true);
-                    }}>
+                    <DropdownMenuItem onSelect={() => openSheet('check-in', rental)}>
                       <CheckCircle className="mr-2 h-4 w-4" />
                       Réceptionner
                     </DropdownMenuItem>
@@ -510,10 +518,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
 
               <DropdownMenuItem 
                 className="text-destructive focus:text-destructive focus:bg-destructive/10" 
-                onSelect={() => {
-                    setRentalForModal(rental);
-                    setIsAlertOpen(true);
-                }}
+                onSelect={() => openAlert(rental)}
               >
                 Supprimer
               </DropdownMenuItem>
@@ -523,7 +528,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       },
     },
   ];
-  }, [isDashboard, setFormMode, setIsAlertOpen, setIsDetailsOpen, setIsSheetOpen, setRentalForModal, firestore, toast]);
+  }, [isDashboard, openSheet, openDetails, openAlert, openPaymentSheet]);
 
 
   const table = useReactTable({
@@ -615,11 +620,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
             }
             className="max-w-sm"
           />
-           <Button className="ml-auto bg-primary hover:bg-primary/90" onClick={() => {
-              setRentalForModal(null);
-              setFormMode('new');
-              setIsSheetOpen(true);
-            }}>
+           <Button className="ml-auto bg-primary hover:bg-primary/90" onClick={() => openSheet('new', null)}>
               <PlusCircle className="mr-2 h-4 w-4" /> Ajouter contrat
             </Button>
         </div>
@@ -765,4 +766,3 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     </>
   );
 }
-
