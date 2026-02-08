@@ -169,11 +169,31 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
     {
       accessorKey: "telephone",
       header: "Téléphone",
+      cell: ({ row }) => {
+        const telephone = row.getValue("telephone") as string;
+        return (
+            <a href={`tel:${telephone}`} className="underline text-primary hover:text-primary/80">
+                {telephone}
+            </a>
+        );
+      },
     },
     {
       accessorKey: "adresse",
       header: "Adresse",
-      cell: ({ row }) => <div className="truncate max-w-[200px]">{row.getValue("adresse") as string}</div>,
+      cell: ({ row }) => {
+        const adresse = row.getValue("adresse") as string;
+        return (
+            <a 
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(adresse)}`} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="underline text-primary hover:text-primary/80 truncate block max-w-[200px]"
+            >
+                {adresse}
+            </a>
+        );
+      },
     },
     {
       id: "actions",
