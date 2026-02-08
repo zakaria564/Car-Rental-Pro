@@ -1,4 +1,3 @@
-
 'use client';
 import { DashboardHeader } from "@/components/dashboard-header";
 import ArchiveTable from "@/components/archives/archive-table";
@@ -61,7 +60,7 @@ export default function ArchivesPage() {
       }
     }, (serverError) => {
       setLoading(false);
-      setError("Impossible de charger les archives des contrats.");
+      setError("Impossible de charger les contrats supprimés.");
       const permissionError = new FirestorePermissionError({
         path: collection(firestore, "archived_rentals").path,
         operation: 'list'
@@ -88,7 +87,7 @@ export default function ArchivesPage() {
       }
     }, (serverError) => {
       setLoading(false);
-      setError(prev => (prev ? prev + " " : "") + "Impossible de charger les archives des paiements.");
+      setError(prev => (prev ? prev + " " : "") + "Impossible de charger les paiements supprimés.");
       const permissionError = new FirestorePermissionError({
         path: collection(firestore, "archived_payments").path,
         operation: 'list'
@@ -106,7 +105,7 @@ export default function ArchivesPage() {
         }
     }, (serverError) => {
         setLoading(false);
-        setError(prev => (prev ? prev + " " : "") + "Impossible de charger les archives des véhicules.");
+        setError(prev => (prev ? prev + " " : "") + "Impossible de charger les véhicules supprimés.");
         const permissionError = new FirestorePermissionError({
             path: collection(firestore, "archived_cars").path,
             operation: 'list'
@@ -123,7 +122,7 @@ export default function ArchivesPage() {
 
   return (
     <>
-      <DashboardHeader title="Archives" description="Consultez tous vos contrats, paiements et véhicules archivés." />
+      <DashboardHeader title="Corbeille" description="Consultez tous vos contrats, paiements et véhicules supprimés." />
       <Tabs defaultValue="contracts" className="w-full">
         <TabsList>
           <TabsTrigger value="contracts">Contrats</TabsTrigger>

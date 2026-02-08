@@ -88,7 +88,7 @@ const StatementDialog = ({ rental, payments, onPrintClick }: {
   return (
     <DialogContent className="sm:max-w-2xl">
       <DialogHeader>
-        <DialogTitle>Relevé de compte (Archive)</DialogTitle>
+        <DialogTitle>Relevé de compte (Corbeille)</DialogTitle>
         <DialogDescription>
           Contrat {rental.contractNumber} pour {rental.locataire.nomPrenom}
         </DialogDescription>
@@ -111,7 +111,7 @@ const StatementDialog = ({ rental, payments, onPrintClick }: {
               </TableRow>
             )) : (
               <TableRow>
-                <TableCell colSpan={3} className="h-24 text-center">Aucun paiement archivé pour ce contrat.</TableCell>
+                <TableCell colSpan={3} className="h-24 text-center">Aucun paiement dans la corbeille pour ce contrat.</TableCell>
               </TableRow>
             )}
           </TableBody>
@@ -157,8 +157,8 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
         });
 
         toast({
-            title: "Archives supprimées",
-            description: "Le contrat et ses paiements associés ont été supprimés des archives.",
+            title: "Suppression définitive",
+            description: "Le contrat et ses paiements associés ont été définitivement supprimés.",
         });
 
     } catch (serverError: any) {
@@ -170,7 +170,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
         toast({
           variant: "destructive",
           title: "Une erreur est survenue",
-          description: serverError.message || "Impossible de supprimer l'archive du contrat.",
+          description: serverError.message || "Impossible de supprimer le contrat.",
         });
     } finally {
         setRentalToDelete(null);
@@ -379,7 +379,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
                     onSelect={() => setRentalToDelete(rental)}
                 >
                     <Trash2 className="mr-2 h-4 w-4" />
-                    Supprimer de l'archive
+                    Supprimer définitivement
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -445,7 +445,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
               ) : (
                 <TableRow>
                   <TableCell colSpan={columns.length} className="h-24 text-center">
-                    Aucun paiement archivé.
+                    Aucun paiement dans la corbeille.
                   </TableCell>
                 </TableRow>
               )}
@@ -484,9 +484,9 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
         {rentalToDelete && (
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Supprimer ces archives ?</AlertDialogTitle>
+                    <AlertDialogTitle>Supprimer définitivement ?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Cette action est irréversible. Le contrat archivé N° {rentalToDelete.contractNumber} et tous ses paiements associés seront définitivement supprimés des archives.
+                      Cette action est irréversible. Le contrat N° {rentalToDelete.contractNumber} et tous ses paiements associés seront définitivement supprimés.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

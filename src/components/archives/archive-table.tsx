@@ -66,8 +66,8 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
     try {
         await deleteDoc(rentalDocRef);
         toast({
-            title: "Archive supprimée",
-            description: "Le contrat a été supprimé des archives.",
+            title: "Suppression définitive",
+            description: "Le contrat a été supprimé définitivement.",
         });
     } catch(serverError) {
         const permissionError = new FirestorePermissionError({
@@ -78,7 +78,7 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
         toast({
             variant: "destructive",
             title: "Erreur de suppression",
-            description: "Vous n'avez pas la permission de supprimer cette archive.",
+            description: "Vous n'avez pas la permission de supprimer cet élément.",
         });
     } finally {
         setRentalToDelete(null); // Close the dialog
@@ -255,7 +255,7 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
                 onSelect={() => setRentalToDelete(rental)}
               >
                   <Trash2 className="mr-2 h-4 w-4" />
-                  Supprimer
+                  Supprimer définitivement
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -329,7 +329,7 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
               ) : (
                 <TableRow>
                   <TableCell colSpan={columns.length} className="h-24 text-center">
-                    Aucun contrat archivé.
+                    Aucun contrat supprimé.
                   </TableCell>
                 </TableRow>
               )}
@@ -349,7 +349,7 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
         {selectedRental && (
             <DialogContent className="sm:max-w-4xl">
                 <DialogHeader className="no-print">
-                    <DialogTitle>Détails du contrat archivé #{selectedRental.contractNumber}</DialogTitle>
+                    <DialogTitle>Détails du contrat #{selectedRental.contractNumber}</DialogTitle>
                 </DialogHeader>
                 <RentalDetails rental={selectedRental} isArchived={true} />
                 <DialogFooter className="no-print">
@@ -366,9 +366,9 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
         {rentalToDelete && (
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Supprimer cette archive ?</AlertDialogTitle>
+                    <AlertDialogTitle>Supprimer définitivement ?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Cette action est irréversible. Le contrat archivé N° {rentalToDelete.contractNumber} sera définitivement supprimé. Le contrat actif ne sera pas affecté.
+                      Cette action est irréversible. Le contrat N° {rentalToDelete.contractNumber} sera définitivement supprimé.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

@@ -130,8 +130,8 @@ export default function ArchivedCarsTable({ cars }: { cars: Car[] }) {
     try {
         await deleteDoc(carDocRef);
         toast({
-            title: "Archive supprimée",
-            description: "La voiture a été définitivement supprimée des archives.",
+            title: "Voiture supprimée définitivement",
+            description: "La voiture a été définitivement supprimée.",
         });
     } catch(serverError) {
         const permissionError = new FirestorePermissionError({
@@ -142,7 +142,7 @@ export default function ArchivedCarsTable({ cars }: { cars: Car[] }) {
         toast({
             variant: "destructive",
             title: "Erreur de suppression",
-            description: "Vous n'avez pas la permission de supprimer cette archive.",
+            description: "Vous n'avez pas la permission de supprimer cet élément.",
         });
     } finally {
         setCarToDelete(null);
@@ -322,7 +322,7 @@ export default function ArchivedCarsTable({ cars }: { cars: Car[] }) {
               ) : (
                 <TableRow>
                   <TableCell colSpan={columns.length} className="h-24 text-center">
-                    Aucun véhicule archivé.
+                    Aucun véhicule supprimé.
                   </TableCell>
                 </TableRow>
               )}
@@ -372,7 +372,7 @@ export default function ArchivedCarsTable({ cars }: { cars: Car[] }) {
                 <AlertDialogHeader>
                     <AlertDialogTitle>Restaurer ce véhicule ?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      La voiture {carToRestore.marque} {carToRestore.modele} sera retirée des archives et réintégrée dans votre flotte active.
+                      La voiture {carToRestore.marque} {carToRestore.modele} sera retirée de la corbeille et réintégrée dans votre flotte active.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -391,9 +391,9 @@ export default function ArchivedCarsTable({ cars }: { cars: Car[] }) {
         {carToDelete && (
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Supprimer cette archive ?</AlertDialogTitle>
+                    <AlertDialogTitle>Supprimer définitivement ?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Cette action est irréversible. La voiture {carToDelete.marque} {carToDelete.modele} sera définitivement supprimée des archives.
+                      Cette action est irréversible. La voiture {carToDelete.marque} {carToDelete.modele} sera définitivement supprimée.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
