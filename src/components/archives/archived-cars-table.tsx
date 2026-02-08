@@ -13,7 +13,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { MoreHorizontal, Printer, FileText, Trash2 } from "lucide-react";
+import { MoreHorizontal, Printer, FileText, Trash2, ArchiveRestore } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -26,7 +26,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useFirebase } from "@/firebase";
-import { deleteDoc, doc } from "firebase/firestore";
+import { deleteDoc, doc, runTransaction } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { getSafeDate } from "@/lib/utils";
@@ -40,6 +40,7 @@ export default function ArchivedCarsTable({ cars }: { cars: Car[] }) {
   const [isDetailsOpen, setIsDetailsOpen] = React.useState(false);
   const [selectedCar, setSelectedCar] = React.useState<Car | null>(null);
   const [carToDelete, setCarToDelete] = React.useState<Car | null>(null);
+  const [carToRestore, setCarToRestore] = React.useState<Car | null>(null);
   const [historyFilterDate, setHistoryFilterDate] = React.useState<Date | undefined>();
 
   const groupedMaintenanceHistory = React.useMemo(() => {
@@ -77,6 +78,50 @@ export default function ArchivedCarsTable({ cars }: { cars: Car[] }) {
         return groupDateStr === filterDateStr;
     });
   }, [groupedMaintenanceHistory, historyFilterDate]);
+
+  const handleRestoreCar = async (carToRestore: Car) => {
+    if (!firestore) return;
+    const archivedCarRef = doc(firestore, 'archived_cars', carToRestore.id);
+    const carRef = doc(firestore, 'cars', carToRestore.id);
+
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            const archivedDoc = await transaction.get(archivedCarRef);
+            if (!archivedDoc.exists()) {
+                throw new Error("La voiture archivée n'a pas été trouvée.");
+            }
+            const carData = archivedDoc.data();
+            
+            const carDoc = await transaction.get(carRef);
+            if (carDoc.exists()) {
+                throw new Error("Une voiture avec cet ID existe déjà dans la flotte active.");
+            }
+
+            transaction.set(carRef, carData);
+            transaction.delete(archivedCarRef);
+        });
+
+        toast({
+            title: "Véhicule restauré",
+            description: `${carToRestore.marque} ${carToRestore.modele} a été restauré dans la flotte active.`,
+        });
+    } catch(serverError: any) {
+        const permissionError = new FirestorePermissionError({
+            path: carRef.path,
+            operation: 'create',
+            requestResourceData: carToRestore
+        }, serverError as Error);
+        errorEmitter.emit('permission-error', permissionError);
+        toast({
+            variant: "destructive",
+            title: "Erreur de restauration",
+            description: serverError.message || "Impossible de restaurer la voiture. Vérifiez vos permissions.",
+        });
+    } finally {
+        setCarToRestore(null);
+    }
+  };
+
 
   const handleDeletePermanently = async (carId: string) => {
     if (!firestore) return;
@@ -205,6 +250,10 @@ export default function ArchivedCarsTable({ cars }: { cars: Car[] }) {
                 <Printer className="mr-2 h-4 w-4" />
                 Imprimer
               </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setCarToRestore(car)}>
+                  <ArchiveRestore className="mr-2 h-4 w-4" />
+                  Restaurer
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                 className="text-destructive focus:text-destructive focus:bg-destructive/10"
@@ -316,6 +365,27 @@ export default function ArchivedCarsTable({ cars }: { cars: Car[] }) {
             </DialogContent>
         )}
       </Dialog>
+
+      <AlertDialog open={!!carToRestore} onOpenChange={(open) => !open && setCarToRestore(null)}>
+        {carToRestore && (
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Restaurer ce véhicule ?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      La voiture {carToRestore.marque} {carToRestore.modele} sera retirée des archives et réintégrée dans votre flotte active.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                    <AlertDialogAction 
+                        onClick={() => handleRestoreCar(carToRestore)}
+                    >
+                        Restaurer
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        )}
+      </AlertDialog>
       
       <AlertDialog open={!!carToDelete} onOpenChange={(open) => !open && setCarToDelete(null)}>
         {carToDelete && (
