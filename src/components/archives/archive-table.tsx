@@ -11,8 +11,11 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
+  GroupingState,
+  getGroupedRowModel,
+  getExpandedRowModel,
 } from "@tanstack/react-table";
-import { MoreHorizontal, Printer, FileText, Trash2 } from "lucide-react";
+import { MoreHorizontal, Printer, FileText, Trash2, ChevronRight, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -51,6 +54,7 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
   const { firestore } = useFirebase();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [grouping, setGrouping] = React.useState<GroupingState>(['client']);
   const [isDetailsOpen, setIsDetailsOpen] = React.useState(false);
   const [selectedRental, setSelectedRental] = React.useState<Rental | null>(null);
   const [rentalToDelete, setRentalToDelete] = React.useState<Rental | null>(null);
@@ -142,24 +146,49 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
     {
       accessorKey: "contractNumber",
       header: "Contrat N°",
+       cell: ({ row }) => row.getIsGrouped() ? null : row.getValue("contractNumber"),
     },
     {
       accessorKey: "vehicule.marque",
       header: "Voiture",
+       cell: ({ row }) => row.getIsGrouped() ? null : row.original.vehicule.marque,
     },
     {
       accessorKey: "vehicule.immatriculation",
       header: "Immatriculation",
+       cell: ({ row }) => row.getIsGrouped() ? null : row.original.vehicule.immatriculation,
     },
     {
       id: "client",
       accessorFn: (row) => row.locataire.nomPrenom,
       header: "Client",
+      cell: ({ row }) => {
+        if (row.getIsGrouped()) {
+            return (
+                <Button
+                    variant="ghost"
+                    onClick={() => row.toggleExpanded()}
+                    className="w-full text-left justify-start pl-2"
+                >
+                    <span className="flex items-center gap-2 font-semibold">
+                        {row.getIsExpanded() ? (
+                            <ChevronDown className="h-4 w-4" />
+                        ) : (
+                            <ChevronRight className="h-4 w-4" />
+                        )}
+                        {row.getValue("client")} ({row.subRows.length})
+                    </span>
+                </Button>
+            );
+        }
+        return null;
+      },
     },
      {
       accessorKey: "location.dateDebut",
       header: "Date départ",
       cell: ({ row }) => {
+        if (row.getIsGrouped()) return null;
         const date = row.original.location.dateDebut?.toDate ? row.original.location.dateDebut.toDate() : null;
         return date ? format(date, "dd/MM/yyyy", { locale: fr }) : "N/A";
       },
@@ -168,6 +197,7 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
       accessorKey: "location.dateFin",
       header: "Date retour",
       cell: ({ row }) => {
+         if (row.getIsGrouped()) return null;
         const date = row.original.location.dateFin?.toDate ? row.original.location.dateFin.toDate() : null;
         return date ? format(date, "dd/MM/yyyy", { locale: fr }) : "N/A";
       },
@@ -175,19 +205,23 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
     {
       accessorKey: "statut",
       header: "Statut Final",
-      cell: ({ row }) => (
-        <Badge
-          variant={row.getValue("statut") === "en_cours" ? "default" : "outline"}
-          className={cn(row.getValue("statut") === "en_cours" ? "bg-yellow-500/20 text-yellow-700" : "bg-green-100 text-green-800 border-green-300")}
-        >
-          {row.getValue("statut") === 'en_cours' ? "Non Terminé" : "Terminée"}
-        </Badge>
-      ),
+      cell: ({ row }) => {
+         if (row.getIsGrouped()) return null;
+        return (
+            <Badge
+                variant={row.getValue("statut") === "en_cours" ? "default" : "outline"}
+                className={cn(row.getValue("statut") === "en_cours" ? "bg-yellow-500/20 text-yellow-700" : "bg-green-100 text-green-800 border-green-300")}
+            >
+                {row.getValue("statut") === 'en_cours' ? "Non Terminé" : "Terminée"}
+            </Badge>
+        );
+      },
     },
     {
       id: "actions",
       enableHiding: false,
       cell: ({ row }) => {
+        if (row.getIsGrouped()) return null;
         const rental = row.original;
         return (
           <DropdownMenu>
@@ -239,9 +273,13 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    onGroupingChange: setGrouping,
+    getGroupedRowModel: getGroupedRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
     state: {
       sorting,
       columnFilters,
+      grouping,
     },
   });
 

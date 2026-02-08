@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -12,8 +11,11 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
+  GroupingState,
+  getGroupedRowModel,
+  getExpandedRowModel,
 } from "@tanstack/react-table";
-import { MoreHorizontal, Trash2, FileText, Printer, ArrowUpDown } from "lucide-react";
+import { MoreHorizontal, Trash2, FileText, Printer, ArrowUpDown, ChevronDown, ChevronRight } from "lucide-react";
 import { format, differenceInCalendarDays, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -131,6 +133,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
   const { firestore } = useFirebase();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [grouping, setGrouping] = React.useState<GroupingState>(['client']);
   
   const [statementRental, setStatementRental] = React.useState<Rental | null>(null);
   const [isStatementOpen, setIsStatementOpen] = React.useState(false);
@@ -234,6 +237,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
     {
       accessorKey: "contractNumber",
       header: "Contrat N°",
+      cell: ({ row }) => row.getIsGrouped() ? null : row.getValue("contractNumber"),
     },
     {
       id: "client",
@@ -247,12 +251,33 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       ),
-      cell: (info) => <div className="font-medium">{info.getValue() as string}</div>,
+      cell: ({ row }) => {
+        if (row.getIsGrouped()) {
+            return (
+                <Button
+                    variant="ghost"
+                    onClick={() => row.toggleExpanded()}
+                    className="w-full text-left justify-start pl-2"
+                >
+                    <span className="flex items-center gap-2 font-semibold">
+                        {row.getIsExpanded() ? (
+                            <ChevronDown className="h-4 w-4" />
+                        ) : (
+                            <ChevronRight className="h-4 w-4" />
+                        )}
+                        {row.getValue("client")} ({row.subRows.length})
+                    </span>
+                </Button>
+            );
+        }
+        return null;
+      },
     },
     {
       id: "montantTotal",
       header: () => <div className="text-right">Montant Total</div>,
       cell: ({ row }) => {
+        if (row.getIsGrouped()) return null;
         const total = calculateTotal(row.original);
         return (
             <div className="text-right font-medium">
@@ -265,6 +290,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
       id: "montantPaye",
       header: () => <div className="text-right">Montant Payé</div>,
       cell: ({ row }) => {
+          if (row.getIsGrouped()) return null;
           const relatedPayments = payments.filter(p => p.contractNumber === row.original.contractNumber);
           const totalPaid = relatedPayments.reduce((acc, p) => acc + p.amount, 0);
           return (
@@ -278,6 +304,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
       id: 'resteAPayer',
       header: () => <div className="text-right">Reste</div>,
       cell: ({ row }) => {
+        if (row.getIsGrouped()) return null;
         const total = calculateTotal(row.original);
         const relatedPayments = payments.filter(p => p.contractNumber === row.original.contractNumber);
         const totalPaid = relatedPayments.reduce((acc, p) => acc + p.amount, 0);
@@ -293,6 +320,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
       id: 'paymentStatus',
       header: "Statut Paiement",
       cell: ({ row }) => {
+          if (row.getIsGrouped()) return null;
           const total = calculateTotal(row.original);
           const relatedPayments = payments.filter(p => p.contractNumber === row.original.contractNumber);
           const totalPaid = relatedPayments.reduce((acc, p) => acc + p.amount, 0);
@@ -329,6 +357,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
       id: "actions",
       enableHiding: false,
       cell: ({ row }) => {
+        if (row.getIsGrouped()) return null;
         const rental = row.original;
         return (
             <DropdownMenu>
@@ -368,9 +397,13 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    onGroupingChange: setGrouping,
+    getGroupedRowModel: getGroupedRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
     state: {
       sorting,
       columnFilters,
+      grouping,
     },
   });
 
