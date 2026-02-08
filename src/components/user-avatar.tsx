@@ -24,7 +24,7 @@ export function UserAvatar({ className }: { className?: string }) {
     return (
         <Avatar className={cn("bg-secondary", className)}>
             {logoUrl ? (
-                <AvatarImage src={logoUrl} alt="Logo de l'agence" className="object-cover" />
+                <AvatarImage src={logoUrl} alt="Logo de l'agence" className="object-contain" />
             ) : (
                 <AvatarFallback className="bg-transparent text-secondary-foreground">{fallback}</AvatarFallback>
             )}
