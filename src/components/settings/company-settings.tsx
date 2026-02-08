@@ -103,8 +103,8 @@ export function CompanySettings() {
                 </FormItem>
               )}
             />
-            {logoUrlValue && (
-                <div className="relative w-32 h-32 rounded-md overflow-hidden border bg-muted my-2">
+            {logoUrlValue && logoUrlValue.startsWith('http') && (
+                <div className="relative w-32 h-32 rounded-md overflow-hidden border bg-transparent my-2">
                     <Image src={logoUrlValue} alt="Aperçu du logo" fill className="object-contain" />
                 </div>
             )}
