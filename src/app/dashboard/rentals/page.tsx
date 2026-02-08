@@ -20,16 +20,7 @@ export default function RentalsPage() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const { toast } = useToast();
-  let firestore: any;
-
-  try {
-    const firebase = useFirebase();
-    firestore = firebase.firestore;
-  } catch (e: any) {
-    React.useEffect(() => {
-      console.error(e.message);
-    }, [e]);
-  }
+  const { firestore } = useFirebase();
 
   React.useEffect(() => {
     if (!firestore) return;

@@ -23,18 +23,7 @@ export default function CarsPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [searchTerm, setSearchTerm] = React.useState("");
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
-  let firestore: any;
-
-  try {
-    const firebase = useFirebase();
-    firestore = firebase.firestore;
-  } catch (e: any) {
-     React.useEffect(() => {
-      // We catch the error to prevent the app from crashing and show a message.
-      // The provider will re-render and this will be re-attempted.
-      console.error(e.message);
-    }, [e]);
-  }
+  const { firestore } = useFirebase();
 
   React.useEffect(() => {
     if (!firestore) return; // Don't run if firestore is not available yet.

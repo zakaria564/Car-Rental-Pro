@@ -23,16 +23,7 @@ export default function DashboardPage() {
   const [cars, setCars] = React.useState<CarType[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
-  let firestore: any;
-
-  try {
-    const firebase = useFirebase();
-    firestore = firebase.firestore;
-  } catch (e: any) {
-    React.useEffect(() => {
-      console.error(e.message);
-    }, [e]);
-  }
+  const { firestore } = useFirebase();
 
   React.useEffect(() => {
     if (!firestore) return;

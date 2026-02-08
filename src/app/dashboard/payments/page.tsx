@@ -22,16 +22,7 @@ export default function PaymentsPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [rentalIdForNewPayment, setRentalIdForNewPayment] = React.useState<string | null>(null);
-  let firestore: any;
-
-  try {
-    const firebase = useFirebase();
-    firestore = firebase.firestore;
-  } catch (e: any) {
-    React.useEffect(() => {
-      console.error(e.message);
-    }, [e]);
-  }
+  const { firestore } = useFirebase();
 
   React.useEffect(() => {
     if (!firestore) return;

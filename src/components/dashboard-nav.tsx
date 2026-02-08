@@ -23,14 +23,7 @@ export function DashboardNav() {
   const pathname = usePathname();
   const [activeRentals, setActiveRentals] = React.useState(0);
   const [unpaidCount, setUnpaidCount] = React.useState(0);
-  let firestore: any;
-
-  try {
-    const firebase = useFirebase();
-    firestore = firebase.firestore;
-  } catch (e) {
-    // Firebase might not be initialized yet
-  }
+  const { firestore } = useFirebase();
 
   React.useEffect(() => {
     if (!firestore) return;
