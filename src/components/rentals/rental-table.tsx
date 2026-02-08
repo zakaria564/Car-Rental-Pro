@@ -237,14 +237,17 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     {
       accessorKey: "contractNumber",
       header: "Contrat N°",
+      cell: ({ row }) => row.getIsGrouped() ? null : row.getValue("contractNumber"),
     },
     {
       accessorKey: "vehicule.marque",
       header: "Voiture",
+      cell: ({ row }) => row.getIsGrouped() ? null : row.getValue("vehicule.marque"),
     },
     {
         accessorKey: "vehicule.immatriculation",
         header: "Immatriculation",
+        cell: ({ row }) => row.getIsGrouped() ? null : row.getValue("vehicule.immatriculation"),
     },
     {
       id: "client",
@@ -276,6 +279,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       accessorKey: "location.dateDebut",
       header: "Date départ",
       cell: ({ row }) => {
+        if (row.getIsGrouped()) return null;
         const date = row.original.location.dateDebut?.toDate ? row.original.location.dateDebut.toDate() : null;
         return date ? format(date, "dd/MM/yyyy", { locale: fr }) : "N/A";
       },
@@ -284,6 +288,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       accessorKey: "location.dateFin",
       header: "Date de retour",
       cell: ({ row }) => {
+          if (row.getIsGrouped()) return null;
           const date = row.original.location.dateFin?.toDate ? row.original.location.dateFin.toDate() : null;
           return date ? format(date, "dd/MM/yyyy", { locale: fr }) : "Date invalide";
       }
@@ -291,16 +296,20 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     {
       accessorKey: "statut",
       header: "Statut",
-      cell: ({ row }) => (
-        <Badge variant={row.getValue("statut") === 'en_cours' ? 'default' : 'outline'} className={cn(row.getValue("statut") === 'en_cours' && "bg-blue-500/20 text-blue-700")}>
-          {row.getValue("statut") === 'en_cours' ? "En cours" : "Terminée"}
-        </Badge>
-      ),
+      cell: ({ row }) => {
+        if (row.getIsGrouped()) return null;
+        return (
+            <Badge variant={row.getValue("statut") === 'en_cours' ? 'default' : 'outline'} className={cn(row.getValue("statut") === 'en_cours' && "bg-blue-500/20 text-blue-700")}>
+            {row.getValue("statut") === 'en_cours' ? "En cours" : "Terminée"}
+            </Badge>
+        );
+      },
     },
     {
       id: "actions",
       enableHiding: false,
       cell: ({ row }) => {
+        if (row.getIsGrouped()) return null;
         const rental = row.original;
         return (
           <DropdownMenu>
@@ -574,6 +583,8 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     </>
   );
 }
+
+    
 
     
 
