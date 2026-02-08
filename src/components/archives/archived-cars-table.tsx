@@ -240,7 +240,7 @@ export default function ArchivedCarsTable({ cars }: { cars: Car[] }) {
                 setIsDetailsOpen(true);
               }}>
                 <FileText className="mr-2 h-4 w-4"/>
-                Voir la fiche
+                Voir Fiche & Historique
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => {
                 setSelectedCar(car);
@@ -248,7 +248,7 @@ export default function ArchivedCarsTable({ cars }: { cars: Car[] }) {
                 setTimeout(() => handlePrint(), 300);
               }}>
                 <Printer className="mr-2 h-4 w-4" />
-                Imprimer
+                Imprimer l'historique
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => setCarToRestore(car)}>
                   <ArchiveRestore className="mr-2 h-4 w-4" />
@@ -342,7 +342,7 @@ export default function ArchivedCarsTable({ cars }: { cars: Car[] }) {
         {selectedCar && (
             <DialogContent className="sm:max-w-lg">
                 <DialogHeader className="no-print">
-                    <DialogTitle>Fiche du véhicule archivé</DialogTitle>
+                    <DialogTitle>Fiche de suivi & Historique</DialogTitle>
                     <DialogDescription>{selectedCar.marque} {selectedCar.modele} - {selectedCar.immat}</DialogDescription>
                 </DialogHeader>
                 <div className="hidden">
@@ -359,7 +359,7 @@ export default function ArchivedCarsTable({ cars }: { cars: Car[] }) {
                 <DialogFooter className="no-print">
                     <Button variant="outline" onClick={handlePrint}>
                         <Printer className="mr-2 h-4 w-4"/>
-                        Imprimer la fiche
+                        Imprimer Fiche/Historique
                     </Button>
                 </DialogFooter>
             </DialogContent>
