@@ -22,7 +22,7 @@ export function UserAvatar({ className }: { className?: string }) {
     const logoUrl = companySettings?.logoUrl;
 
     return (
-        <Avatar className={cn("rounded-full bg-secondary h-full w-full", className)}>
+        <Avatar className={cn("rounded-full bg-transparent h-full w-full", className)}>
             {logoUrl ? (
                 <AvatarImage src={logoUrl} alt="Logo de l'agence" className="object-contain" />
             ) : (
