@@ -35,8 +35,6 @@ export function CompanySettings() {
     }
   });
 
-  const logoUrlValue = form.watch('logoUrl');
-
   async function onSubmit(data: CompanySettingsValues) {
     if (!firestore) return;
     setIsSubmitting(true);
@@ -103,11 +101,6 @@ export function CompanySettings() {
                 </FormItem>
               )}
             />
-            {logoUrlValue && logoUrlValue.startsWith('http') && (
-                <div className="relative w-32 h-32 rounded-md overflow-hidden border bg-transparent my-2">
-                    <Image src={logoUrlValue} alt="Aperçu du logo" fill className="object-contain" />
-                </div>
-            )}
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? 'Enregistrement...' : 'Enregistrer les informations'}
             </Button>
