@@ -13,7 +13,6 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import PaymentForm from "@/components/payments/payment-form";
 
 export default function PaymentsPage() {
@@ -124,18 +123,16 @@ export default function PaymentsPage() {
             />
         )}
 
-        <SheetContent className="sm:max-w-md">
+        <SheetContent className="sm:max-w-md flex flex-col">
             <SheetHeader>
                 <SheetTitle>Ajouter un nouveau paiement</SheetTitle>
             </SheetHeader>
-            <ScrollArea className="h-full pr-4">
-                <PaymentForm 
-                  payment={null} 
-                  rentals={rentals} 
-                  onFinished={() => setIsSheetOpen(false)}
-                  preselectedRentalId={rentalIdForNewPayment}
-                />
-            </ScrollArea>
+            <PaymentForm 
+              payment={null} 
+              rentals={rentals} 
+              onFinished={() => setIsSheetOpen(false)}
+              preselectedRentalId={rentalIdForNewPayment}
+            />
         </SheetContent>
     </Sheet>
   );

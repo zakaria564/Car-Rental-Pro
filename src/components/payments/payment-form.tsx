@@ -24,13 +24,13 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import React from "react";
 import { cn, formatCurrency } from "@/lib/utils";
 import { format, differenceInCalendarDays, startOfDay } from "date-fns";
+import { ScrollArea } from "../ui/scroll-area";
 
 const paymentFormSchema = z.object({
   rentalId: z.string().min(1, "Veuillez sélectionner un contrat de location."),
   amount: z.coerce.number().positive("Le montant doit être un nombre positif."),
   paymentDate: z.coerce.date({ required_error: "La date de paiement est requise." }),
   paymentMethod: z.enum(["Especes", "Carte bancaire", "Virement", "Avance"], { required_error: "La méthode de paiement est requise." }),
-  status: z.enum(["complete", "en_attente"], { required_error: "Le statut est requis." }),
 });
 
 type PaymentFormValues = z.infer<typeof paymentFormSchema>;
@@ -111,7 +111,6 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
         amount: defaultAmount,
         paymentDate: new Date(),
         paymentMethod: "Especes" as const,
-        status: "complete" as const,
     });
   }, [payment, preselectedRentalId, rentals, form]);
 
@@ -136,7 +135,7 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
     const isNewPayment = !payment;
 
     if (isNewPayment) {
-        if (financialSummary.reste <= 0) {
+        if (financialSummary.reste <= 0.01) { // Use a small epsilon
             form.setError("rentalId", {
                 type: "manual",
                 message: "Ce contrat est déjà entièrement payé.",
@@ -144,7 +143,7 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
             return;
         }
 
-        if (data.amount > financialSummary.reste) {
+        if (data.amount > financialSummary.reste + 0.01) { // Use a small epsilon
             form.setError("amount", {
                 type: "manual",
                 message: `Le montant ne peut pas dépasser le reste à payer de ${financialSummary.formattedReste}.`,
@@ -170,14 +169,13 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
             const currentPaidAmount = currentRentalData.location.montantPaye || 0;
             const newPaidAmount = currentPaidAmount + data.amount;
 
-            // Create the payment document payload
             const paymentPayload = {
               ...data,
               clientName: selectedRental.locataire.nomPrenom,
               contractNumber: selectedRental.contractNumber,
+              status: "complete" as const,
             };
             
-            // Set the new payment document
             transaction.set(paymentRef, paymentPayload, { merge: !isNewPayment });
             
             if (isNewPayment) {
@@ -185,7 +183,6 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
               transaction.set(archivedPaymentRef, paymentPayload);
             }
 
-            // Update the rental document
             transaction.update(rentalRef, { 'location.montantPaye': newPaidAmount });
         });
 
@@ -209,134 +206,119 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-4">
-        <FormField
-          control={form.control}
-          name="rentalId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Contrat de location</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value} disabled={!!payment}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un contrat" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {rentals.map(rental => (
-                    <SelectItem key={rental.id} value={rental.id}>
-                      {rental.locataire.nomPrenom} - {rental.vehicule.marque} ({rental.contractNumber})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {selectedRental && (
-                <div className="mt-2 text-sm p-3 bg-muted rounded-md border">
-                    <p className="font-semibold mb-2">Résumé Financier du Contrat</p>
-                    <div className="space-y-1">
-                        <div className="flex justify-between">
-                            <span>Total du contrat:</span>
-                            <span className="font-medium">{formatCurrency(financialSummary.total, 'MAD')}</span>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="mt-4 flex flex-grow flex-col">
+        <ScrollArea className="flex-grow pr-4 -mr-4">
+            <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="rentalId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Contrat de location</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value} disabled={!!payment}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sélectionner un contrat" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {rentals.map(rental => (
+                            <SelectItem key={rental.id} value={rental.id}>
+                              {rental.locataire.nomPrenom} - {rental.vehicule.marque} ({rental.contractNumber})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {selectedRental && (
+                        <div className="mt-2 text-sm p-3 bg-muted rounded-md border">
+                            <p className="font-semibold mb-2">Résumé Financier du Contrat</p>
+                            <div className="space-y-1">
+                                <div className="flex justify-between">
+                                    <span>Total du contrat:</span>
+                                    <span className="font-medium">{formatCurrency(financialSummary.total, 'MAD')}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span>Montant déjà payé:</span>
+                                    <span className="font-medium text-green-600">{formatCurrency(financialSummary.paye, 'MAD')}</span>
+                                </div>
+                                 <div className="flex justify-between border-t mt-2 pt-2">
+                                    <span className="font-semibold">Reste à payer:</span>
+                                    <span className="font-semibold text-destructive">{financialSummary.formattedReste}</span>
+                                </div>
+                            </div>
                         </div>
-                        <div className="flex justify-between">
-                            <span>Montant déjà payé:</span>
-                            <span className="font-medium text-green-600">{formatCurrency(financialSummary.paye, 'MAD')}</span>
-                        </div>
-                         <div className="flex justify-between border-t mt-2 pt-2">
-                            <span className="font-semibold">Reste à payer:</span>
-                            <span className="font-semibold text-destructive">{financialSummary.formattedReste}</span>
-                        </div>
-                    </div>
-                </div>
-              )}
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="amount"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Montant (MAD)</FormLabel>
-              <FormControl>
-                <Input type="number" placeholder="300" {...field} value={field.value ?? ''} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="paymentDate"
-          render={({ field }) => (
-              <FormItem>
-                <FormLabel>Date du paiement</FormLabel>
-                <FormControl>
-                  <Input
-                    type="date"
-                    value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd") : ""}
-                    onChange={(e) => {
-                        const dateString = e.target.value;
-                        if (!dateString) {
-                            field.onChange(null);
-                        } else {
-                            field.onChange(new Date(`${dateString}T00:00:00`));
-                        }
-                    }}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="paymentMethod"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Méthode de paiement</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choisir une méthode" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="Especes">Espèces</SelectItem>
-                  <SelectItem value="Carte bancaire">Carte bancaire</SelectItem>
-                  <SelectItem value="Virement">Virement</SelectItem>
-                  <SelectItem value="Avance">Avance</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="status"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Statut</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choisir un statut" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="complete">Complété</SelectItem>
-                  <SelectItem value="en_attente">En attente</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isSubmitting}>
-          {isSubmitting ? 'Enregistrement...' : (payment ? 'Mettre à jour' : 'Ajouter le paiement')}
-        </Button>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="amount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Montant (MAD)</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder="300" {...field} value={field.value ?? ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="paymentDate"
+                  render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Date du paiement</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="date"
+                            value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd") : ""}
+                            onChange={(e) => {
+                                const dateString = e.target.value;
+                                if (!dateString) {
+                                    field.onChange(null);
+                                } else {
+                                    field.onChange(new Date(`${dateString}T00:00:00`));
+                                }
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="paymentMethod"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Méthode de paiement</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Choisir une méthode" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Especes">Espèces</SelectItem>
+                          <SelectItem value="Carte bancaire">Carte bancaire</SelectItem>
+                          <SelectItem value="Virement">Virement</SelectItem>
+                          <SelectItem value="Avance">Avance</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+            </div>
+        </ScrollArea>
+        <div className="mt-4 border-t pt-4">
+            <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isSubmitting}>
+              {isSubmitting ? 'Enregistrement...' : (payment ? 'Mettre à jour' : 'Ajouter le paiement')}
+            </Button>
+        </div>
       </form>
     </Form>
   );

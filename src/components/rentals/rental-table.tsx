@@ -271,7 +271,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     {
       accessorKey: "contractNumber",
       header: "Contrat N°",
-      cell: ({ row }) => (row.getIsGrouped() ? null : row.getValue("contractNumber")),
+      cell: ({ row }) => (row.getIsGrouped() ? null : row.original.contractNumber),
     },
     {
       accessorKey: "vehicule.marque",
@@ -714,7 +714,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
             setRentalForModal(null);
           }
       }}>
-        <SheetContent className="sm:max-w-md">
+        <SheetContent className="sm:max-w-md flex flex-col">
             <SheetHeader>
                 <SheetTitle>Ajouter un paiement</SheetTitle>
                 {rentalForModal && (
@@ -723,14 +723,12 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
                     </SheetDescription>
                 )}
             </SheetHeader>
-            <ScrollArea className="h-full pr-4">
-                <PaymentForm 
-                    payment={null} 
-                    rentals={rentals} 
-                    onFinished={() => setIsPaymentSheetOpen(false)}
-                    preselectedRentalId={rentalForModal?.id}
-                />
-            </ScrollArea>
+            <PaymentForm 
+                payment={null} 
+                rentals={rentals} 
+                onFinished={() => setIsPaymentSheetOpen(false)}
+                preselectedRentalId={rentalForModal?.id}
+            />
         </SheetContent>
       </Sheet>
     </>
