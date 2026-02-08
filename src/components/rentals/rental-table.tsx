@@ -95,7 +95,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
   const { firestore } = useFirebase();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [grouping, setGrouping] = React.useState<GroupingState>(['client']);
+  const [grouping, setGrouping] = React.useState<GroupingState>(isDashboard ? [] : ['client']);
   const [formMode, setFormMode] = React.useState<'new' | 'edit' | 'check-in'>('new');
 
   // State for the modals
@@ -242,40 +242,19 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
         {
           accessorKey: "vehicule.marque",
           header: "Voiture",
-          cell: ({ row }) => (row.getIsGrouped() ? null : row.original.vehicule.marque),
         },
         {
-          id: "client",
           accessorFn: (row) => row.locataire.nomPrenom,
           header: "Client",
-          cell: ({ row }) => {
-            if (row.getIsGrouped()) {
-              return (
-                <Button
-                  variant="ghost"
-                  onClick={() => row.toggleExpanded()}
-                  className="w-full text-left justify-start pl-2"
-                >
-                  <span className="flex items-center gap-2 font-semibold">
-                    {row.getIsExpanded() ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                    {row.getValue("client")} ({row.subRows.length})
-                  </span>
-                </Button>
-              );
-            }
-            return null; // Don't render client name in sub-row
-          },
         },
         {
           accessorKey: "vehicule.immatriculation",
           header: "Immatriculation",
-           cell: ({ row }) => (row.getIsGrouped() ? null : row.original.vehicule.immatriculation),
         },
         {
           accessorKey: "location.dateDebut",
           header: "Date départ",
           cell: ({ row }) => {
-            if (row.getIsGrouped()) return null;
             const date = getSafeDate(row.original.location.dateDebut);
             return date ? format(date, "dd/MM/yyyy", { locale: fr }) : "N/A";
           },
@@ -284,7 +263,6 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
           accessorKey: "location.dateFin",
           header: "Date de retour",
           cell: ({ row }) => {
-            if (row.getIsGrouped()) return null;
             const date = getSafeDate(row.original.location.dateFin);
             return date ? format(date, "dd/MM/yyyy", { locale: fr }) : "Date invalide";
           },
@@ -293,7 +271,6 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
           accessorKey: "statut",
           header: "Statut",
           cell: ({ row }) => {
-            if (row.getIsGrouped()) return null;
             const status = row.original.statut;
             return (
               <Badge
@@ -590,7 +567,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={columns.length} className="h-24 text-center">Aucune location récente.</TableCell>
+                  <TableCell colSpan={columns.length} className="h-24 text-center">Aucune location en cours.</TableCell>
                 </TableRow>
               )}
             </TableBody>
