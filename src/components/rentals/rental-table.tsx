@@ -17,7 +17,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { PlusCircle, MoreHorizontal, Printer, Pencil, CheckCircle, FileText, Triangle, Car, Gavel, ChevronDown, ChevronRight } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Printer, Pencil, CheckCircle, FileText, ChevronDown, ChevronRight } from "lucide-react";
 import { format, differenceInCalendarDays, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -41,7 +41,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import type { Rental, Client, Car as CarType } from "@/lib/definitions";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency, getSafeDate } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import RentalForm from "./rental-form";
 import { useToast } from "@/hooks/use-toast";
@@ -53,6 +53,12 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { RentalDetails } from "./rental-contract-views";
 import { ScrollArea } from "../ui/scroll-area";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 
 type RentalTableProps = {
@@ -60,6 +66,27 @@ type RentalTableProps = {
   clients?: Client[];
   cars?: CarType[];
   isDashboard?: boolean;
+};
+
+const calculateTotal = (rental: Rental): number => {
+    const from = getSafeDate(rental.location.dateDebut);
+    const to = getSafeDate(rental.location.dateFin);
+    const pricePerDay = rental.location.prixParJour || 0;
+
+    if (from && to && pricePerDay > 0) {
+        if (startOfDay(from).getTime() === startOfDay(to).getTime()) {
+            return pricePerDay;
+        }
+        const daysDiff = differenceInCalendarDays(to, from) || 1;
+        return daysDiff * pricePerDay;
+    }
+    if (typeof rental.location.montantTotal === 'number' && !isNaN(rental.location.montantTotal) && rental.location.montantTotal > 0) {
+      return rental.location.montantTotal;
+    }
+    if (rental.location.nbrJours && pricePerDay > 0) {
+      return rental.location.nbrJours * pricePerDay;
+    }
+    return 0;
 };
 
 export default function RentalTable({ rentals, clients = [], cars = [], isDashboard = false }: RentalTableProps) {
@@ -204,7 +231,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
           accessorKey: "location.dateDebut",
           header: "Date départ",
           cell: ({ row }) => {
-            const date = row.original.location.dateDebut?.toDate ? row.original.location.dateDebut.toDate() : null;
+            const date = getSafeDate(row.original.location.dateDebut);
             return date ? format(date, "dd/MM/yyyy", { locale: fr }) : "N/A";
           },
         },
@@ -212,7 +239,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
           accessorKey: "location.dateFin",
           header: "Date de retour",
           cell: ({ row }) => {
-            const date = row.original.location.dateFin?.toDate ? row.original.location.dateFin.toDate() : null;
+            const date = getSafeDate(row.original.location.dateFin);
             return date ? format(date, "dd/MM/yyyy", { locale: fr }) : "Date invalide";
           },
         },
@@ -285,7 +312,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       header: "Date départ",
       cell: ({ row }) => {
         if (row.getIsGrouped()) return null;
-        const date = row.original.location.dateDebut?.toDate ? row.original.location.dateDebut.toDate() : null;
+        const date = getSafeDate(row.original.location.dateDebut);
         return date ? format(date, "dd/MM/yyyy", { locale: fr }) : "N/A";
       },
     },
@@ -294,7 +321,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       header: "Date de retour",
       cell: ({ row }) => {
           if (row.getIsGrouped()) return null;
-          const date = row.original.location.dateFin?.toDate ? row.original.location.dateFin.toDate() : null;
+          const date = getSafeDate(row.original.location.dateFin);
           return date ? format(date, "dd/MM/yyyy", { locale: fr }) : "Date invalide";
       }
     },
@@ -316,6 +343,77 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
                 {status === "en_cours" ? "En cours" : "Terminée"}
               </Badge>
         );
+      },
+    },
+    {
+      id: "paymentStatus",
+      header: "Paiement",
+      cell: ({ row }) => {
+        if (row.getIsGrouped()) return null;
+
+        const rental = row.original;
+        const total = calculateTotal(rental);
+        const paid = rental.location.montantPaye || 0;
+        const remaining = total - paid;
+        
+        if (rental.statut === 'terminee' && remaining > 0.01) {
+          return (
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Badge variant="destructive">Non réglé</Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Reste à payer: {formatCurrency(remaining, 'MAD')}</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+          );
+        }
+        
+        if (paid > 0 && remaining > 0.01) {
+           return (
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                            Partiel
+                        </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Reste à payer: {formatCurrency(remaining, 'MAD')}</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+          );
+        }
+        
+         if (paid === 0 && total > 0) {
+           return (
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Badge variant="destructive" className="bg-red-100 text-red-800 border-red-300">
+                            Non payé
+                        </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Total à payer: {formatCurrency(total, 'MAD')}</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+          );
+        }
+
+        if (remaining <= 0.01 && total > 0) {
+            return (
+                <Badge variant="default" className="bg-green-100 text-green-800 border-green-300">
+                    Payé
+                </Badge>
+            );
+        }
+
+        return <Badge variant="outline">N/A</Badge>;
       },
     },
     {
@@ -560,7 +658,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
                 <DialogHeader className="no-print">
                     <DialogTitle>Détails du contrat de location #{rentalForModal.contractNumber}</DialogTitle>
                     <DialogDesc>
-                      Créé le {rentalForModal.createdAt?.toDate ? format(rentalForModal.createdAt.toDate(), "dd LLL, y 'à' HH:mm", { locale: fr }) : 'N/A'}
+                      Créé le {getSafeDate(rentalForModal.createdAt) ? format(getSafeDate(rentalForModal.createdAt)!, "dd LLL, y 'à' HH:mm", { locale: fr }) : 'N/A'}
                     </DialogDesc>
                 </DialogHeader>
                 <RentalDetails rental={rentalForModal} />
@@ -602,4 +700,5 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     
 
     
+
 
