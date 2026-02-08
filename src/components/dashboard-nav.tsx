@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import React from 'react';
 import { useFirebase } from '@/firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
+import type { Rental } from '@/lib/definitions';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Tableau de bord' },
@@ -21,6 +22,7 @@ const navItems = [
 export function DashboardNav() {
   const pathname = usePathname();
   const [activeRentals, setActiveRentals] = React.useState(0);
+  const [unpaidCount, setUnpaidCount] = React.useState(0);
   let firestore: any;
 
   try {
@@ -35,8 +37,17 @@ export function DashboardNav() {
 
     const rentalsCollection = collection(firestore, "rentals");
     const unsubscribe = onSnapshot(rentalsCollection, (snapshot) => {
-        const active = snapshot.docs.filter(doc => doc.data().statut === 'en_cours').length;
+        const rentalsData = snapshot.docs.map(doc => doc.data() as Rental);
+        
+        const active = rentalsData.filter(doc => doc.statut === 'en_cours').length;
         setActiveRentals(active);
+
+        const unpaid = rentalsData.filter(rental => {
+            const total = rental.location.montantTotal || 0;
+            const paid = rental.location.montantPaye || 0;
+            return (total - paid) > 0.01;
+        }).length;
+        setUnpaidCount(unpaid);
     });
 
     return () => unsubscribe();
@@ -61,6 +72,11 @@ export function DashboardNav() {
           {item.label === 'Contrats' && activeRentals > 0 && (
              <Badge className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground hover:bg-accent">
               {activeRentals}
+            </Badge>
+          )}
+          {item.label === 'Comptabilité' && unpaidCount > 0 && (
+            <Badge className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-destructive text-destructive-foreground">
+              {unpaidCount}
             </Badge>
           )}
         </Link>
