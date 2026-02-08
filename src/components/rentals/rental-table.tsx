@@ -255,7 +255,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
                 variant={"outline"}
                 className={cn(
                   status === "en_cours"
-                    ? "bg-yellow-500/20 text-yellow-700"
+                    ? "bg-yellow-100 text-yellow-800 border-yellow-300"
                     : "bg-green-100 text-green-800 border-green-300"
                 )}
               >
@@ -271,8 +271,8 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     {
       accessorKey: "contractNumber",
       header: "Contrat N°",
-      cell: ({ row }) => {
-        return row.getIsGrouped() ? null : row.original.contractNumber;
+      cell: ({ row, cell }) => {
+        return row.getIsGrouped() ? null : cell.getValue() as string;
       },
     },
     {
@@ -344,7 +344,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
                 variant={"outline"}
                 className={cn(
                   status === "en_cours"
-                    ? "bg-yellow-500/20 text-yellow-700"
+                    ? "bg-yellow-100 text-yellow-800 border-yellow-300"
                     : "bg-green-100 text-green-800 border-green-300"
                 )}
               >
@@ -729,7 +729,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
                     </SheetDescription>
                 )}
             </SheetHeader>
-            <div className="flex-grow overflow-hidden">
+            <div className="flex-1 min-h-0">
                 <PaymentForm 
                     payment={null} 
                     rentals={rentals} 

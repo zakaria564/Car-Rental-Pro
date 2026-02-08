@@ -127,7 +127,7 @@ export default function PaymentsPage() {
             <SheetHeader>
                 <SheetTitle>Ajouter un nouveau paiement</SheetTitle>
             </SheetHeader>
-            <div className="flex-grow overflow-hidden">
+            <div className="flex-1 min-h-0">
                 <PaymentForm 
                   payment={null} 
                   rentals={rentals} 

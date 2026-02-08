@@ -206,113 +206,113 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="mt-4 flex h-full flex-col">
-        <ScrollArea className="flex-1 pr-6">
-            <div className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="rentalId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Contrat de location</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value} disabled={!!payment}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Sélectionner un contrat" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {rentals.map(rental => (
-                            <SelectItem key={rental.id} value={rental.id}>
-                              {rental.locataire.nomPrenom} - {rental.vehicule.marque} ({rental.contractNumber})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {selectedRental && (
-                        <div className="mt-2 text-sm p-3 bg-muted rounded-md border">
-                            <p className="font-semibold mb-2">Résumé Financier du Contrat</p>
-                            <div className="space-y-1">
-                                <div className="flex justify-between">
-                                    <span>Total du contrat:</span>
-                                    <span className="font-medium">{formatCurrency(financialSummary.total, 'MAD')}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span>Montant déjà payé:</span>
-                                    <span className="font-medium text-green-600">{formatCurrency(financialSummary.paye, 'MAD')}</span>
-                                </div>
-                                 <div className="flex justify-between border-t mt-2 pt-2">
-                                    <span className="font-semibold">Reste à payer:</span>
-                                    <span className="font-semibold text-destructive">{financialSummary.formattedReste}</span>
-                                </div>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex h-full flex-col">
+        <ScrollArea className="flex-1 pr-4">
+          <div className="space-y-4 pt-4">
+            <FormField
+              control={form.control}
+              name="rentalId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Contrat de location</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value} disabled={!!payment}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner un contrat" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {rentals.map(rental => (
+                        <SelectItem key={rental.id} value={rental.id}>
+                          {rental.locataire.nomPrenom} - {rental.vehicule.marque} ({rental.contractNumber})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {selectedRental && (
+                    <div className="mt-2 text-sm p-3 bg-muted rounded-md border">
+                        <p className="font-semibold mb-2">Résumé Financier du Contrat</p>
+                        <div className="space-y-1">
+                            <div className="flex justify-between">
+                                <span>Total du contrat:</span>
+                                <span className="font-medium">{formatCurrency(financialSummary.total, 'MAD')}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>Montant déjà payé:</span>
+                                <span className="font-medium text-green-600">{formatCurrency(financialSummary.paye, 'MAD')}</span>
+                            </div>
+                             <div className="flex justify-between border-t mt-2 pt-2">
+                                <span className="font-semibold">Reste à payer:</span>
+                                <span className="font-semibold text-destructive">{financialSummary.formattedReste}</span>
                             </div>
                         </div>
-                      )}
-                      <FormMessage />
-                    </FormItem>
+                    </div>
                   )}
-                />
-                <FormField
-                  control={form.control}
-                  name="amount"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Montant (MAD)</FormLabel>
-                      <FormControl>
-                        <Input type="number" placeholder="300" {...field} value={field.value ?? ''} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="paymentDate"
-                  render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Date du paiement</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="date"
-                            value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd") : ""}
-                            onChange={(e) => {
-                                const dateString = e.target.value;
-                                if (!dateString) {
-                                    field.onChange(null);
-                                } else {
-                                    field.onChange(new Date(`${dateString}T00:00:00`));
-                                }
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="paymentMethod"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Méthode de paiement</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Choisir une méthode" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Especes">Espèces</SelectItem>
-                          <SelectItem value="Carte bancaire">Carte bancaire</SelectItem>
-                          <SelectItem value="Virement">Virement</SelectItem>
-                          <SelectItem value="Avance">Avance</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-            </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="amount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Montant (MAD)</FormLabel>
+                  <FormControl>
+                    <Input type="number" placeholder="300" {...field} value={field.value ?? ''} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="paymentDate"
+              render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Date du paiement</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="date"
+                        value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd") : ""}
+                        onChange={(e) => {
+                            const dateString = e.target.value;
+                            if (!dateString) {
+                                field.onChange(null);
+                            } else {
+                                field.onChange(new Date(`${dateString}T00:00:00`));
+                            }
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="paymentMethod"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Méthode de paiement</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choisir une méthode" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Especes">Espèces</SelectItem>
+                      <SelectItem value="Carte bancaire">Carte bancaire</SelectItem>
+                      <SelectItem value="Virement">Virement</SelectItem>
+                      <SelectItem value="Avance">Avance</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
         </ScrollArea>
         <div className="mt-4 flex-shrink-0 border-t pt-4">
             <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isSubmitting}>
