@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { Wrench, Pencil, FileText, TriangleAlert, Gauge, Fuel, Cog, Construction, Printer, Trash2 } from "lucide-react";
+import { Wrench, Pencil, FileText, TriangleAlert, Gauge, Fuel, Cog, Construction, Printer, Trash2, Car as CarIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -296,17 +296,23 @@ export default function CarCard({ car }: { car: Car }) {
                 </TooltipProvider>
             )}
         </div>
-      <div className="relative w-full sm:w-1/3 h-48 sm:h-auto">
+      <div className="relative w-full sm:w-1/3 h-48 sm:h-auto bg-muted">
         <div className="absolute top-2 left-2 z-10">
            <Badge className={cn(availability.className, "text-white")}>{availability.text}</Badge>
         </div>
-        <Image
-            src={car.photoURL}
-            alt={`${car.marque} ${car.modele}`}
-            fill
-            className="object-contain"
-            data-ai-hint="car photo"
-        />
+        {car.photoURL && car.photoURL.startsWith('http') ? (
+            <Image
+                src={car.photoURL}
+                alt={`${car.marque} ${car.modele}`}
+                fill
+                className="object-contain"
+                data-ai-hint="car photo"
+            />
+        ) : (
+            <div className="flex items-center justify-center h-full">
+                <CarIcon className="w-16 h-16 text-muted-foreground" />
+            </div>
+        )}
       </div>
       <div className="p-4 flex flex-col flex-grow w-full sm:w-2/3">
         <div className="flex-grow">
@@ -444,3 +450,5 @@ export default function CarCard({ car }: { car: Car }) {
     </Card>
   );
 }
+
+    
