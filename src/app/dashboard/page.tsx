@@ -63,7 +63,9 @@ export default function DashboardPage() {
   }, [firestore]);
 
 
-  const activeRentals = rentals.filter(r => r.statut === 'en_cours').length;
+  const activeRentalsList = React.useMemo(() => 
+    rentals.filter(r => r.statut === 'en_cours')
+  , [rentals]);
   const availableCars = cars.filter(c => c.disponibilite === 'disponible').length;
   
   const expiringDocuments = React.useMemo(() => {
@@ -151,7 +153,7 @@ export default function DashboardPage() {
         <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
             <StatCard title="Voitures totales" value={cars.length.toString()} icon={Car} />
             <StatCard title="Voitures disponibles" value={`${availableCars} / ${cars.length}`} icon={Car} color="text-green-500" />
-            <StatCard title="Locations actives" value={activeRentals.toString()} icon={KeyRound} />
+            <StatCard title="Locations actives" value={activeRentalsList.length.toString()} icon={KeyRound} />
         </div>
         <div className="grid auto-rows-fr gap-4 lg:grid-cols-2">
             <Card>
@@ -274,10 +276,10 @@ export default function DashboardPage() {
 
             <Card className="lg:col-span-2">
                 <CardHeader>
-                    <CardTitle>Locations récentes</CardTitle>
+                    <CardTitle>Locations en cours</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <RentalTable rentals={rentals.slice(0, 5)} isDashboard={true} />
+                    <RentalTable rentals={activeRentalsList.slice(0, 5)} isDashboard={true} />
                 </CardContent>
             </Card>
         </div>
