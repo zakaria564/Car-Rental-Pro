@@ -271,8 +271,8 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     {
       accessorKey: "contractNumber",
       header: "Contrat N°",
-      cell: ({ row, cell }) => {
-        return row.getIsGrouped() ? null : cell.getValue() as string;
+      cell: ({ row }) => {
+        return row.getIsGrouped() ? null : row.getValue("contractNumber");
       },
     },
     {
@@ -307,7 +307,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
                         ) : (
                             <ChevronRight className="h-4 w-4" />
                         )}
-                        {row.getValue("client")} ({row.subRows.length} contrats)
+                        {row.getValue("client")} ({row.subRows.length})
                     </span>
                 </Button>
             );
