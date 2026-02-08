@@ -207,7 +207,7 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="mt-4 flex flex-grow flex-col">
-        <ScrollArea className="flex-grow pr-4 -mr-4">
+        <ScrollArea className="flex-grow min-h-0 pr-4 -mr-4">
             <div className="space-y-4">
                 <FormField
                   control={form.control}
@@ -323,4 +323,3 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
     </Form>
   );
 }
-    
