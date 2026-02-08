@@ -223,9 +223,11 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
             const status = cell.getValue() as string;
             return (
               <Badge
-                variant={status === "en_cours" ? "default" : "outline"}
+                variant={"outline"}
                 className={cn(
-                  status === "en_cours" && "bg-blue-500/20 text-blue-700"
+                  status === "en_cours"
+                    ? "bg-yellow-100 text-yellow-800 border-yellow-200"
+                    : "bg-green-100 text-green-800 border-green-200"
                 )}
               >
                 {status === "en_cours" ? "En cours" : "Terminée"}
@@ -245,12 +247,12 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     {
       accessorKey: "vehicule.marque",
       header: "Voiture",
-      cell: ({ row, cell }) => (row.getIsGrouped() ? null : cell.getValue()),
+      cell: ({ row, cell }) => (row.getIsGrouped() ? null : cell.renderValue()),
     },
     {
         accessorKey: "vehicule.immatriculation",
         header: "Immatriculation",
-        cell: ({ row, cell }) => (row.getIsGrouped() ? null : cell.getValue()),
+        cell: ({ row, cell }) => (row.getIsGrouped() ? null : cell.renderValue()),
     },
     {
       id: "client",
@@ -303,9 +305,16 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
         if (row.getIsGrouped()) return null;
         const status = cell.getValue() as string;
         return (
-            <Badge variant={status === 'en_cours' ? 'default' : 'outline'} className={cn(status === 'en_cours' && "bg-blue-500/20 text-blue-700")}>
-            {status === 'en_cours' ? "En cours" : "Terminée"}
-            </Badge>
+            <Badge
+                variant={"outline"}
+                className={cn(
+                  status === "en_cours"
+                    ? "bg-yellow-100 text-yellow-800 border-yellow-200"
+                    : "bg-green-100 text-green-800 border-green-200"
+                )}
+              >
+                {status === "en_cours" ? "En cours" : "Terminée"}
+              </Badge>
         );
       },
     },
@@ -593,3 +602,4 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     
 
     
+
