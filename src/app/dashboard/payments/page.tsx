@@ -127,12 +127,14 @@ export default function PaymentsPage() {
             <SheetHeader>
                 <SheetTitle>Ajouter un nouveau paiement</SheetTitle>
             </SheetHeader>
-            <PaymentForm 
-              payment={null} 
-              rentals={rentals} 
-              onFinished={() => setIsSheetOpen(false)}
-              preselectedRentalId={rentalIdForNewPayment}
-            />
+            <div className="flex-grow overflow-hidden">
+                <PaymentForm 
+                  payment={null} 
+                  rentals={rentals} 
+                  onFinished={() => setIsSheetOpen(false)}
+                  preselectedRentalId={rentalIdForNewPayment}
+                />
+            </div>
         </SheetContent>
     </Sheet>
   );
