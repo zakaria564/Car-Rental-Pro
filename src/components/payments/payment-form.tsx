@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -206,7 +205,7 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full mt-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-grow mt-4 overflow-hidden">
         <ScrollArea className="flex-grow pr-6 -mr-6">
             <div className="space-y-4">
                 <FormField
@@ -314,7 +313,7 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
                 />
             </div>
         </ScrollArea>
-        <div className="mt-auto pt-4 border-t">
+        <div className="mt-auto flex-shrink-0 pt-4 border-t">
             <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isSubmitting}>
               {isSubmitting ? 'Enregistrement...' : (payment ? 'Mettre à jour' : 'Ajouter le paiement')}
             </Button>
