@@ -329,7 +329,7 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
               ) : (
                 <TableRow>
                   <TableCell colSpan={columns.length} className="h-24 text-center">
-                    Aucun contrat supprimé.
+                    Aucun contrat archivé.
                   </TableCell>
                 </TableRow>
               )}

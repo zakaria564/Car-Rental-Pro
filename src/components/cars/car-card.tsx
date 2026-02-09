@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -64,7 +63,7 @@ export default function CarCard({ car }: { car: Car }) {
         toast({
             variant: "destructive",
             title: "Action impossible",
-            description: "Vous ne pouvez pas supprimer une voiture actuellement en location.",
+            description: "Vous ne pouvez pas archiver une voiture actuellement en location.",
         });
         return;
     }
@@ -93,7 +92,7 @@ export default function CarCard({ car }: { car: Car }) {
         await batch.commit();
 
         toast({
-            title: "Voiture supprimée (archivée)",
+            title: "Voiture archivée",
             description: `${car.marque} ${car.modele} a été déplacée vers les archives.`,
         });
 
@@ -106,8 +105,8 @@ export default function CarCard({ car }: { car: Car }) {
 
         toast({
             variant: "destructive",
-            title: "Erreur de suppression",
-            description: "Impossible de supprimer la voiture. Vérifiez vos permissions.",
+            title: "Erreur d'archivage",
+            description: "Impossible d'archiver la voiture. Vérifiez vos permissions.",
         });
     } finally {
       setIsArchiveAlertOpen(false);
@@ -424,11 +423,11 @@ export default function CarCard({ car }: { car: Car }) {
                                     </Button>
                                 </AlertDialogTrigger>
                             </TooltipTrigger>
-                            <TooltipContent><p>Supprimer le véhicule</p></TooltipContent>
+                            <TooltipContent><p>Archiver le véhicule</p></TooltipContent>
                         </Tooltip>
                         <AlertDialogContent>
                             <AlertDialogHeader>
-                                <AlertDialogTitle>Supprimer ce véhicule ?</AlertDialogTitle>
+                                <AlertDialogTitle>Archiver ce véhicule ?</AlertDialogTitle>
                                 <AlertDialogDescription>
                                     Cette action retirera le véhicule de votre flotte active et le déplacera dans les archives. Il ne sera plus disponible à la location, mais son historique sera conservé. Êtes-vous sûr de vouloir continuer ?
                                 </AlertDialogDescription>
@@ -436,7 +435,7 @@ export default function CarCard({ car }: { car: Car }) {
                             <AlertDialogFooter>
                                 <AlertDialogCancel>Annuler</AlertDialogCancel>
                                 <AlertDialogAction onClick={handleArchiveCar} className="bg-destructive hover:bg-destructive/90">
-                                    Supprimer
+                                    Archiver
                                 </AlertDialogAction>
                             </AlertDialogFooter>
                         </AlertDialogContent>
@@ -450,5 +449,3 @@ export default function CarCard({ car }: { car: Car }) {
     </Card>
   );
 }
-
-    

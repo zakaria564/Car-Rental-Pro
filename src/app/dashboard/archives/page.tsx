@@ -51,7 +51,7 @@ export default function ArchivesPage() {
       }
     }, (serverError) => {
       setLoading(false);
-      setError("Impossible de charger les contrats supprimés.");
+      setError("Impossible de charger les contrats archivés.");
       const permissionError = new FirestorePermissionError({
         path: collection(firestore, "archived_rentals").path,
         operation: 'list'
@@ -78,7 +78,7 @@ export default function ArchivesPage() {
       }
     }, (serverError) => {
       setLoading(false);
-      setError(prev => (prev ? prev + " " : "") + "Impossible de charger les paiements supprimés.");
+      setError(prev => (prev ? prev + " " : "") + "Impossible de charger les paiements archivés.");
       const permissionError = new FirestorePermissionError({
         path: collection(firestore, "archived_payments").path,
         operation: 'list'
@@ -96,7 +96,7 @@ export default function ArchivesPage() {
         }
     }, (serverError) => {
         setLoading(false);
-        setError(prev => (prev ? prev + " " : "") + "Impossible de charger les véhicules supprimés.");
+        setError(prev => (prev ? prev + " " : "") + "Impossible de charger les véhicules archivés.");
         const permissionError = new FirestorePermissionError({
             path: collection(firestore, "archived_cars").path,
             operation: 'list'
@@ -113,7 +113,7 @@ export default function ArchivesPage() {
 
   return (
     <>
-      <DashboardHeader title="Corbeille" description="Consultez tous vos contrats, paiements et véhicules supprimés." />
+      <DashboardHeader title="Archives" description="Consultez tous vos contrats, paiements et véhicules archivés." />
       <Tabs defaultValue="contracts" className="w-full">
         <TabsList>
           <TabsTrigger value="contracts">Contrats</TabsTrigger>

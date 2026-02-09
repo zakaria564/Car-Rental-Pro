@@ -16,7 +16,7 @@ const navItems = [
   { href: '/dashboard/clients', icon: Users, label: 'Clients' },
   { href: '/dashboard/rentals', icon: KeyRound, label: 'Contrats' },
   { href: '/dashboard/payments', icon: CreditCard, label: 'Comptabilité' },
-  { href: '/dashboard/archives', icon: Trash2, label: 'Corbeille' },
+  { href: '/dashboard/archives', icon: Trash2, label: 'Archives' },
 ];
 
 export function DashboardNav() {

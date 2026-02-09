@@ -88,7 +88,7 @@ const StatementDialog = ({ rental, payments, onPrintClick }: {
   return (
     <DialogContent className="sm:max-w-2xl">
       <DialogHeader>
-        <DialogTitle>Relevé de compte (Corbeille)</DialogTitle>
+        <DialogTitle>Relevé de compte (Archives)</DialogTitle>
         <DialogDescription>
           Contrat {rental.contractNumber} pour {rental.locataire.nomPrenom}
         </DialogDescription>
@@ -111,7 +111,7 @@ const StatementDialog = ({ rental, payments, onPrintClick }: {
               </TableRow>
             )) : (
               <TableRow>
-                <TableCell colSpan={3} className="h-24 text-center">Aucun paiement dans la corbeille pour ce contrat.</TableCell>
+                <TableCell colSpan={3} className="h-24 text-center">Aucun paiement dans les archives pour ce contrat.</TableCell>
               </TableRow>
             )}
           </TableBody>
@@ -445,7 +445,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
               ) : (
                 <TableRow>
                   <TableCell colSpan={columns.length} className="h-24 text-center">
-                    Aucun paiement dans la corbeille.
+                    Aucun paiement archivé.
                   </TableCell>
                 </TableRow>
               )}

@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -322,7 +321,7 @@ export default function ArchivedCarsTable({ cars }: { cars: Car[] }) {
               ) : (
                 <TableRow>
                   <TableCell colSpan={columns.length} className="h-24 text-center">
-                    Aucun véhicule supprimé.
+                    Aucun véhicule archivé.
                   </TableCell>
                 </TableRow>
               )}
@@ -372,7 +371,7 @@ export default function ArchivedCarsTable({ cars }: { cars: Car[] }) {
                 <AlertDialogHeader>
                     <AlertDialogTitle>Restaurer ce véhicule ?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      La voiture {carToRestore.marque} {carToRestore.modele} sera retirée de la corbeille et réintégrée dans votre flotte active.
+                      La voiture {carToRestore.marque} {carToRestore.modele} sera retirée des archives et réintégrée dans votre flotte active.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
