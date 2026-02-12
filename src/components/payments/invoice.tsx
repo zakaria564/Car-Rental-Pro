@@ -62,6 +62,7 @@ export const Invoice: React.FC<InvoiceProps> = ({ rental, payments, totalAmount 
                 <div className="text-right">
                     <h3 className="font-semibold text-gray-800 mb-2">Détails de la location :</h3>
                     <p>{rental.vehicule.marque}</p>
+                    <p>{rental.vehicule.immatriculation}</p>
                     <p>Du {safeDebutDate} au {safeFinDate}</p>
                 </div>
             </section>
