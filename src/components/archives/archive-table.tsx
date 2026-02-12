@@ -15,7 +15,7 @@ import {
   getGroupedRowModel,
   getExpandedRowModel,
 } from "@tanstack/react-table";
-import { MoreHorizontal, Printer, FileText, Trash2, ChevronRight, ChevronDown } from "lucide-react";
+import { MoreHorizontal, Printer, FileText, Trash2, ChevronRight, ChevronDown, ArchiveRestore } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -210,7 +210,7 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
         return (
             <Badge
                 variant={row.getValue("statut") === "en_cours" ? "default" : "outline"}
-                className={cn(row.getValue("statut") === "en_cours" ? "bg-yellow-500/20 text-yellow-700" : "bg-green-100 text-green-800 border-green-300")}
+                className={cn(row.getValue("statut") === "en_cours" ? "bg-orange-500/20 text-orange-800 border-orange-300" : "bg-green-500/20 text-green-800 border-green-300")}
             >
                 {row.getValue("statut") === 'en_cours' ? "Non Terminé" : "Terminée"}
             </Badge>

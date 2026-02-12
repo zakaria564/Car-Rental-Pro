@@ -277,8 +277,8 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
                 variant={"outline"}
                 className={cn(
                   status === "en_cours"
-                    ? "bg-yellow-100 text-yellow-800 border-yellow-300"
-                    : "bg-green-100 text-green-800 border-green-300"
+                    ? "bg-orange-500/20 text-orange-800 border-orange-300"
+                    : "bg-green-500/20 text-green-800 border-green-300"
                 )}
               >
                 {status === "en_cours" ? "En cours" : "Terminée"}
@@ -366,8 +366,8 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
                 variant={"outline"}
                 className={cn(
                   status === "en_cours"
-                    ? "bg-yellow-100 text-yellow-800 border-yellow-300"
-                    : "bg-green-100 text-green-800 border-green-300"
+                    ? "bg-orange-500/20 text-orange-800 border-orange-300"
+                    : "bg-green-500/20 text-green-800 border-green-300"
                 )}
               >
                 {status === "en_cours" ? "En cours" : "Terminée"}
@@ -406,7 +406,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
             <TooltipProvider>
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <Badge variant="secondary" className="bg-orange-100 text-orange-800 border-orange-300">
+                        <Badge variant="secondary" className="bg-orange-500/20 text-orange-800 border-orange-300">
                             Partiel
                         </Badge>
                     </TooltipTrigger>
@@ -437,7 +437,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
 
         if (remaining <= 0.01 && total > 0) {
             return (
-                <Badge variant="default" className="bg-green-100 text-green-800 border-green-300">
+                <Badge variant="default" className="bg-green-500/20 text-green-800 border-green-300">
                     Payé
                 </Badge>
             );
