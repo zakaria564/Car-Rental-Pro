@@ -40,8 +40,10 @@ export function useFirebase() {
   }
    if (!context.app || !context.firestore || !context.auth || !context.storage) {
     // This can happen during the initial client-side render while Firebase is initializing.
-    // We throw to signal that services are not ready. Components should handle this.
-    throw new Error('Firebase services are not yet available.');
+    // The `FirebaseClientProvider` should display a loading state, but to prevent a hard crash
+    // during a potential race condition, we return the context as is.
+    // Consuming components are expected to handle null services.
+    return context;
   }
   return context as { app: FirebaseApp; firestore: Firestore; auth: Auth; storage: FirebaseStorage; companySettings: CompanySettings | null };
 }
