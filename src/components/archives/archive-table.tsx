@@ -210,7 +210,7 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
         return (
             <Badge
                 variant={row.getValue("statut") === "en_cours" ? "default" : "outline"}
-                className={cn(row.getValue("statut") === "en_cours" ? "bg-orange-500/20 text-orange-800 border-orange-300" : "bg-green-500/20 text-green-800 border-green-300")}
+                className={cn(row.getValue("statut") === "en_cours" ? "bg-orange-100 text-orange-700 border-orange-200" : "bg-green-100 text-green-700 border-green-200")}
             >
                 {row.getValue("statut") === 'en_cours' ? "Non Terminé" : "Terminée"}
             </Badge>
