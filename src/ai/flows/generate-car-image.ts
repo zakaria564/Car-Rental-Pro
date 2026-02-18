@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -33,14 +32,6 @@ export async function generateCarImage(
   return generateCarImageFlow(input);
 }
 
-const generateCarImagePrompt = ai.definePrompt(
-  {
-    name: 'generateCarImagePrompt',
-    input: { schema: GenerateCarImageInputSchema },
-    prompt: `Generate a photorealistic image of a {{couleur}} {{marque}} {{modele}} from the year {{annee}}. The car should be the main subject, clean, and parked in a neutral, outdoor setting like a clean parking lot or a modern street during the day. The image should look like a professional photograph for a car rental website.`,
-  }
-);
-
 const generateCarImageFlow = ai.defineFlow(
   {
     name: 'generateCarImageFlow',
@@ -48,10 +39,11 @@ const generateCarImageFlow = ai.defineFlow(
     outputSchema: GenerateCarImageOutputSchema,
   },
   async (input) => {
-    const promptText = await generateCarImagePrompt.render({ input });
+    const prompt = `Generate a photorealistic image of a ${input.couleur} ${input.marque} ${input.modele} from the year ${input.annee}. The car should be the main subject, clean, and parked in a neutral, outdoor setting like a clean parking lot or a modern street during the day. The image should look like a professional photograph for a car rental website.`;
+    
     const { media } = await ai.generate({
         model: 'googleai/imagen-4.0-fast-generate-001',
-        prompt: promptText.prompt,
+        prompt: prompt,
     });
     
     const imageUrl = media.url;
