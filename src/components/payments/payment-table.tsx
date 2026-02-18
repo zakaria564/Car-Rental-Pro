@@ -13,8 +13,11 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
+  GroupingState,
+  getGroupedRowModel,
+  getExpandedRowModel,
 } from "@tanstack/react-table";
-import { ArrowUpDown, MoreHorizontal, Printer, FileText, DollarSign, History, Trash2 } from "lucide-react";
+import { ArrowUpDown, MoreHorizontal, Printer, FileText, DollarSign, History, Trash2, ChevronRight, ChevronDown } from "lucide-react";
 import { format, differenceInCalendarDays, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -127,6 +130,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
 }) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [grouping, setGrouping] = React.useState<GroupingState>(['client']);
   
   const [statementRental, setStatementRental] = React.useState<Rental | null>(null);
   const [isStatementOpen, setIsStatementOpen] = React.useState(false);
@@ -308,6 +312,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
     {
       accessorKey: "contractNumber",
       header: "Contrat N°",
+      cell: ({ row }) => row.getIsGrouped() ? null : row.getValue("contractNumber"),
     },
     {
       id: "client",
@@ -321,20 +326,43 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       ),
-      cell: (info) => <div className="font-medium">{info.getValue() as string}</div>,
+      cell: ({ row }) => {
+        if (row.getIsGrouped()) {
+            return (
+                <Button
+                    variant="ghost"
+                    onClick={() => row.toggleExpanded()}
+                    className="w-full text-left justify-start pl-2"
+                >
+                    <span className="flex items-center gap-2 font-semibold">
+                        {row.getIsExpanded() ? (
+                            <ChevronDown className="h-4 w-4" />
+                        ) : (
+                            <ChevronRight className="h-4 w-4" />
+                        )}
+                        {row.getValue("client")} ({row.subRows.length})
+                    </span>
+                </Button>
+            );
+        }
+        return null;
+      },
     },
     {
         accessorKey: "vehicule.marque",
         header: "Voiture",
+        cell: ({ row }) => row.getIsGrouped() ? null : row.getValue("vehicule.marque"),
     },
     {
         accessorKey: "vehicule.immatriculation",
         header: "Immatriculation",
+        cell: ({ row }) => row.getIsGrouped() ? null : row.getValue("vehicule.immatriculation"),
     },
     {
       id: "montantTotal",
       header: () => <div className="text-right">Montant Total</div>,
       cell: ({ row }) => {
+        if (row.getIsGrouped()) return null;
         const total = calculateTotal(row.original);
         return (
             <div className="text-right font-medium">
@@ -346,16 +374,20 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
     {
       accessorKey: "location.montantPaye",
       header: () => <div className="text-right">Montant Payé</div>,
-      cell: ({ row }) => (
-        <div className="text-right font-medium text-green-600">
-          {formatCurrency(row.original.location.montantPaye || 0, 'MAD')}
-        </div>
-      ),
+      cell: ({ row }) => {
+        if (row.getIsGrouped()) return null;
+        return (
+          <div className="text-right font-medium text-green-600">
+            {formatCurrency(row.original.location.montantPaye || 0, 'MAD')}
+          </div>
+        )
+      },
     },
     {
       id: 'resteAPayer',
       header: () => <div className="text-right">Reste à Payer</div>,
       cell: ({ row }) => {
+        if (row.getIsGrouped()) return null;
         const total = calculateTotal(row.original);
         const reste = (total || 0) - (row.original.location.montantPaye || 0);
         return (
@@ -369,6 +401,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
         id: 'paymentStatus',
         header: "Statut Paiement",
         cell: ({ row }) => {
+          if (row.getIsGrouped()) return null;
           const total = calculateTotal(row.original);
           const paye = row.original.location.montantPaye || 0;
 
@@ -404,6 +437,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
       id: "actions",
       enableHiding: false,
       cell: ({ row }) => {
+        if (row.getIsGrouped()) return null;
         const rental = row.original;
         const total = calculateTotal(rental);
         const reste = (total || 0) - (rental.location.montantPaye || 0);
@@ -452,9 +486,13 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    onGroupingChange: setGrouping,
+    getGroupedRowModel: getGroupedRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
     state: {
       sorting,
       columnFilters,
+      grouping,
     },
   });
 
@@ -622,3 +660,4 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
     </>
   );
 }
+
