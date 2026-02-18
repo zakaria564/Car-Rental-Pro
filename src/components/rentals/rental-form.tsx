@@ -382,9 +382,8 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
 
   const onError = (errors: any) => {
     if (Object.keys(errors).length > 0) {
-      console.error("Form validation errors:", errors);
       const firstErrorKey = Object.keys(errors)[0];
-      const firstErrorMessage = errors[firstErrorKey]?.message || (Array.isArray(errors[firstErrorKey]) ? errors[firstErrorKey][0].url.message : "Erreur de validation");
+      const firstErrorMessage = errors[firstErrorKey]?.message || (Array.isArray(errors[firstErrorKey]) ? errors[firstErrorKey][0]?.url?.message : "Erreur de validation");
       
       toast({
           variant: "destructive",
