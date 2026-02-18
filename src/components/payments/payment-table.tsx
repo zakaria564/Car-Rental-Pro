@@ -351,12 +351,12 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
     {
         accessorKey: "vehicule.marque",
         header: "Voiture",
-        cell: ({ row }) => row.getIsGrouped() ? null : row.getValue("vehicule.marque"),
+        cell: ({ row }) => row.getIsGrouped() ? null : row.original.vehicule.marque,
     },
     {
         accessorKey: "vehicule.immatriculation",
         header: "Immatriculation",
-        cell: ({ row }) => row.getIsGrouped() ? null : row.getValue("vehicule.immatriculation"),
+        cell: ({ row }) => row.getIsGrouped() ? null : row.original.vehicule.immatriculation,
     },
     {
       id: "montantTotal",
@@ -424,8 +424,8 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
           
           return (
             <Badge variant={variant} className={cn(
-              status === 'Payé' && "bg-green-100 text-green-700 border-green-200",
-              status === 'Paiement Partiel' && "bg-orange-100 text-orange-700 border-orange-200",
+              status === 'Payé' && "bg-green-100 text-green-800 border-green-300",
+              status === 'Paiement Partiel' && "bg-orange-100 text-orange-800 border-orange-300",
               status === 'Non Payé' && "bg-red-100 text-red-800 border-red-300"
             )}>
               {status}
