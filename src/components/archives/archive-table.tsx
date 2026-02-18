@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -239,15 +240,6 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
               }}>
                 <FileText className="mr-2 h-4 w-4"/>
                 Voir les détails
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => {
-                setSelectedRental(rental);
-                // We need to set it, then open the dialog, then print. A bit of a hack.
-                setTimeout(() => setIsDetailsOpen(true), 100);
-                setTimeout(() => handlePrint(), 300);
-              }}>
-                <Printer className="mr-2 h-4 w-4" />
-                Imprimer
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
