@@ -29,7 +29,9 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      try {
+        if (!auth) return; // Sécurité : on sort si auth est null
+        await signInWithEmailAndPassword(auth, email, password);
       toast({
         title: 'Connexion réussie',
       });
