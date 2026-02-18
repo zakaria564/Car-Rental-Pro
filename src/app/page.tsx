@@ -30,7 +30,8 @@ export default function SignupPage() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      if (!auth) return; // Sécurité : on sort si auth est null
+      await signInWithEmailAndPassword(auth, email, password);
       toast({
         title: 'Inscription réussie',
         description: 'Vous pouvez maintenant vous connecter.',
