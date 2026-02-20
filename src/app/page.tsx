@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -29,9 +28,9 @@ export default function SignupPage() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!auth) return;
     try {
-      if (!auth) return; // Sécurité : on sort si auth est null
-      await signInWithEmailAndPassword(auth, email, password);
+      await createUserWithEmailAndPassword(auth, email, password);
       toast({
         title: 'Inscription réussie',
         description: 'Vous pouvez maintenant vous connecter.',
@@ -47,6 +46,7 @@ export default function SignupPage() {
   };
   
   const handleGoogleSignUp = async () => {
+    if (!auth) return;
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);

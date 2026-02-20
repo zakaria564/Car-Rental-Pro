@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -28,10 +27,9 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!auth) return;
     try {
-    
-        if (!auth) return; // Sécurité : on sort si auth est null
-        await signInWithEmailAndPassword(auth, email, password);
+      await signInWithEmailAndPassword(auth, email, password);
       toast({
         title: 'Connexion réussie',
       });
@@ -46,6 +44,7 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = async () => {
+    if (!auth) return;
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
