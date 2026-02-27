@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useForm, useFieldArray } from "react-hook-form";
@@ -244,7 +243,7 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
                         src={field.value} 
                         alt={`CIN de ${form.getValues('nom')}`} 
                         fill 
-                        className="object-contain"
+                        className="object-cover"
                         data-ai-hint="id card"
                         onError={(e) => { e.currentTarget.style.display = 'none'; }}
                     />
