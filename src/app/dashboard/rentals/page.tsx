@@ -40,7 +40,9 @@ export default function RentalsPage() {
         id: doc.id,
       } as Rental));
 
-      setRentals(rentalsData);
+      // Filter to only show active rentals
+      const activeRentals = rentalsData.filter(rental => rental.statut === 'en_cours');
+      setRentals(activeRentals);
       
       if (!loadedStatus.rentals) {
         loadedStatus.rentals = true;
@@ -90,7 +92,7 @@ export default function RentalsPage() {
 
   return (
     <>
-      <DashboardHeader title="Contrats" description="Gérez tous les enregistrements de location de voitures." />
+      <DashboardHeader title="Contrats" description="Gérez vos locations de voitures en cours." />
       {loading ? (
         <div className="space-y-2">
             <Skeleton className="h-12 w-full" />
