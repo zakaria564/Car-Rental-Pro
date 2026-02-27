@@ -235,11 +235,6 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
 
   const columns: ColumnDef<Rental>[] = [
     {
-      accessorKey: "contractNumber",
-      header: "Contrat N°",
-      cell: ({ row }) => row.getIsGrouped() ? null : row.getValue("contractNumber"),
-    },
-    {
       id: "client",
       accessorFn: (row) => row.locataire.nomPrenom,
       header: ({ column }) => (
@@ -251,13 +246,13 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       ),
-      cell: ({ row }) => {
+      cell: ({ row, getValue }) => {
         if (row.getIsGrouped()) {
             return (
                 <Button
                     variant="ghost"
                     onClick={() => row.toggleExpanded()}
-                    className="w-full text-left justify-start pl-2"
+                    className="w-full text-left justify-start pl-2 hover:bg-muted/50"
                 >
                     <span className="flex items-center gap-2 font-semibold">
                         {row.getIsExpanded() ? (
@@ -265,13 +260,22 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
                         ) : (
                             <ChevronRight className="h-4 w-4" />
                         )}
-                        {row.getValue("client")} ({row.subRows.length})
+                        {getValue() as string} ({row.subRows.length})
                     </span>
                 </Button>
             );
         }
-        return null;
+        return (
+          <div className="pl-8 text-muted-foreground italic text-xs">
+            {getValue() as string}
+          </div>
+        );
       },
+    },
+    {
+      accessorKey: "contractNumber",
+      header: "Contrat N°",
+      cell: ({ row }) => row.getIsGrouped() ? null : <span className="font-mono">{row.original.contractNumber}</span>,
     },
     {
       id: "montantTotal",
@@ -405,6 +409,11 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
       columnFilters,
       grouping,
     },
+    initialState: {
+      pagination: {
+        pageSize: 20,
+      }
+    }
   });
 
   return (
@@ -436,7 +445,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
             <TableBody>
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id}>
+                  <TableRow key={row.id} className={cn(row.getIsGrouped() ? "bg-muted/30" : "hover:bg-muted/20")}>
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                     ))}

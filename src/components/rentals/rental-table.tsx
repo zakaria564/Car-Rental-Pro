@@ -1,5 +1,3 @@
-
-
 "use client";
 
 import * as React from "react";
@@ -294,7 +292,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       accessorKey: "contractNumber",
       header: "Contrat N°",
       cell: ({ row }) => {
-        return row.getIsGrouped() ? null : row.getValue("contractNumber");
+        return row.getIsGrouped() ? null : <span className="font-mono">{row.original.contractNumber}</span>;
       },
     },
     {
@@ -315,7 +313,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       id: "client",
       accessorFn: (row) => row.locataire.nomPrenom,
       header: "Client",
-       cell: ({ row }) => {
+       cell: ({ row, getValue }) => {
         if (row.getIsGrouped()) {
             return (
                 <Button
@@ -329,12 +327,16 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
                         ) : (
                             <ChevronRight className="h-4 w-4" />
                         )}
-                        {row.getValue("client")} ({row.subRows.length})
+                        {getValue() as string} ({row.subRows.length})
                     </span>
                 </Button>
             );
         }
-        return null;
+        return (
+          <div className="pl-8 text-muted-foreground italic text-xs">
+            {getValue() as string}
+          </div>
+        );
       },
     },
     {
@@ -522,7 +524,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     getGroupedRowModel: getGroupedRowModel(),
     initialState: {
         pagination: {
-            pageSize: isDashboard ? 5 : 10,
+            pageSize: isDashboard ? 5 : 20,
         }
     },
     state: {
@@ -619,9 +621,11 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
             <TableBody>
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id}>
+                  <TableRow key={row.id} className={cn(row.getIsGrouped() ? "bg-muted/30" : "hover:bg-muted/20")}>
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                      <TableCell key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
                     ))}
                   </TableRow>
                 ))
