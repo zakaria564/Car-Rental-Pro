@@ -24,7 +24,7 @@ export function UserAvatar({ className }: { className?: string }) {
     return (
         <Avatar className={cn("rounded-full bg-card h-full w-full", className)}>
             {(logoUrl && logoUrl.startsWith('http')) ? (
-                <AvatarImage src={logoUrl} alt="Logo de l'agence" className="object-contain" />
+                <AvatarImage src={logoUrl} alt="Logo de l'agence" className="object-cover" />
             ) : (
                 <AvatarFallback className="bg-card text-secondary-foreground">{fallback}</AvatarFallback>
             )}
