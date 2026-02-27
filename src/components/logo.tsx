@@ -18,7 +18,7 @@ export function Logo({ className }: { className?: string }) {
 
   if (logoUrl && logoUrl.startsWith('http')) {
     return (
-      <div className={cn("relative h-10 w-10 flex-shrink-0", className)}>
+      <div className={cn("relative h-12 w-12 flex-shrink-0", className)}>
         <Image 
           src={logoUrl} 
           alt={companySettings?.companyName || "Logo Agence"} 
@@ -31,8 +31,8 @@ export function Logo({ className }: { className?: string }) {
   }
 
   return (
-    <div className={cn("bg-primary text-primary-foreground rounded-lg p-2 flex-shrink-0 flex items-center justify-center", className)}>
-      <Car className="h-6 w-6" />
+    <div className={cn("bg-primary text-primary-foreground rounded-lg p-2.5 flex-shrink-0 flex items-center justify-center h-12 w-12", className)}>
+      <Car className="h-8 w-8" />
     </div>
   );
 }
