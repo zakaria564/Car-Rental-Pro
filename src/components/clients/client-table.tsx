@@ -38,7 +38,7 @@ import type { Client } from "@/lib/definitions";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import ClientForm from "./client-form";
 import { ScrollArea } from "../ui/scroll-area";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "../ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../ui/alert-dialog";
 import { useFirebase } from "@/firebase";
 import { deleteDoc, doc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
@@ -75,7 +75,7 @@ function ClientDetails({ client }: { client: Client }) {
                             src={client.photoCIN} 
                             alt={`CIN de ${client.nom}`} 
                             fill 
-                            className="object-cover"
+                            className="object-contain"
                             data-ai-hint="id card"
                         />
                       </a>
@@ -99,7 +99,7 @@ function ClientDetails({ client }: { client: Client }) {
                             src={photoUrl}
                             alt={`Autre photo ${index + 1}`}
                             fill
-                            className="object-cover"
+                            className="object-contain"
                             data-ai-hint="client document"
                         />
                     </a>

@@ -243,7 +243,7 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
                         src={field.value} 
                         alt={`CIN de ${form.getValues('nom')}`} 
                         fill 
-                        className="object-cover"
+                        className="object-contain"
                         data-ai-hint="id card"
                         onError={(e) => { e.currentTarget.style.display = 'none'; }}
                     />
