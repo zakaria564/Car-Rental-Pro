@@ -15,6 +15,7 @@ import { Button } from "../ui/button";
 import { Calendar } from "../ui/calendar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { Logo } from "../logo";
+import { useFirebase } from '@/firebase';
 
 const getAvailabilityProps = (car: Car) => {
     switch (car.disponibilite) {
@@ -191,14 +192,16 @@ export function CarDetails({ car, groupedMaintenanceHistory, filteredHistory, hi
 }
 
 export const PrintableCarDetails: React.FC<{ car: Car; history: any[] }> = ({ car, history }) => {
+    const { companySettings } = useFirebase();
     const groupedMaintenanceHistory = history;
+    const agencyName = companySettings?.companyName || "Location Auto Pro";
 
     const PrintableHeader = ({ isIntervention }: { isIntervention: boolean }) => (
         <header className="flex justify-between items-start pb-4 mb-4 border-b">
             <div className="flex items-center gap-4">
-                <Logo />
+                <Logo className="h-16 w-16" />
                 <div>
-                    <h2 className="font-bold text-lg">Location Auto Pro</h2>
+                    <h2 className="font-bold text-lg">{agencyName}</h2>
                     <p className="text-xs text-gray-600">{isIntervention ? "Fiche d'intervention" : "Fiche de suivi du véhicule"}</p>
                 </div>
             </div>

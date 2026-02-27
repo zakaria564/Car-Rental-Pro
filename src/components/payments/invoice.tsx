@@ -1,3 +1,4 @@
+
 'use client';
 import React from 'react';
 import type { Payment, Rental } from '@/lib/definitions';
@@ -6,6 +7,7 @@ import { formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { useFirebase } from '@/firebase';
 
 type InvoiceProps = {
     rental: Rental;
@@ -14,6 +16,7 @@ type InvoiceProps = {
 };
 
 export const Invoice: React.FC<InvoiceProps> = ({ rental, payments, totalAmount }) => {
+    const { companySettings } = useFirebase();
     if (!rental) return null;
     
     const today = new Date();
@@ -22,6 +25,8 @@ export const Invoice: React.FC<InvoiceProps> = ({ rental, payments, totalAmount 
 
     const totalPaid = payments.reduce((acc, p) => acc + p.amount, 0);
     const balance = totalAmount - totalPaid;
+
+    const agencyName = companySettings?.companyName || "Location Auto Pro";
 
     const numberToWords = (num: number) => {
         // This is a placeholder. A real implementation is complex.
@@ -35,9 +40,9 @@ export const Invoice: React.FC<InvoiceProps> = ({ rental, payments, totalAmount 
             {/* Header */}
             <header className="flex justify-between items-start pb-8 border-b">
                 <div className="flex items-center gap-4">
-                    <Logo />
+                    <Logo className="h-20 w-20" />
                     <div>
-                        <h2 className="font-bold text-xl">Location Auto Pro</h2>
+                        <h2 className="font-bold text-xl">{agencyName}</h2>
                         <p className="text-xs text-gray-600">
                             123 Rue de la Liberté, Agdal<br/>
                             Rabat, Maroc<br/>

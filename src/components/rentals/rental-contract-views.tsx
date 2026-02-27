@@ -266,7 +266,7 @@ export const ConditionsGenerales = () => (
   );
 
 export function RentalDetails({ rental, isArchived = false }: { rental: Rental, isArchived?: boolean }) {
-    const { firestore } = useFirebase();
+    const { firestore, companySettings } = useFirebase();
     const [archivedPayments, setArchivedPayments] = React.useState<Payment[]>([]);
     const [paymentsLoading, setPaymentsLoading] = React.useState(isArchived);
 
@@ -312,17 +312,19 @@ export function RentalDetails({ rental, isArchived = false }: { rental: Rental, 
         return rental.location.nbrJours || 0;
     };
 
+    const agencyName = companySettings?.companyName || "Location Auto Pro";
+
     return (
       <ScrollArea className="h-[80vh]">
         <div className="p-1" id="printable-contract">
           <div className="printable-contract-body flex flex-col h-full min-h-[260mm] p-4 border rounded-md" >
             {/* Header */}
             <div className="text-center mb-4 flex flex-col items-center">
-                <Logo />
+                <Logo className="h-20 w-20 mb-2" />
                 <h2 className="text-xl font-bold tracking-wider mt-2">CONTRAT DE LOCATION & ÉTAT DES LIEUX {isArchived && '(ARCHIVÉ)'}</h2>
                 <p className="text-muted-foreground text-sm">Contrat N°: {rental.contractNumber}</p>
                 <div className="text-xs mt-1">
-                    <span>Location Auto Pro, Agdal, Rabat, Maroc</span> | <span>Tél: +212 537 00 00 00</span>
+                    <span>{agencyName}, Agdal, Rabat, Maroc</span> | <span>Tél: +212 537 00 00 00</span>
                 </div>
             </div>
             
@@ -442,5 +444,3 @@ export function RentalDetails({ rental, isArchived = false }: { rental: Rental, 
       </ScrollArea>
     );
 }
-
-    
