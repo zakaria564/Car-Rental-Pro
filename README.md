@@ -1,5 +1,12 @@
-# Firebase Studio
+# Car-Rental-Pro
 
-This is a NextJS starter in Firebase Studio.
+Logiciel de gestion de location de voitures complet construit avec Next.js, Firebase et Genkit.
 
-To get started, take a look at src/app/page.tsx.
+## Fonctionnalités
+- Gestion de la flotte (Voitures)
+- Gestion des clients
+- Contrats de location (Départ/Retour)
+- Comptabilité et suivi des paiements
+- Archives des contrats et paiements
+- Historique d'entretien des véhicules
+- Alertes documents (Assurance, Visite technique) et entretien
