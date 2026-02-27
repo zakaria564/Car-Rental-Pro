@@ -317,23 +317,32 @@ export function RentalDetails({ rental, isArchived = false }: { rental: Rental, 
     return (
       <ScrollArea className="h-[80vh]">
         <div className="p-1" id="printable-contract">
-          <div className="printable-contract-body flex flex-col h-full min-h-[260mm] p-4 border rounded-md" >
-            {/* Header */}
-            <div className="text-center mb-4 flex flex-col items-center">
-                <Logo className="h-20 w-20 mb-2" />
-                <h2 className="text-xl font-bold tracking-wider mt-2">CONTRAT DE LOCATION & ÉTAT DES LIEUX {isArchived && '(ARCHIVÉ)'}</h2>
-                <p className="text-muted-foreground text-sm">Contrat N°: {rental.contractNumber}</p>
-                <div className="text-xs mt-1">
-                    <span>{agencyName}, Agdal, Rabat, Maroc</span> | <span>Tél: +212 537 00 00 00</span>
+          <div className="printable-contract-body flex flex-col h-full min-h-[260mm] p-6 border rounded-md bg-white text-black" >
+            {/* Header optimized for A4 / Logo at Left */}
+            <header className="flex justify-between items-start pb-4 mb-6 border-b border-gray-200">
+                <div className="flex items-center gap-4">
+                    <Logo className="h-20 w-20" />
+                    <div>
+                        <h2 className="font-bold text-xl uppercase tracking-tight">{agencyName}</h2>
+                        <p className="text-xs text-gray-600">
+                            Rabat, Maroc<br/>
+                            Tél: +212 537 00 00 00
+                        </p>
+                    </div>
                 </div>
-            </div>
+                <div className="text-right">
+                    <h1 className="font-bold text-lg uppercase tracking-tight">CONTRAT DE LOCATION {isArchived && '(ARCHIVÉ)'}</h1>
+                    <p className="text-sm font-semibold">Contrat N°: <span className="font-mono text-primary-600">{rental.contractNumber}</span></p>
+                    <p className="text-xs text-gray-500">Date: {format(getSafeDate(rental.createdAt) || new Date(), "dd/MM/yyyy", { locale: fr })}</p>
+                </div>
+            </header>
             
             <div className="space-y-4 flex-grow">
                  <div className="space-y-4 md:space-y-0 print:space-y-0 md:grid md:grid-cols-2 md:gap-x-4 print:grid print:grid-cols-2 print:gap-x-4">
-                    <div className="border p-3 rounded-md">
-                        <h3 className="font-bold text-base underline mb-2">LES PARTIES</h3>
-                        <div className="space-y-1">
-                            <h4 className="font-semibold">Le Locataire (Conducteur Principal) :</h4>
+                    <div className="border border-gray-200 p-3 rounded-md">
+                        <h3 className="font-bold text-sm uppercase underline mb-2 bg-gray-50 p-1">LES PARTIES</h3>
+                        <div className="space-y-1 text-sm">
+                            <h4 className="font-bold text-xs uppercase text-gray-500">Conducteur Principal :</h4>
                             <div><strong>Nom:</strong> {rental.locataire.nomPrenom}</div>
                             <div><strong>CIN/Passeport:</strong> {rental.locataire.cin}</div>
                             <div><strong>Permis N°:</strong> {rental.locataire.permisNo}</div>
@@ -341,8 +350,8 @@ export function RentalDetails({ rental, isArchived = false }: { rental: Rental, 
                             <div><strong>Téléphone:</strong> {rental.locataire.telephone}</div>
                         </div>
                         {rental.conducteur2 && (
-                        <div className="space-y-1 mt-2">
-                            <h4 className="font-semibold">Deuxième Conducteur :</h4>
+                        <div className="space-y-1 mt-3 text-sm pt-2 border-t border-dashed border-gray-200">
+                            <h4 className="font-bold text-xs uppercase text-gray-500">Deuxième Conducteur :</h4>
                             <div><strong>Nom:</strong> {rental.conducteur2.nomPrenom}</div>
                             <div><strong>CIN/Passeport:</strong> {rental.conducteur2.cin}</div>
                             <div><strong>Permis N°:</strong> {rental.conducteur2.permisNo}</div>
@@ -351,25 +360,24 @@ export function RentalDetails({ rental, isArchived = false }: { rental: Rental, 
                         </div>
                         )}
                     </div>
-                    <div className="border p-3 rounded-md flex flex-col">
-                        <h3 className="font-bold text-base underline mb-2">DÉTAILS DE LA LOCATION</h3>
-                        <div className="space-y-1">
-                            <h4 className="font-semibold">Véhicule Loué :</h4>
+                    <div className="border border-gray-200 p-3 rounded-md flex flex-col">
+                        <h3 className="font-bold text-sm uppercase underline mb-2 bg-gray-50 p-1">DÉTAILS DE LA LOCATION</h3>
+                        <div className="space-y-1 text-sm">
+                            <h4 className="font-bold text-xs uppercase text-gray-500">Véhicule Loué :</h4>
                             <div><strong>Marque/Modèle:</strong> {rental.vehicule.marque}</div>
                             <div><strong>Immatriculation:</strong> {rental.vehicule.immatriculation}</div>
                             <div><strong>Carburant:</strong> {rental.vehicule.carburantType}</div>
                             <div><strong>Transmission:</strong> {rental.vehicule.transmission}</div>
                         </div>
-                        <div className="space-y-1 mt-2">
-                            <h4 className="font-semibold">Période &amp; Coût :</h4>
+                        <div className="space-y-1 mt-3 text-sm pt-2 border-t border-dashed border-gray-200">
+                            <h4 className="font-bold text-xs uppercase text-gray-500">Période &amp; Coût :</h4>
                             <div><strong>Début:</strong> {safeDebutDate ? format(safeDebutDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</div>
                             <div><strong>Fin Prévue:</strong> {safeFinDate ? format(safeFinDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</div>
                             <div><strong>Lieu de départ:</strong> {rental.location.lieuDepart || 'Agence'}</div>
-                            <div><strong>Lieu de retour:</strong> {rental.location.lieuRetour || 'Agence'}</div>
                             <div><strong>Durée:</strong> {rentalDuration()} jour(s)</div>
                             <div className="no-print"><strong>Dépôt de Caution:</strong> {formatCurrency(rental.location.depot || 0, 'MAD')}</div>
                         </div>
-                        <div className="space-y-1 mt-auto pt-2 border-t no-print">
+                        <div className="space-y-1 mt-auto pt-2 border-t border-gray-200 no-print">
                             <div className="flex justify-between"><span>Montant Total:</span> <span className="font-medium">{formatCurrency(totalAmount, 'MAD')}</span></div>
                             {paymentsLoading ? (
                                 <div className="space-y-1">
@@ -386,8 +394,8 @@ export function RentalDetails({ rental, isArchived = false }: { rental: Rental, 
                     </div>
                 </div>
 
-                 <div className="border p-3 rounded-md">
-                    <h3 className="font-bold text-base mb-2 underline">ÉTAT DU VÉHICULE</h3>
+                 <div className="border border-gray-200 p-3 rounded-md">
+                    <h3 className="font-bold text-sm uppercase mb-2 underline bg-gray-50 p-1">ÉTAT DES LIEUX DU VÉHICULE</h3>
                     <div className="md:grid md:grid-cols-2 md:gap-x-4 print:grid print:grid-cols-2 print:gap-x-4">
                         <div>
                             {rental.livraisonInspectionId ? (
@@ -396,7 +404,7 @@ export function RentalDetails({ rental, isArchived = false }: { rental: Rental, 
                                 <DeprecatedInspectionView data={rental.livraison} type="depart" />
                             ) : null }
                         </div>
-                        <div className="mt-4 md:mt-0 print:mt-0">
+                        <div className="mt-4 md:mt-0 print:mt-0 pt-4 md:pt-0 print:pt-0 md:border-l print:border-l md:pl-4 print:pl-4 border-gray-100">
                             {rental.receptionInspectionId ? (
                                 <InspectionDetailsView inspectionId={rental.receptionInspectionId} type="retour" />
                             ) : rental.reception ? (
@@ -404,38 +412,42 @@ export function RentalDetails({ rental, isArchived = false }: { rental: Rental, 
                             ) : (
                                <div className="space-y-2">
                                  <h4 className="font-bold text-base">Réception (Retour)</h4>
-                                 <p>Véhicule non retourné.</p>
+                                 <p className="text-sm text-gray-400 italic">Véhicule non encore restitué.</p>
                                </div>
                             )}
                         </div>
                     </div>
                 </div>
-                 <div className="text-xs text-muted-foreground mt-4">
-                    <p>Le locataire reconnaît avoir reçu le véhicule en bon état de marche, avec les accessoires mentionnés, et s'engage à le restituer dans le même état.</p>
+                 <div className="text-[10px] text-gray-500 mt-4 leading-tight italic">
+                    <p>Le locataire reconnaît avoir reçu le véhicule en bon état de marche, avec tous les accessoires mentionnés, et s'engage à le restituer dans le même état de propreté et de fonctionnement au terme de la location.</p>
                 </div>
             </div>
 
-            {/* Signatures */}
-            <div className="signatures-section mt-auto pt-8 flex justify-between">
+            {/* Signatures Footer */}
+            <div className="signatures-section mt-auto pt-8 flex justify-between border-t border-gray-100">
                 <div className="text-center w-2/5">
-                    <p className="border-t pt-2 border-gray-400">Signature du Loueur</p>
-                    <p className="text-xs text-muted-foreground">(Précédée de la mention "Lu et approuvé")</p>
+                    <p className="font-bold text-xs uppercase mb-1">Cachet et Signature de l'Agence</p>
+                    <div className="mt-12 border-t border-gray-300 pt-1">
+                        <p className="text-[10px] text-gray-400">(Précédée de la mention "Lu et approuvé")</p>
+                    </div>
                 </div>
                  <div className="text-center w-2/5">
-                    <p className="border-t pt-2 border-gray-400">Signature du Locataire</p>
-                    <p className="text-xs text-muted-foreground">(Précédée de la mention "Lu et approuvé")</p>
+                    <p className="font-bold text-xs uppercase mb-1">Signature du Locataire</p>
+                    <div className="mt-12 border-t border-gray-300 pt-1">
+                        <p className="text-[10px] text-gray-400">(Précédée de la mention "Lu et approuvé")</p>
+                    </div>
                 </div>
             </div>
-            <div className="contract-footer text-center text-xs text-muted-foreground mt-2">
-                RC: 123456 | IF: 78901234 | ICE: 567890123456789
+            <div className="contract-footer text-center text-[10px] text-gray-400 mt-4">
+                RC: 123456 | IF: 78901234 | ICE: 567890123456789 | Siège Social: Agdal, Rabat
             </div>
           </div>
           <div className="no-print p-4">
             <Collapsible>
                 <CollapsibleTrigger asChild>
-                    <Button variant="link" className="p-0 h-auto"><Gavel className="mr-2" />Voir les conditions générales</Button>
+                    <Button variant="link" className="p-0 h-auto"><Gavel className="mr-2 h-4 w-4" />Voir les conditions générales</Button>
                 </CollapsibleTrigger>
-                <CollapsibleContent>
+                <CollapsibleContent className="mt-2">
                     <ConditionsGenerales />
                 </CollapsibleContent>
             </Collapsible>

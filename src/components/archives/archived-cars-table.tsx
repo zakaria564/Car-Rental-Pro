@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -165,6 +166,7 @@ export default function ArchivedCarsTable({ cars }: { cars: Car[] }) {
     
     const styles = `
       body { 
+        font-family: 'Inter', sans-serif;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
        }
@@ -176,6 +178,10 @@ export default function ArchivedCarsTable({ cars }: { cars: Car[] }) {
       .printable-group:not(:last-child) {
         page-break-after: always;
       }
+      .printable-details-container {
+          width: 210mm;
+          margin: 0 auto;
+      }
     `;
     printWindow.document.write('<html><head><title>Fiche de suivi du véhicule</title>');
     Array.from(document.styleSheets).forEach(sheet => {
@@ -184,7 +190,9 @@ export default function ArchivedCarsTable({ cars }: { cars: Car[] }) {
         }
     });
     printWindow.document.write(`<style>${styles}</style></head><body>`);
+    printWindow.document.write('<div class="printable-details-container">');
     printWindow.document.write(printContent.innerHTML);
+    printWindow.document.write('</div>');
     printWindow.document.write('</body></html>');
     printWindow.document.close();
     printWindow.onload = function() {

@@ -103,11 +103,13 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
 
     const styles = `
       @import url('https://rsms.me/inter/inter.css');
-      body { font-family: 'Inter', sans-serif; }
+      body { font-family: 'Inter', sans-serif; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
       .no-print { display: none !important; }
       .printable-contract-body {
           border: none !important;
           box-shadow: none !important;
+          width: 210mm;
+          margin: 0 auto;
       }
       .signatures-section {
           page-break-before: auto;

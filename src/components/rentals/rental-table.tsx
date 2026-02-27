@@ -144,11 +144,13 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
 
     const styles = `
       @import url('https://rsms.me/inter/inter.css');
-      body { font-family: 'Inter', sans-serif; }
+      body { font-family: 'Inter', sans-serif; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
       .no-print { display: none !important; }
       .printable-contract-body {
           border: none !important;
           box-shadow: none !important;
+          width: 210mm;
+          margin: 0 auto;
       }
       .signatures-section {
           page-break-before: auto;
@@ -162,7 +164,6 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
 
     printWindow.document.write('<html><head><title>Contrat de Location</title>');
     
-    // Link to external stylesheets from the main document
     Array.from(document.styleSheets).forEach(sheet => {
         if (sheet.href) {
             printWindow.document.write(`<link rel="stylesheet" href="${sheet.href}">`);
@@ -177,7 +178,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     printWindow.document.close();
     
     printWindow.onload = function() {
-      setTimeout(function() { // Timeout to ensure styles are loaded
+      setTimeout(function() {
         printWindow.focus();
         printWindow.print();
         printWindow.close();
