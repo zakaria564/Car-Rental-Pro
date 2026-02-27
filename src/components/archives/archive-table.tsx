@@ -16,7 +16,7 @@ import {
   getGroupedRowModel,
   getExpandedRowModel,
 } from "@tanstack/react-table";
-import { MoreHorizontal, Printer, FileText, Trash2, ChevronRight, ChevronDown, ArchiveRestore } from "lucide-react";
+import { MoreHorizontal, Printer, FileText, Trash2, ChevronRight, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -145,9 +145,39 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
 
   const columns: ColumnDef<Rental>[] = [
     {
+      id: "client",
+      accessorFn: (row) => row.locataire.nomPrenom,
+      header: "Client",
+      cell: ({ row, getValue }) => {
+        if (row.getIsGrouped()) {
+            return (
+                <Button
+                    variant="ghost"
+                    onClick={() => row.toggleExpanded()}
+                    className="w-full text-left justify-start pl-2 hover:bg-muted/50"
+                >
+                    <span className="flex items-center gap-2 font-semibold">
+                        {row.getIsExpanded() ? (
+                            <ChevronDown className="h-4 w-4" />
+                        ) : (
+                            <ChevronRight className="h-4 w-4" />
+                        )}
+                        {getValue() as string} ({row.subRows.length})
+                    </span>
+                </Button>
+            );
+        }
+        return (
+          <div className={cn("pl-8 text-muted-foreground italic text-xs")}>
+            {getValue() as string}
+          </div>
+        );
+      },
+    },
+    {
       accessorKey: "contractNumber",
       header: "Contrat N°",
-       cell: ({ row }) => row.getIsGrouped() ? null : row.getValue("contractNumber"),
+       cell: ({ row }) => row.getIsGrouped() ? null : <span className="font-mono">{row.original.contractNumber}</span>,
     },
     {
       accessorKey: "vehicule.marque",
@@ -158,32 +188,6 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
       accessorKey: "vehicule.immatriculation",
       header: "Immatriculation",
        cell: ({ row }) => row.getIsGrouped() ? null : row.original.vehicule.immatriculation,
-    },
-    {
-      id: "client",
-      accessorFn: (row) => row.locataire.nomPrenom,
-      header: "Client",
-      cell: ({ row }) => {
-        if (row.getIsGrouped()) {
-            return (
-                <Button
-                    variant="ghost"
-                    onClick={() => row.toggleExpanded()}
-                    className="w-full text-left justify-start pl-2"
-                >
-                    <span className="flex items-center gap-2 font-semibold">
-                        {row.getIsExpanded() ? (
-                            <ChevronDown className="h-4 w-4" />
-                        ) : (
-                            <ChevronRight className="h-4 w-4" />
-                        )}
-                        {row.getValue("client")} ({row.subRows.length})
-                    </span>
-                </Button>
-            );
-        }
-        return null;
-      },
     },
      {
       accessorKey: "location.dateDebut",
@@ -273,6 +277,11 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
       columnFilters,
       grouping,
     },
+    initialState: {
+      pagination: {
+        pageSize: 20,
+      }
+    }
   });
 
   return (
@@ -312,7 +321,7 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
             <TableBody>
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id}>
+                  <TableRow key={row.id} className={cn(row.getIsGrouped() ? "bg-muted/30" : "hover:bg-muted/20")}>
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                     ))}

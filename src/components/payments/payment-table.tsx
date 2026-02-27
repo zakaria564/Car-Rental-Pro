@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import * as React from "react";
@@ -33,7 +32,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import type { Payment, Rental } from "@/lib/definitions";
-import { formatCurrency, cn } from "@/lib/utils";
+import { formatCurrency, cn, getSafeDate } from "@/lib/utils";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "../ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -46,12 +45,25 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 
 
-const getSafeDate = (date: any): Date | null => {
-    if (!date) return null;
-    if (date.toDate) return date.toDate();
-    if (date instanceof Date) return date;
-    const d = new Date(date);
-    return isNaN(d.getTime()) ? null : d;
+const calculateTotal = (rental: Rental): number => {
+    const from = getSafeDate(rental.location.dateDebut);
+    const to = getSafeDate(rental.location.dateFin);
+    const pricePerDay = rental.location.prixParJour || 0;
+
+    if (from && to && pricePerDay > 0) {
+        const daysDiff = differenceInCalendarDays(startOfDay(to), startOfDay(from));
+        const rentalDays = daysDiff === 0 ? 1 : daysDiff;
+        return rentalDays * pricePerDay;
+    }
+
+    if (typeof rental.location.montantTotal === 'number' && !isNaN(rental.location.montantTotal) && rental.location.montantTotal > 0) {
+      return rental.location.montantTotal;
+    }
+    if (rental.location.nbrJours && pricePerDay > 0) {
+      return rental.location.nbrJours * pricePerDay;
+    }
+    
+    return 0;
 };
 
 
@@ -139,28 +151,6 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
   const [rentalToDelete, setRentalToDelete] = React.useState<Rental | null>(null);
   const { toast } = useToast();
   const { firestore } = useFirebase();
-
-  const calculateTotal = (rental: Rental): number => {
-    const from = getSafeDate(rental.location.dateDebut);
-    const to = getSafeDate(rental.location.dateFin);
-    const pricePerDay = rental.location.prixParJour || 0;
-
-    if (from && to && pricePerDay > 0) {
-        const daysDiff = differenceInCalendarDays(startOfDay(to), startOfDay(from));
-        const rentalDays = daysDiff === 0 ? 1 : daysDiff;
-        return rentalDays * pricePerDay;
-    }
-
-    // Fallbacks
-    if (typeof rental.location.montantTotal === 'number' && !isNaN(rental.location.montantTotal) && rental.location.montantTotal > 0) {
-      return rental.location.montantTotal;
-    }
-    if (rental.location.nbrJours && pricePerDay > 0) {
-      return rental.location.nbrJours * pricePerDay;
-    }
-    
-    return 0;
-  };
 
   const handleDeletePayment = async (paymentToDelete: Payment) => {
     if (!firestore || !paymentToDelete) return;
@@ -310,11 +300,6 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
 
   const columns: ColumnDef<Rental>[] = [
     {
-      accessorKey: "contractNumber",
-      header: "Contrat N°",
-      cell: ({ row }) => row.getIsGrouped() ? null : row.getValue("contractNumber"),
-    },
-    {
       id: "client",
       accessorFn: (row) => row.locataire.nomPrenom,
       header: ({ column }) => (
@@ -326,13 +311,13 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       ),
-      cell: ({ row }) => {
+      cell: ({ row, getValue }) => {
         if (row.getIsGrouped()) {
             return (
                 <Button
                     variant="ghost"
                     onClick={() => row.toggleExpanded()}
-                    className="w-full text-left justify-start pl-2"
+                    className="w-full text-left justify-start pl-2 hover:bg-muted/50"
                 >
                     <span className="flex items-center gap-2 font-semibold">
                         {row.getIsExpanded() ? (
@@ -340,13 +325,22 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
                         ) : (
                             <ChevronRight className="h-4 w-4" />
                         )}
-                        {row.getValue("client")} ({row.subRows.length})
+                        {getValue() as string} ({row.subRows.length})
                     </span>
                 </Button>
             );
         }
-        return null;
+        return (
+          <div className="pl-8 text-muted-foreground italic text-xs">
+            {getValue() as string}
+          </div>
+        );
       },
+    },
+    {
+      accessorKey: "contractNumber",
+      header: "Contrat N°",
+      cell: ({ row }) => row.getIsGrouped() ? null : <span className="font-mono">{row.original.contractNumber}</span>,
     },
     {
         accessorKey: "vehicule.marque",
@@ -391,7 +385,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
         const total = calculateTotal(row.original);
         const reste = (total || 0) - (row.original.location.montantPaye || 0);
         return (
-            <div className={cn("text-right font-bold", reste > 0 ? "text-destructive" : "text-muted-foreground")}>
+            <div className={cn("text-right font-bold", reste > 0.01 ? "text-destructive" : "text-muted-foreground")}>
                 {formatCurrency(reste, 'MAD')}
             </div>
         )
@@ -414,10 +408,10 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
           let status: 'Payé' | 'Paiement Partiel' | 'Non Payé' = 'Non Payé';
           let variant: "default" | "destructive" | "secondary" = "destructive";
 
-          if (reste <= 0) {
+          if (reste <= 0.01) {
             status = 'Payé';
             variant = 'default';
-          } else if (paye > 0 && reste > 0) {
+          } else if (paye > 0 && reste > 0.01) {
             status = 'Paiement Partiel';
             variant = 'secondary';
           }
@@ -452,7 +446,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                {reste > 0 && 
+                {reste > 0.01 && 
                   <DropdownMenuItem onClick={() => onAddPaymentForRental(rental.id)}>
                     <DollarSign className="mr-2 h-4 w-4" />
                     <span>Encaisser un paiement</span>
@@ -494,6 +488,11 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
       columnFilters,
       grouping,
     },
+    initialState: {
+      pagination: {
+        pageSize: 20,
+      }
+    }
   });
 
   return (
@@ -543,6 +542,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
                     <TableRow
                         key={row.id}
                         data-state={row.getIsSelected() && "selected"}
+                        className={cn(row.getIsGrouped() ? "bg-muted/30" : "hover:bg-muted/20")}
                     >
                         {row.getVisibleCells().map((cell) => (
                         <TableCell key={cell.id}>
@@ -660,4 +660,3 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
     </>
   );
 }
-
