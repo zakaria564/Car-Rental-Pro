@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -15,7 +16,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { PlusCircle, MoreHorizontal, Printer, Pencil, CheckCircle, FileText, ChevronDown, ChevronRight, DollarSign } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Printer, Pencil, CheckCircle, FileText, DollarSign } from "lucide-react";
 import { format, differenceInCalendarDays, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -45,7 +46,7 @@ import RentalForm from "./rental-form";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription as DialogDesc, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { query, where, runTransaction, doc, getDoc, collection, getDocs } from "firebase/firestore";
+import { query, where, runTransaction, doc, collection, getDocs } from "firebase/firestore";
 import { useFirebase } from "@/firebase";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
@@ -93,7 +94,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
   const { firestore } = useFirebase();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [grouping, setGrouping] = React.useState<GroupingState>(isDashboard ? [] : ['client']);
+  const [grouping, setGrouping] = React.useState<GroupingState>([]);
   const [formMode, setFormMode] = React.useState<'new' | 'edit' | 'check-in'>('new');
 
   // State for the modals
@@ -292,21 +293,21 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       accessorKey: "contractNumber",
       header: "Contrat N°",
       cell: ({ row }) => {
-        return row.getIsGrouped() ? null : <span className="font-mono">{row.original.contractNumber}</span>;
+        return <span className="font-mono">{row.original.contractNumber}</span>;
       },
     },
     {
       accessorKey: "vehicule.marque",
       header: "Voiture",
       cell: ({ row }) => {
-          return row.getIsGrouped() ? null : row.original.vehicule.marque;
+          return row.original.vehicule.marque;
       },
     },
     {
         accessorKey: "vehicule.immatriculation",
         header: "Immatriculation",
         cell: ({ row }) => {
-            return row.getIsGrouped() ? null : row.original.vehicule.immatriculation;
+            return row.original.vehicule.immatriculation;
         },
     },
     {
@@ -314,26 +315,8 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       accessorFn: (row) => row.locataire.nomPrenom,
       header: "Client",
        cell: ({ row, getValue }) => {
-        if (row.getIsGrouped()) {
-            return (
-                <Button
-                    variant="ghost"
-                    onClick={() => row.toggleExpanded()}
-                    className="w-full text-left justify-start pl-2"
-                >
-                    <span className="flex items-center gap-2 font-semibold">
-                        {row.getIsExpanded() ? (
-                            <ChevronDown className="h-4 w-4" />
-                        ) : (
-                            <ChevronRight className="h-4 w-4" />
-                        )}
-                        {getValue() as string} ({row.subRows.length})
-                    </span>
-                </Button>
-            );
-        }
         return (
-          <div className="pl-8 text-muted-foreground italic text-xs">
+          <div className="font-medium">
             {getValue() as string}
           </div>
         );
@@ -343,7 +326,6 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       accessorKey: "location.dateDebut",
       header: "Date départ",
       cell: ({ row }) => {
-        if (row.getIsGrouped()) return null;
         const date = getSafeDate(row.original.location.dateDebut);
         return date ? format(date, "dd/MM/yyyy", { locale: fr }) : "N/A";
       },
@@ -352,7 +334,6 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       accessorKey: "location.dateFin",
       header: "Date de retour",
       cell: ({ row }) => {
-          if (row.getIsGrouped()) return null;
           const date = getSafeDate(row.original.location.dateFin);
           return date ? format(date, "dd/MM/yyyy", { locale: fr }) : "Date invalide";
       }
@@ -361,7 +342,6 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       accessorKey: "statut",
       header: "Statut",
       cell: ({ row }) => {
-        if (row.getIsGrouped()) return null;
         const status = row.original.statut;
         return (
             <Badge
@@ -381,8 +361,6 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       id: "paymentStatus",
       header: "Paiement",
       cell: ({ row }) => {
-        if (row.getIsGrouped()) return null;
-
         const rental = row.original;
         const total = calculateTotal(rental);
         const paid = rental.location.montantPaye || 0;
@@ -452,7 +430,6 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       id: "actions",
       enableHiding: false,
       cell: ({ row }) => {
-        if (row.getIsGrouped()) return null;
         const rental = row.original;
         const total = calculateTotal(rental);
         const paid = rental.location.montantPaye || 0;
@@ -621,7 +598,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
             <TableBody>
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id} className={cn(row.getIsGrouped() ? "bg-muted/30" : "hover:bg-muted/20")}>
+                  <TableRow key={row.id}>
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
