@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -101,9 +100,23 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
       return;
     }
 
-    const styles = `
+    // Collect all styles from the current document
+    const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+      .map(tag => tag.outerHTML)
+      .join('');
+
+    const extraStyles = `
       @import url('https://rsms.me/inter/inter.css');
-      body { font-family: 'Inter', sans-serif; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      body { 
+        font-family: 'Inter', sans-serif; 
+        background-color: white !important;
+        -webkit-print-color-adjust: exact !important; 
+        print-color-adjust: exact !important; 
+      }
+      * {
+        -webkit-print-color-adjust: exact !important; 
+        print-color-adjust: exact !important; 
+      }
       .no-print { display: none !important; }
       .printable-contract-body {
           border: none !important;
@@ -122,14 +135,8 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
     `;
 
     printWindow.document.write('<html><head><title>Contrat de Location (Archive)</title>');
-    
-    Array.from(document.styleSheets).forEach(sheet => {
-        if (sheet.href) {
-            printWindow.document.write(`<link rel="stylesheet" href="${sheet.href}">`);
-        }
-    });
-
-    printWindow.document.write(`<style>${styles}</style>`);
+    printWindow.document.write(styles);
+    printWindow.document.write(`<style>${extraStyles}</style>`);
     printWindow.document.write('</head><body>');
     printWindow.document.write(printContent.innerHTML);
     printWindow.document.write('</body></html>');
