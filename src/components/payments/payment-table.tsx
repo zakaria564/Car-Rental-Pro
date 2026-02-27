@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -262,6 +261,14 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
        }
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      img, svg {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
       .no-print { display: none !important; }
        @page {
         size: A4;

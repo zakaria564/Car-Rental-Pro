@@ -158,6 +158,10 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
         -webkit-print-color-adjust: exact !important; 
         print-color-adjust: exact !important; 
       }
+      img, svg {
+        -webkit-print-color-adjust: exact !important; 
+        print-color-adjust: exact !important; 
+      }
       .no-print { display: none !important; }
       .printable-contract-body {
           border: none !important;

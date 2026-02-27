@@ -89,11 +89,14 @@
   }
   body {
     background-color: white !important;
-    color: black !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
   * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  img, svg {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
