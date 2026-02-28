@@ -119,6 +119,18 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
     return rentals.find(r => r.id === selectedRentalId);
   }, [selectedRentalId, rentals]);
 
+  // Filtrer les contrats pour n'afficher que ceux avec un solde ou celui qui est déjà sélectionné
+  const eligibleRentals = React.useMemo(() => {
+    return rentals.filter(r => {
+        if (payment && r.id === payment.rentalId) return true;
+        if (r.id === preselectedRentalId) return true;
+        
+        const total = calculateTotal(r);
+        const paid = r.location.montantPaye || 0;
+        return (total - paid) > 0.01; // Contrat non encore payé
+    });
+  }, [rentals, payment, preselectedRentalId]);
+
   const financialSummary = React.useMemo(() => {
     if (!selectedRental) return { total: 0, paye: 0, reste: 0, formattedReste: "" };
     
@@ -222,11 +234,17 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {rentals.map(rental => (
-                        <SelectItem key={rental.id} value={rental.id}>
-                          {rental.locataire.nomPrenom} - {rental.vehicule.marque} ({rental.contractNumber})
-                        </SelectItem>
-                      ))}
+                      {eligibleRentals.length > 0 ? (
+                        eligibleRentals.map(rental => (
+                          <SelectItem key={rental.id} value={rental.id}>
+                            {rental.locataire.nomPrenom} - {rental.vehicule.marque} ({rental.contractNumber})
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <div className="p-4 text-center text-sm text-muted-foreground">
+                          Aucun contrat avec solde impayé.
+                        </div>
+                      )}
                     </SelectContent>
                   </Select>
                   {selectedRental && (
@@ -315,7 +333,7 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
           </div>
         </ScrollArea>
         <div className="mt-4 flex-shrink-0 border-t pt-4">
-            <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isSubmitting}>
+            <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isSubmitting || eligibleRentals.length === 0 && !payment}>
               {isSubmitting ? 'Enregistrement...' : (payment ? 'Mettre à jour' : 'Ajouter le paiement')}
             </Button>
         </div>
