@@ -1,9 +1,8 @@
-
 'use client';
 import React from 'react';
 import type { Payment, Rental } from '@/lib/definitions';
 import { Logo } from '../logo';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, getSafeDate } from '@/lib/utils';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
@@ -20,16 +19,18 @@ export const Invoice: React.FC<InvoiceProps> = ({ rental, payments, totalAmount 
     if (!rental) return null;
     
     const today = new Date();
-    const safeDebutDate = rental.location.dateDebut?.toDate ? format(rental.location.dateDebut.toDate(), "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A';
-    const safeFinDate = rental.location.dateFin?.toDate ? format(rental.location.dateFin.toDate(), "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A';
+    const debutDate = getSafeDate(rental.location.dateDebut);
+    const finDate = getSafeDate(rental.location.dateFin);
+    
+    const safeDebutDate = debutDate ? format(debutDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A';
+    const safeFinDate = finDate ? format(finDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A';
 
     const totalPaid = payments.reduce((acc, p) => acc + p.amount, 0);
-    const balance = totalAmount - totalPaid;
+    const balance = Math.max(0, totalAmount - totalPaid);
 
     const agencyName = companySettings?.companyName || "Location Auto Pro";
 
     const numberToWords = (num: number) => {
-        // This is a placeholder. A real implementation is complex.
         return `${num.toLocaleString('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2})} Dirhams`;
     };
 
@@ -37,14 +38,12 @@ export const Invoice: React.FC<InvoiceProps> = ({ rental, payments, totalAmount 
 
     return (
         <div id="printable-invoice" className="p-8 font-sans text-sm bg-white text-black min-h-[280mm] flex flex-col">
-            {/* Header */}
             <header className="flex justify-between items-start pb-8 border-b">
                 <div className="flex items-center gap-4">
                     <Logo className="h-20 w-20" />
                     <div>
                         <h2 className="font-bold text-xl">{agencyName}</h2>
                         <p className="text-xs text-gray-600">
-                            123 Rue de la Liberté, Agdal<br/>
                             Rabat, Maroc<br/>
                             Tél: +212 537 00 00 00
                         </p>
@@ -57,7 +56,6 @@ export const Invoice: React.FC<InvoiceProps> = ({ rental, payments, totalAmount 
                 </div>
             </header>
 
-            {/* Client Info */}
             <section className="my-10 grid grid-cols-2 gap-8">
                  <div>
                     <h3 className="font-semibold text-gray-800 mb-2">Facturé à :</h3>
@@ -71,7 +69,6 @@ export const Invoice: React.FC<InvoiceProps> = ({ rental, payments, totalAmount 
                 </div>
             </section>
 
-            {/* Invoice Body */}
             <section className="flex-grow">
                  <h3 className="font-semibold text-gray-800 mb-2">Historique des paiements :</h3>
                  {payments.length > 0 ? (
@@ -84,19 +81,21 @@ export const Invoice: React.FC<InvoiceProps> = ({ rental, payments, totalAmount 
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {payments.map(p => (
-                                <TableRow key={p.id}>
-                                    <TableCell>{p.paymentDate?.toDate ? format(p.paymentDate.toDate(), "dd/MM/yyyy HH:mm", { locale: fr }) : 'N/A'}</TableCell>
-                                    <TableCell>{p.paymentMethod}</TableCell>
-                                    <TableCell className="text-right">{formatCurrency(p.amount, 'MAD')}</TableCell>
-                                </TableRow>
-                            ))}
+                            {payments.map(p => {
+                                const pDate = getSafeDate(p.paymentDate);
+                                return (
+                                    <TableRow key={p.id}>
+                                        <TableCell>{pDate ? format(pDate, "dd/MM/yyyy HH:mm", { locale: fr }) : 'N/A'}</TableCell>
+                                        <TableCell>{p.paymentMethod}</TableCell>
+                                        <TableCell className="text-right">{formatCurrency(p.amount, 'MAD')}</TableCell>
+                                    </TableRow>
+                                );
+                            })}
                         </TableBody>
                     </Table>
                  ) : (
                     <div className="text-sm text-gray-500 py-4 text-center border rounded-md">Aucun paiement enregistré pour ce contrat.</div>
                  )}
-
 
                 <div className="mt-8 flex justify-end">
                     <div className="w-full max-w-sm space-y-2">
@@ -116,15 +115,11 @@ export const Invoice: React.FC<InvoiceProps> = ({ rental, payments, totalAmount 
                 </div>
             </section>
 
-            {/* Footer */}
             <footer className="mt-auto pt-8 border-t text-sm text-gray-700">
                  <p className="mb-8">
                     Arrêtée la présente facture à la somme de : <span className="font-semibold">{amountInWords}</span>.
                 </p>
                 <div className="flex justify-between items-end">
-                     <div className="text-center">
-                        {/* Placeholder for signature */}
-                    </div>
                     <div className="text-center w-1/3">
                         <p className="pt-2">Cachet et Signature de l'agence</p>
                         <div className="mt-16 border-t border-gray-400"></div>

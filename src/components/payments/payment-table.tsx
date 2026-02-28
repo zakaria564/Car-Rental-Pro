@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -16,8 +15,8 @@ import {
   getGroupedRowModel,
   getExpandedRowModel,
 } from "@tanstack/react-table";
-import { ArrowUpDown, MoreHorizontal, Printer, FileText, DollarSign, Trash2, ChevronRight, ChevronDown, AlertCircle } from "lucide-react";
-import { format, differenceInCalendarDays, startOfDay } from "date-fns";
+import { ArrowUpDown, MoreHorizontal, Printer, FileText, DollarSign, Trash2, ChevronRight, ChevronDown } from "lucide-react";
+import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
 import { Button } from "@/components/ui/button";
@@ -32,7 +31,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import type { Payment, Rental } from "@/lib/definitions";
-import { formatCurrency, cn, getSafeDate } from "@/lib/utils";
+import { formatCurrency, cn, getSafeDate, calculateTotalRentalAmount } from "@/lib/utils";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "../ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -42,29 +41,6 @@ import { useFirebase } from "@/firebase";
 import { doc, runTransaction, query, where, getDocs, collection } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
-
-
-const calculateTotal = (rental: Rental): number => {
-    const from = getSafeDate(rental.location.dateDebut);
-    const to = getSafeDate(rental.location.dateFin);
-    const pricePerDay = rental.location.prixParJour || 0;
-
-    if (from && to && pricePerDay > 0) {
-        const daysDiff = differenceInCalendarDays(startOfDay(to), startOfDay(from));
-        const rentalDays = daysDiff === 0 ? 1 : daysDiff;
-        return rentalDays * pricePerDay;
-    }
-
-    if (typeof rental.location.montantTotal === 'number' && !isNaN(rental.location.montantTotal) && rental.location.montantTotal > 0) {
-      return rental.location.montantTotal;
-    }
-    if (rental.location.nbrJours && pricePerDay > 0) {
-      return rental.location.nbrJours * pricePerDay;
-    }
-    
-    return 0;
-};
-
 
 const RentalStatementDialog = ({ rental, payments, onDeletePaymentClick, onPrintClick }: {
   rental: Rental;
@@ -93,7 +69,7 @@ const RentalStatementDialog = ({ rental, payments, onDeletePaymentClick, onPrint
           <TableBody>
             {payments.length > 0 ? payments.map(p => (
               <TableRow key={p.id}>
-                <TableCell>{p.paymentDate?.toDate ? format(p.paymentDate.toDate(), "dd/MM/yyyy HH:mm", { locale: fr }) : 'N/A'}</TableCell>
+                <TableCell>{getSafeDate(p.paymentDate) ? format(getSafeDate(p.paymentDate)!, "dd/MM/yyyy HH:mm", { locale: fr }) : 'N/A'}</TableCell>
                 <TableCell>{p.paymentMethod}</TableCell>
                 <TableCell className="text-right">{formatCurrency(p.amount, 'MAD')}</TableCell>
                 <TableCell className="text-right">
@@ -151,22 +127,22 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
   const { toast } = useToast();
   const { firestore } = useFirebase();
 
-  const handleDeletePayment = async (paymentToDelete: Payment) => {
-    if (!firestore || !paymentToDelete) return;
+  const handleDeletePayment = async (paymentToDel: Payment) => {
+    if (!firestore || !paymentToDel) return;
 
-    const paymentRef = doc(firestore, "payments", paymentToDelete.id);
-    const rentalRef = doc(firestore, "rentals", paymentToDelete.rentalId);
+    const paymentRef = doc(firestore, "payments", paymentToDel.id);
+    const rentalRef = doc(firestore, "rentals", paymentToDel.rentalId);
 
     try {
         await runTransaction(firestore, async (transaction) => {
             const rentalDoc = await transaction.get(rentalRef);
             if (!rentalDoc.exists()) {
-                throw "Contrat de location introuvable.";
+                throw new Error("Contrat de location introuvable.");
             }
 
             const currentRentalData = rentalDoc.data() as Rental;
             const currentPaidAmount = currentRentalData.location.montantPaye || 0;
-            const newPaidAmount = currentPaidAmount - paymentToDelete.amount;
+            const newPaidAmount = Math.max(0, currentPaidAmount - paymentToDel.amount);
 
             transaction.delete(paymentRef);
             transaction.update(rentalRef, { 'location.montantPaye': newPaidAmount });
@@ -174,12 +150,10 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
 
         toast({
           title: "Paiement supprimé",
-          description: `Le paiement de ${formatCurrency(paymentToDelete.amount, 'MAD')} a été annulé.`,
+          description: `Le paiement de ${formatCurrency(paymentToDel.amount, 'MAD')} a été annulé.`,
         });
 
     } catch (error: any) {
-        console.error("Erreur de transaction lors de la suppression:", error);
-        
         const permissionError = new FirestorePermissionError({
             path: paymentRef.path,
             operation: 'delete',
@@ -189,29 +163,29 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
         toast({
           variant: "destructive",
           title: "Une erreur est survenue",
-          description: error.message || "Impossible de supprimer le paiement. Vérifiez vos permissions et réessayez.",
+          description: error.message || "Impossible de supprimer le paiement.",
         });
     } finally {
         setPaymentToDelete(null);
     }
   };
 
-  const handleDeleteRentalAndPayments = async (rental: Rental) => {
-    if (!firestore || !rental?.id) return;
+  const handleDeleteRentalAndPayments = async (rentalToDel: Rental) => {
+    if (!firestore || !rentalToDel?.id) return;
 
-    const rentalRef = doc(firestore, 'rentals', rental.id);
-    const paymentsQuery = query(collection(firestore, 'payments'), where("rentalId", "==", rental.id));
+    const rentalRef = doc(firestore, 'rentals', rentalToDel.id);
+    const paymentsQuery = query(collection(firestore, 'payments'), where("rentalId", "==", rentalToDel.id));
 
     try {
         await runTransaction(firestore, async (transaction) => {
             const paymentsSnapshot = await getDocs(paymentsQuery);
-            paymentsSnapshot.forEach(doc => {
-                transaction.delete(doc.ref);
+            paymentsSnapshot.forEach(docSnap => {
+                transaction.delete(docSnap.ref);
             });
     
             transaction.delete(rentalRef);
     
-            const carRef = doc(firestore, 'cars', rental.vehicule.carId);
+            const carRef = doc(firestore, 'cars', rentalToDel.vehicule.carId);
             const carDoc = await transaction.get(carRef);
             if (carDoc.exists()) {
                 transaction.update(carRef, { disponibilite: 'disponible' });
@@ -233,13 +207,12 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
         toast({
           variant: "destructive",
           title: "Une erreur est survenue",
-          description: serverError.message || "Impossible de supprimer le contrat et ses paiements.",
+          description: serverError.message || "Impossible de supprimer le contrat.",
         });
     } finally {
         setRentalToDelete(null);
     }
   };
-
 
   const handlePrintInvoice = () => {
     const printContent = document.getElementById('printable-invoice');
@@ -256,40 +229,20 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
     }
     
     const styles = `
-      body { 
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-       }
-      * {
-        -webkit-print-color-adjust: exact !important; 
-        print-color-adjust: exact !important; 
-      }
-      img, svg {
-        -webkit-print-color-adjust: exact !important; 
-        print-color-adjust: exact !important; 
-      }
+      body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
       .no-print { display: none !important; }
-       @page {
-        size: A4;
-        margin: 15mm;
-      }
+      @page { size: A4; margin: 15mm; }
     `;
 
     printWindow.document.write('<html><head><title>Facture</title>');
-    
     Array.from(document.styleSheets).forEach(sheet => {
-        if (sheet.href) {
-            printWindow.document.write(`<link rel="stylesheet" href="${sheet.href}">`);
-        }
+        if (sheet.href) printWindow.document.write(`<link rel="stylesheet" href="${sheet.href}">`);
     });
-
     printWindow.document.write(`<style>${styles}</style>`);
     printWindow.document.write('</head><body>');
     printWindow.document.write(printContent.innerHTML);
     printWindow.document.write('</body></html>');
-    
     printWindow.document.close();
-    
     printWindow.onload = function() {
       setTimeout(function() {
         printWindow.focus();
@@ -386,9 +339,9 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
       cell: ({ row }) => {
         let total = 0;
         if (row.getIsGrouped()) {
-            total = row.subRows.reduce((acc, subRow) => acc + calculateTotal(subRow.original), 0);
+            total = row.subRows.reduce((acc, subRow) => acc + calculateTotalRentalAmount(subRow.original), 0);
         } else {
-            total = calculateTotal(row.original);
+            total = calculateTotalRentalAmount(row.original);
         }
         return (
             <div className={cn("text-right font-medium", row.getIsGrouped() && "text-foreground/80")}>
@@ -420,11 +373,11 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
       cell: ({ row }) => {
         let reste = 0;
         if (row.getIsGrouped()) {
-            const total = row.subRows.reduce((acc, subRow) => acc + calculateTotal(subRow.original), 0);
+            const total = row.subRows.reduce((acc, subRow) => acc + calculateTotalRentalAmount(subRow.original), 0);
             const paid = row.subRows.reduce((acc, subRow) => acc + (subRow.original.location.montantPaye || 0), 0);
             reste = total - paid;
         } else {
-            reste = calculateTotal(row.original) - (row.original.location.montantPaye || 0);
+            reste = calculateTotalRentalAmount(row.original) - (row.original.location.montantPaye || 0);
         }
         
         return (
@@ -442,10 +395,10 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
           let paye = 0;
           
           if (row.getIsGrouped()) {
-              total = row.subRows.reduce((acc, subRow) => acc + calculateTotal(subRow.original), 0);
+              total = row.subRows.reduce((acc, subRow) => acc + calculateTotalRentalAmount(subRow.original), 0);
               paye = row.subRows.reduce((acc, subRow) => acc + (subRow.original.location.montantPaye || 0), 0);
           } else {
-              total = calculateTotal(row.original);
+              total = calculateTotalRentalAmount(row.original);
               paye = row.original.location.montantPaye || 0;
           }
 
@@ -485,8 +438,8 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
       cell: ({ row }) => {
         if (row.getIsGrouped()) return null;
         const rental = row.original;
-        const total = calculateTotal(rental);
-        const reste = (total || 0) - (rental.location.montantPaye || 0);
+        const total = calculateTotalRentalAmount(rental);
+        const reste = total - (rental.location.montantPaye || 0);
         
         return (
             <DropdownMenu>
@@ -591,10 +544,9 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
                 <TableBody>
                 {table.getRowModel().rows?.length ? (
                     table.getRowModel().rows.map((row) => {
-                        // Logic to detect if a group row has unpaid amounts
                         let hasUnpaid = false;
                         if (row.getIsGrouped()) {
-                            const total = row.subRows.reduce((acc, subRow) => acc + calculateTotal(subRow.original), 0);
+                            const total = row.subRows.reduce((acc, subRow) => acc + calculateTotalRentalAmount(subRow.original), 0);
                             const paid = row.subRows.reduce((acc, subRow) => acc + (subRow.original.location.montantPaye || 0), 0);
                             hasUnpaid = (total - paid) > 0.01;
                         }
@@ -662,7 +614,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
                     <Invoice 
                         rental={statementRental} 
                         payments={payments.filter(p => p.rentalId === statementRental.id)}
-                        totalAmount={calculateTotal(statementRental)}
+                        totalAmount={calculateTotalRentalAmount(statementRental)}
                     />
                 </div>
 
@@ -682,8 +634,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
                     <AlertDialogHeader>
                         <AlertDialogTitle>Supprimer ce paiement ?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Cette action est irréversible. Le paiement de ${formatCurrency(paymentToDelete.amount, 'MAD')} du ${paymentToDelete.paymentDate?.toDate ? format(paymentToDelete.paymentDate.toDate(), "dd/MM/yyyy à HH:mm") : ''} sera supprimé.
-                            Le montant sera déduit du total payé pour le contrat.
+                            Cette action est irréversible. Le paiement de {formatCurrency(paymentToDelete.amount, 'MAD')} du {getSafeDate(paymentToDelete.paymentDate) ? format(getSafeDate(paymentToDelete.paymentDate)!, "dd/MM/yyyy à HH:mm", { locale: fr }) : ''} sera supprimé.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -705,7 +656,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
                     <AlertDialogHeader>
                         <AlertDialogTitle>Supprimer ce contrat ?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Cette action est irréversible. Le contrat pour ${rentalToDelete.locataire.nomPrenom} et <strong>tous</strong> ses paiements associés seront définitivement supprimés.
+                            Cette action est irréversible. Le contrat pour {rentalToDelete.locataire.nomPrenom} et TOUS ses paiements associés seront définitivement supprimés.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -8,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -19,11 +17,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import type { Payment, Rental } from "@/lib/definitions";
 import { useFirebase } from "@/firebase";
-import { collection, doc, serverTimestamp, runTransaction } from "firebase/firestore";
+import { collection, doc, runTransaction } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import React from "react";
-import { cn, formatCurrency } from "@/lib/utils";
-import { format, differenceInCalendarDays, startOfDay } from "date-fns";
+import { formatCurrency, getSafeDate, calculateTotalRentalAmount } from "@/lib/utils";
+import { format } from "date-fns";
 import { ScrollArea } from "../ui/scroll-area";
 
 const paymentFormSchema = z.object({
@@ -34,40 +32,6 @@ const paymentFormSchema = z.object({
 });
 
 type PaymentFormValues = z.infer<typeof paymentFormSchema>;
-
-
-const getSafeDate = (date: any): Date | null => {
-    if (!date) return null;
-    if (date.toDate) return date.toDate(); // Firestore Timestamp
-    if (date instanceof Date) return date;
-    const parsed = new Date(date);
-    return isNaN(parsed.getTime()) ? null : parsed;
-};
-
-const calculateTotal = (rental: Rental): number => {
-    const from = getSafeDate(rental.location.dateDebut);
-    const to = getSafeDate(rental.location.dateFin);
-    const pricePerDay = rental.location.prixParJour || 0;
-
-    if (from && to && pricePerDay > 0) {
-        if (startOfDay(from).getTime() === startOfDay(to).getTime()) {
-            return pricePerDay;
-        }
-        const daysDiff = differenceInCalendarDays(to, from);
-        return daysDiff * pricePerDay;
-    }
-
-    // Fallbacks
-    if (typeof rental.location.montantTotal === 'number' && !isNaN(rental.location.montantTotal) && rental.location.montantTotal > 0) {
-      return rental.location.montantTotal;
-    }
-    if (rental.location.nbrJours && pricePerDay > 0) {
-      return rental.location.nbrJours * pricePerDay;
-    }
-    
-    return 0;
-  };
-
 
 export default function PaymentForm({ payment, rentals, onFinished, preselectedRentalId }: { 
     payment: Payment | null, 
@@ -95,10 +59,10 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
 
     let defaultAmount: number | undefined = undefined;
     if (preselectedRentalId) {
-        const selectedRental = rentals.find(r => r.id === preselectedRentalId);
-        if (selectedRental) {
-            const total = calculateTotal(selectedRental);
-            const paid = selectedRental.location.montantPaye || 0;
+        const sel = rentals.find(r => r.id === preselectedRentalId);
+        if (sel) {
+            const total = calculateTotalRentalAmount(sel);
+            const paid = sel.location.montantPaye || 0;
             const remaining = total - paid;
             if (remaining > 0) {
                 defaultAmount = remaining;
@@ -119,24 +83,23 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
     return rentals.find(r => r.id === selectedRentalId);
   }, [selectedRentalId, rentals]);
 
-  // Filtrer les contrats pour n'afficher que ceux avec un solde ou celui qui est déjà sélectionné
   const eligibleRentals = React.useMemo(() => {
     return rentals.filter(r => {
         if (payment && r.id === payment.rentalId) return true;
         if (r.id === preselectedRentalId) return true;
         
-        const total = calculateTotal(r);
+        const total = calculateTotalRentalAmount(r);
         const paid = r.location.montantPaye || 0;
-        return (total - paid) > 0.01; // Contrat non encore payé
+        return (total - paid) > 0.01;
     });
   }, [rentals, payment, preselectedRentalId]);
 
   const financialSummary = React.useMemo(() => {
     if (!selectedRental) return { total: 0, paye: 0, reste: 0, formattedReste: "" };
     
-    const total = calculateTotal(selectedRental);
+    const total = calculateTotalRentalAmount(selectedRental);
     const paye = selectedRental.location.montantPaye || 0;
-    const reste = total - paye;
+    const reste = Math.max(0, total - paye);
 
     return { total, paye, reste, formattedReste: formatCurrency(reste, 'MAD') };
   }, [selectedRental]);
@@ -147,7 +110,7 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
     const isNewPayment = !payment;
 
     if (isNewPayment) {
-        if (financialSummary.reste <= 0.01) { // Use a small epsilon
+        if (financialSummary.reste <= 0.01) {
             form.setError("rentalId", {
                 type: "manual",
                 message: "Ce contrat est déjà entièrement payé.",
@@ -155,7 +118,7 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
             return;
         }
 
-        if (data.amount > financialSummary.reste + 0.01) { // Use a small epsilon
+        if (data.amount > financialSummary.reste + 0.01) {
             form.setError("amount", {
                 type: "manual",
                 message: `Le montant ne peut pas dépasser le reste à payer de ${financialSummary.formattedReste}.`,
@@ -174,7 +137,7 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
         await runTransaction(firestore, async (transaction) => {
             const rentalDoc = await transaction.get(rentalRef);
             if (!rentalDoc.exists()) {
-                throw "Contrat de location introuvable.";
+                throw new Error("Contrat de location introuvable.");
             }
 
             const currentRentalData = rentalDoc.data() as Rental;
@@ -203,18 +166,17 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
           description: `Le paiement de ${formatCurrency(data.amount, 'MAD')} a été enregistré.`,
         });
         onFinished();
-    } catch (error) {
-        console.error("Erreur de transaction:", error);
-        errorEmitter.emit('permission-error', new Error("Une erreur de permission ou de transaction est survenue."));
+    } catch (error: any) {
+        errorEmitter.emit('permission-error', new Error(error.message || "Erreur lors de la transaction."));
         toast({
           variant: "destructive",
           title: "Une erreur est survenue",
-          description: typeof error === 'string' ? error : "Impossible de sauvegarder le paiement. Vérifiez vos permissions et réessayez.",
+          description: error.message || "Impossible de sauvegarder le paiement.",
         });
     } finally {
         setIsSubmitting(false);
     }
-  };
+  }
 
   return (
     <Form {...form}>
@@ -292,14 +254,10 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
                     <FormControl>
                       <Input
                         type="datetime-local"
-                        value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd'T'HH:mm") : ""}
+                        value={getSafeDate(field.value) ? format(getSafeDate(field.value)!, "yyyy-MM-dd'T'HH:mm") : ""}
                         onChange={(e) => {
                             const dateString = e.target.value;
-                            if (!dateString) {
-                                field.onChange(null);
-                            } else {
-                                field.onChange(new Date(dateString));
-                            }
+                            field.onChange(dateString ? new Date(dateString) : null);
                         }}
                       />
                     </FormControl>
@@ -313,7 +271,7 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Méthode de paiement</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Choisir une méthode" />
@@ -333,7 +291,7 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
           </div>
         </ScrollArea>
         <div className="mt-4 flex-shrink-0 border-t pt-4">
-            <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isSubmitting || eligibleRentals.length === 0 && !payment}>
+            <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isSubmitting || (eligibleRentals.length === 0 && !payment)}>
               {isSubmitting ? 'Enregistrement...' : (payment ? 'Mettre à jour' : 'Ajouter le paiement')}
             </Button>
         </div>
