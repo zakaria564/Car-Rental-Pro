@@ -366,26 +366,45 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
     {
       accessorKey: "contractNumber",
       header: "Contrat N°",
-      cell: ({ row }) => row.getIsGrouped() ? null : <span className="font-mono font-medium">{row.original.contractNumber}</span>,
+      cell: ({ row }) => {
+        if (row.getIsGrouped()) {
+            const latest = row.subRows[0]?.original;
+            return latest ? <span className="font-mono text-[10px] text-muted-foreground bg-muted p-1 rounded">Dernier: {latest.contractNumber}</span> : null;
+        }
+        return <span className="font-mono font-medium">{row.original.contractNumber}</span>;
+      },
     },
     {
         accessorKey: "vehicule.marque",
         header: "Voiture",
-        cell: ({ row }) => row.getIsGrouped() ? null : <span className="text-sm">{row.original.vehicule.marque}</span>,
+        cell: ({ row }) => {
+            if (row.getIsGrouped()) {
+                const latest = row.subRows[0]?.original;
+                return latest ? <span className="text-xs text-muted-foreground">{latest.vehicule.marque}</span> : null;
+            }
+            return <span className="text-sm">{row.original.vehicule.marque}</span>;
+        },
     },
     {
         accessorKey: "vehicule.immatriculation",
         header: "Immatriculation",
-        cell: ({ row }) => row.getIsGrouped() ? null : <Badge variant="secondary" className="font-mono text-[10px]">{row.original.vehicule.immatriculation}</Badge>,
+        cell: ({ row }) => {
+            if (row.getIsGrouped()) {
+                const latest = row.subRows[0]?.original;
+                return latest ? <Badge variant="outline" className="font-mono text-[9px] opacity-70">{latest.vehicule.immatriculation}</Badge> : null;
+            }
+            return <Badge variant="secondary" className="font-mono text-[10px]">{row.original.vehicule.immatriculation}</Badge>;
+        },
     },
     {
       id: "montantTotal",
       header: () => <div className="text-right">Montant Total</div>,
       cell: ({ row }) => {
-        if (row.getIsGrouped()) return null;
-        const total = calculateTotal(row.original);
+        const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
+        if (!rental) return null;
+        const total = calculateTotal(rental);
         return (
-            <div className="text-right font-medium">
+            <div className={cn("text-right font-medium", row.getIsGrouped() && "text-muted-foreground text-xs")}>
             {formatCurrency(total || 0, 'MAD')}
             </div>
         );
@@ -395,10 +414,11 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
       accessorKey: "location.montantPaye",
       header: () => <div className="text-right">Montant Payé</div>,
       cell: ({ row }) => {
-        if (row.getIsGrouped()) return null;
+        const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
+        if (!rental) return null;
         return (
-          <div className="text-right font-medium text-green-600">
-            {formatCurrency(row.original.location.montantPaye || 0, 'MAD')}
+          <div className={cn("text-right font-medium text-green-600", row.getIsGrouped() && "text-xs opacity-70")}>
+            {formatCurrency(rental.location.montantPaye || 0, 'MAD')}
           </div>
         )
       },
@@ -407,11 +427,12 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
       id: 'resteAPayer',
       header: () => <div className="text-right">Reste à Payer</div>,
       cell: ({ row }) => {
-        if (row.getIsGrouped()) return null;
-        const total = calculateTotal(row.original);
-        const reste = (total || 0) - (row.original.location.montantPaye || 0);
+        const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
+        if (!rental) return null;
+        const total = calculateTotal(rental);
+        const reste = (total || 0) - (rental.location.montantPaye || 0);
         return (
-            <div className={cn("text-right font-bold", reste > 0.01 ? "text-destructive" : "text-muted-foreground")}>
+            <div className={cn("text-right font-bold", reste > 0.01 ? "text-destructive" : "text-muted-foreground", row.getIsGrouped() && "text-xs")}>
                 {formatCurrency(reste, 'MAD')}
             </div>
         )
@@ -421,9 +442,11 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
         id: 'paymentStatus',
         header: "Statut Paiement",
         cell: ({ row }) => {
-          if (row.getIsGrouped()) return null;
-          const total = calculateTotal(row.original);
-          const paye = row.original.location.montantPaye || 0;
+          const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
+          if (!rental) return null;
+          
+          const total = calculateTotal(rental);
+          const paye = rental.location.montantPaye || 0;
 
           if (!total || total === 0) {
             return <Badge variant="outline">N/A</Badge>
@@ -447,7 +470,8 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
               "font-bold",
               status === 'Payé' && "bg-green-100 text-green-800 border-green-300",
               status === 'Paiement Partiel' && "bg-orange-100 text-orange-800 border-orange-300",
-              status === 'Non Payé' && "bg-red-600 text-white border-red-700 animate-pulse"
+              status === 'Non Payé' && "bg-red-600 text-white border-red-700",
+              row.getIsGrouped() && "scale-75 origin-right opacity-80"
             )}>
               {status}
             </Badge>
