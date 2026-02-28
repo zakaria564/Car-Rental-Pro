@@ -13,7 +13,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { PlusCircle, ArrowUpDown, ChevronDown, MoreHorizontal, User, Trash2, Mail } from "lucide-react";
+import { PlusCircle, ArrowUpDown, ChevronDown, MoreHorizontal, User, Trash2, Mail, Phone, MapPin, CreditCard, FileText } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -48,65 +48,93 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import Image from "next/image";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { cn } from "@/lib/utils";
+import { cn, getSafeDate } from "@/lib/utils";
 
 // New component for client details
 function ClientDetails({ client }: { client: Client }) {
-  const safePermisDate = client.permisDateDelivrance?.toDate ? format(client.permisDateDelivrance.toDate(), "dd/MM/yyyy", { locale: fr }) : 'N/A';
+  const safePermisDate = getSafeDate(client.permisDateDelivrance);
+  const formattedPermisDate = safePermisDate ? format(safePermisDate, "dd/MM/yyyy", { locale: fr }) : 'N/A';
 
   return (
-    <ScrollArea className="max-h-[70vh] pr-4">
-      <div className="space-y-4 pt-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
-          <div className="space-y-1 text-sm">
-            <p><strong>Nom:</strong> {client.nom}</p>
-            <p><strong>CIN:</strong> {client.cin}</p>
-            {client.email && <p><strong>E-mail:</strong> <a href={`mailto:${client.email}`} className="underline text-primary hover:text-primary/80">{client.email}</a></p>}
-            <p><strong>Téléphone:</strong> <a href={`tel:${client.telephone}`} className="underline text-primary hover:text-primary/80">{client.telephone}</a></p>
-            <p><strong>Adresse:</strong> <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(client.adresse)}`} target="_blank" rel="noopener noreferrer" className="underline text-primary hover:text-primary/80">{client.adresse}</a></p>
-            <p><strong>N° Permis:</strong> {client.permisNo || 'N/A'}</p>
-            <p><strong>Délivré le:</strong> {safePermisDate}</p>
+    <ScrollArea className="max-h-[75vh] pr-4">
+      <div className="space-y-6 pt-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Identité</h4>
+              <p className="text-lg font-bold">{client.nom}</p>
+              <p className="flex items-center gap-2"><CreditCard className="h-4 w-4 text-primary" /> {client.cin}</p>
+              {client.email && (
+                <p className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-primary" />
+                  <a href={`mailto:${client.email}`} className="underline hover:text-primary transition-colors">{client.email}</a>
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Contact & Adresse</h4>
+              <p className="flex items-center gap-2"><Phone className="h-4 w-4 text-primary" /> <a href={`tel:${client.telephone}`} className="underline hover:text-primary">{client.telephone}</a></p>
+              <p className="flex items-start gap-2">
+                <MapPin className="h-4 w-4 text-primary mt-1 shrink-0" />
+                <a 
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(client.adresse)}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="underline hover:text-primary transition-colors"
+                >
+                  {client.adresse}
+                </a>
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Permis de conduire</h4>
+              <p className="flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /> N°: {client.permisNo || 'N/A'}</p>
+              <p className="pl-6 text-sm text-muted-foreground">Délivré le: {formattedPermisDate}</p>
+            </div>
           </div>
-          <div className="space-y-2">
-              <p className="text-sm font-medium">Photo de la CIN</p>
-              <div className="relative w-full aspect-[16/10] rounded-md overflow-hidden border bg-muted">
+
+          <div className="space-y-3">
+              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Carte d'Identité</h4>
+              <div className="relative w-full aspect-[16/10] rounded-lg overflow-hidden border-2 bg-muted shadow-sm group">
                   {client.photoCIN && client.photoCIN.startsWith('http') ? (
-                      <a href={client.photoCIN} target="_blank" rel="noopener noreferrer" className="block w-full h-full hover:opacity-80 transition-opacity">
+                      <a href={client.photoCIN} target="_blank" rel="noopener noreferrer" className="block w-full h-full">
                         <Image 
                             src={client.photoCIN} 
                             alt={`CIN de ${client.nom}`} 
                             fill 
-                            className="object-contain"
+                            className="object-contain group-hover:scale-105 transition-transform duration-300"
                             data-ai-hint="id card"
                         />
                       </a>
                   ) : (
-                      <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                          Pas d'image
+                      <div className="flex flex-col items-center justify-center h-full text-muted-foreground space-y-2">
+                          <CreditCard className="h-10 w-10 opacity-20" />
+                          <p className="text-xs italic">Aucune image disponible</p>
                       </div>
                   )}
               </div>
           </div>
         </div>
+
         {client.otherPhotos && client.otherPhotos.length > 0 && (
-          <div className="space-y-2 pt-4 border-t">
-            <p className="text-sm font-medium">Autres Photos</p>
-            <div className="overflow-x-auto pb-2">
-              <div className="flex w-max space-x-2">
+          <div className="space-y-3 pt-4 border-t">
+            <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Autres Documents</h4>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {client.otherPhotos.map((photoUrl, index) => (
                   photoUrl && (
-                    <a key={index} href={photoUrl} target="_blank" rel="noopener noreferrer" className="relative block h-20 w-28 flex-shrink-0 rounded-md overflow-hidden bg-muted hover:opacity-80 transition-opacity">
+                    <a key={index} href={photoUrl} target="_blank" rel="noopener noreferrer" className="relative block aspect-video rounded-md overflow-hidden border bg-muted hover:ring-2 hover:ring-primary transition-all">
                         <Image
                             src={photoUrl}
-                            alt={`Autre photo ${index + 1}`}
+                            alt={`Document ${index + 1}`}
                             fill
-                            className="object-contain"
+                            className="object-cover"
                             data-ai-hint="client document"
                         />
                     </a>
                   )
                 ))}
-              </div>
             </div>
           </div>
         )}
@@ -128,6 +156,7 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
   const { toast } = useToast();
 
   const handleDeleteClient = async (clientId: string) => {
+    if (!firestore) return;
     const clientDocRef = doc(firestore, 'clients', clientId);
     
     deleteDoc(clientDocRef).catch(serverError => {
@@ -161,11 +190,12 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       ),
-      cell: ({ row }) => <div className="font-medium">{row.getValue("nom")}</div>,
+      cell: ({ row }) => <div className="font-bold text-foreground">{row.getValue("nom")}</div>,
     },
     {
       accessorKey: "cin",
       header: "CIN",
+      cell: ({ row }) => <Badge variant="outline" className="font-mono">{row.getValue("cin")}</Badge>,
     },
     {
       accessorKey: "email",
@@ -173,11 +203,11 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
       cell: ({ row }) => {
         const email = row.getValue("email") as string;
         return email ? (
-            <a href={`mailto:${email}`} className="underline text-primary hover:text-primary/80 flex items-center gap-1">
+            <a href={`mailto:${email}`} className="text-primary hover:underline flex items-center gap-1.5 text-xs">
                 <Mail className="h-3 w-3" />
                 {email}
             </a>
-        ) : <span className="text-muted-foreground italic text-xs">N/A</span>;
+        ) : <span className="text-muted-foreground italic text-[10px]">N/A</span>;
       },
     },
     {
@@ -186,7 +216,8 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
       cell: ({ row }) => {
         const telephone = row.getValue("telephone") as string;
         return (
-            <a href={`tel:${telephone}`} className="underline text-primary hover:text-primary/80">
+            <a href={`tel:${telephone}`} className="hover:text-primary transition-colors flex items-center gap-1.5 font-medium">
+                <Phone className="h-3 w-3 opacity-50" />
                 {telephone}
             </a>
         );
@@ -198,14 +229,10 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
       cell: ({ row }) => {
         const adresse = row.getValue("adresse") as string;
         return (
-            <a 
-                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(adresse)}`} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="underline text-primary hover:text-primary/80 truncate block max-w-[200px]"
-            >
-                {adresse}
-            </a>
+            <div className="flex items-center gap-1.5 max-w-[200px]">
+                <MapPin className="h-3 w-3 opacity-50 shrink-0" />
+                <span className="truncate text-xs text-muted-foreground">{adresse}</span>
+            </div>
         );
       },
     },
@@ -223,25 +250,30 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 <DropdownMenuItem onClick={() => { setSelectedClient(client); setIsDetailsOpen(true); }}>
                   <User className="mr-2 h-4 w-4" />
-                  Voir les informations
+                  Voir la fiche complète
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => { setSelectedClient(client); setIsSheetOpen(true); }}>
+                  <FileText className="mr-2 h-4 w-4" />
                   Modifier
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
                  <AlertDialogTrigger asChild>
-                    <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">Supprimer</DropdownMenuItem>
+                    <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Supprimer le client
+                    </DropdownMenuItem>
                   </AlertDialogTrigger>
               </DropdownMenuContent>
             </DropdownMenu>
              <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
+                  <AlertDialogTitle>Supprimer ce client ?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Cette action est irréversible. Le client {client.nom} sera définitivement supprimé.
+                    Cette action est irréversible. Toutes les données du client {client.nom} seront perdues.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -283,7 +315,7 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
         <div className="w-full">
           <div className="flex items-center py-4 gap-2">
             <Input
-              placeholder="Filtrer par nom..."
+              placeholder="Rechercher par nom..."
               value={(table.getColumn("nom")?.getFilterValue() as string) ?? ""}
               onChange={(event) =>
                 table.getColumn("nom")?.setFilterValue(event.target.value)
@@ -293,7 +325,7 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="ml-auto">
-                  Colonnes <ChevronDown className="ml-2 h-4 w-4" />
+                  Affichage <ChevronDown className="ml-2 h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -318,11 +350,11 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
             </DropdownMenu>
             <SheetTrigger asChild>
               <Button className="bg-primary hover:bg-primary/90" onClick={() => setSelectedClient(null)}>
-                <PlusCircle className="mr-2 h-4 w-4" /> Ajouter un client
+                <PlusCircle className="mr-2 h-4 w-4" /> Ajouter client
               </Button>
             </SheetTrigger>
           </div>
-          <div className="rounded-md border bg-card">
+          <div className="rounded-md border bg-card shadow-sm">
             <Table>
               <TableHeader>
                 {table.getHeaderGroups().map((headerGroup) => (
@@ -348,6 +380,7 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
                     <TableRow
                       key={row.id}
                       data-state={row.getIsSelected() && "selected"}
+                      className="hover:bg-muted/30"
                     >
                       {row.getVisibleCells().map((cell) => (
                         <TableCell key={cell.id}>
@@ -365,7 +398,7 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
                       colSpan={columns.length}
                       className="h-24 text-center"
                     >
-                      Aucun résultat.
+                      Aucun client trouvé.
                     </TableCell>
                   </TableRow>
                 )}
@@ -391,9 +424,9 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
             </Button>
           </div>
         </div>
-        <SheetContent>
+        <SheetContent className="sm:max-w-[500px]">
           <SheetHeader>
-            <SheetTitle>{selectedClient ? "Modifier le client" : "Ajouter un nouveau client"}</SheetTitle>
+            <SheetTitle>{selectedClient ? "Modifier le client" : "Nouveau client"}</SheetTitle>
           </SheetHeader>
           <ScrollArea className="h-full pr-6">
               <ClientForm client={selectedClient} onFinished={() => setIsSheetOpen(false)} />
@@ -408,7 +441,7 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
         <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>Détails du client</DialogTitle>
-            {selectedClient && <DialogDescription>Informations complètes pour {selectedClient.nom}.</DialogDescription>}
+            {selectedClient && <DialogDescription>Fiche complète pour {selectedClient.nom}.</DialogDescription>}
           </DialogHeader>
           {selectedClient && <ClientDetails client={selectedClient} />}
         </DialogContent>

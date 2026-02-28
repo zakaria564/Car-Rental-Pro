@@ -24,7 +24,8 @@ import { FirestorePermissionError } from "@/firebase/errors";
 import { format } from "date-fns";
 import React from "react";
 import Image from "next/image";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, User, CreditCard, Mail, Phone, MapPin, FileText } from "lucide-react";
+import { Separator } from "../ui/separator";
 
 
 const clientFormSchema = z.object({
@@ -43,7 +44,7 @@ type ClientFormValues = z.infer<typeof clientFormSchema>;
 
 const getSafeDate = (date: any): Date | undefined => {
     if (!date) return undefined;
-    if (date.toDate) return date.toDate(); // Firestore Timestamp
+    if (date.toDate) return date.toDate();
     const parsed = new Date(date);
     return isNaN(parsed.getTime()) ? undefined : parsed;
 };
@@ -119,55 +120,143 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
     } catch (serverError: any) {
         console.error("Erreur de sauvegarde du client:", serverError);
         
-        if (serverError.code === 'permission-denied') {
-            const permissionError = new FirestorePermissionError({
-                path: `clients/${client?.id || 'new'}`,
-                operation: client ? 'update' : 'create',
-                requestResourceData: data
-            }, serverError as Error);
-            errorEmitter.emit('permission-error', permissionError);
-             toast({
-                variant: "destructive",
-                title: "Erreur de permission",
-                description: "Vous n'avez pas la permission d'enregistrer ce client.",
-            });
-        } else {
-            toast({
-                variant: "destructive",
-                title: "Erreur de sauvegarde",
-                description: "Impossible d'enregistrer les informations du client. " + (serverError.message || "Veuillez vérifier les données et votre connexion."),
-            });
-        }
+        const permissionError = new FirestorePermissionError({
+            path: `clients/${client?.id || 'new'}`,
+            operation: client ? 'update' : 'create',
+            requestResourceData: data
+        }, serverError as Error);
+        errorEmitter.emit('permission-error', permissionError);
+        
+        toast({
+            variant: "destructive",
+            title: "Erreur de sauvegarde",
+            description: "Impossible d'enregistrer les informations du client. Vérifiez vos permissions.",
+        });
     } finally {
         setIsSubmitting(false);
     }
   };
 
+  const watchPhotoCIN = form.watch("photoCIN");
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 mt-4">
-        <FormField
-          control={form.control}
-          name="nom"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Nom complet</FormLabel>
-              <FormControl>
-                <Input placeholder="Jean Dupont" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mt-4">
+        
+        {/* Section 1: Identité & Contact */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-primary font-semibold">
+            <User className="h-4 w-4" />
+            <span>Informations Personnelles</span>
+          </div>
+          
           <FormField
             control={form.control}
-            name="cin"
+            name="nom"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Carte d'identité nationale (CIN)</FormLabel>
+                <FormLabel>Nom complet</FormLabel>
                 <FormControl>
-                  <Input placeholder="AB123456" {...field} />
+                  <Input placeholder="Ex: Ahmed Alami" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="cin"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-1.5">
+                    <CreditCard className="h-3.5 w-3.5" /> CIN / Passeport
+                  </FormLabel>
+                  <FormControl>
+                    <Input placeholder="AB123456" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-1.5">
+                    <Mail className="h-3.5 w-3.5" /> Adresse E-mail
+                  </FormLabel>
+                  <FormControl>
+                    <Input placeholder="exemple@mail.com" type="email" {...field} value={field.value ?? ''} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Section 2: Permis de conduire */}
+        <div className="space-y-4 p-4 border rounded-lg bg-muted/20">
+          <div className="flex items-center gap-2 text-primary font-semibold">
+            <FileText className="h-4 w-4" />
+            <span>Permis de Conduire</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="permisNo"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>N° de Permis</FormLabel>
+                  <FormControl>
+                    <Input placeholder="12/345678" {...field} value={field.value ?? ''} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="permisDateDelivrance"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Délivré le</FormLabel>
+                  <FormControl>
+                    <Input
+                        type="date"
+                        value={field.value instanceof Date && !isNaN(field.value.getTime()) ? format(field.value, "yyyy-MM-dd") : ""}
+                        onChange={(e) => {
+                            const dateString = e.target.value;
+                            field.onChange(dateString ? new Date(`${dateString}T00:00:00`) : null);
+                        }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+
+        {/* Section 3: Contact & Adresse */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-primary font-semibold">
+            <Phone className="h-4 w-4" />
+            <span>Coordonnées</span>
+          </div>
+          <FormField
+            control={form.control}
+            name="telephone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Téléphone</FormLabel>
+                <FormControl>
+                  <Input placeholder="+212 6..." {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -175,114 +264,58 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
           />
           <FormField
             control={form.control}
-            name="email"
+            name="adresse"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Adresse E-mail</FormLabel>
+                <FormLabel className="flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5" /> Adresse de résidence
+                </FormLabel>
                 <FormControl>
-                  <Input placeholder="jean.dupont@exemple.com" type="email" {...field} value={field.value ?? ''} />
+                  <Textarea placeholder="Rue, Quartier, Ville..." {...field} className="min-h-[80px]" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
         </div>
-         <FormField
-          control={form.control}
-          name="permisNo"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Numéro de permis de conduire</FormLabel>
-              <FormControl>
-                <Input placeholder="CD789123" {...field} value={field.value ?? ''} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="permisDateDelivrance"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Date de délivrance du permis</FormLabel>
-              <FormControl>
-                 <Input
-                    type="date"
-                    value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd") : ""}
-                    onChange={(e) => {
-                        const dateString = e.target.value;
-                        if (!dateString) {
-                            field.onChange(null);
-                        } else {
-                            field.onChange(new Date(`${dateString}T00:00:00`));
-                        }
-                    }}
-                    />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="telephone"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Numéro de téléphone</FormLabel>
-              <FormControl>
-                <Input placeholder="+33 6 12 34 56 78" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-         <FormField
-          control={form.control}
-          name="adresse"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Adresse</FormLabel>
-              <FormControl>
-                <Textarea placeholder="123 Rue Principale, Anytown, France" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="photoCIN"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Photo de la CIN (URL)</FormLabel>
-              {field.value && field.value.startsWith('http') ? (
-                <div className="relative w-full aspect-[16/10] rounded-md overflow-hidden border bg-muted my-2">
-                    <Image 
-                        src={field.value} 
-                        alt={`CIN de ${form.getValues('nom')}`} 
-                        fill 
-                        className="object-contain"
-                        data-ai-hint="id card"
-                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                    />
-                </div>
-              ) : null}
-              <FormControl>
-                <Input type="text" placeholder="https://exemple.com/image.jpg" {...field} value={field.value ?? ''} />
-              </FormControl>
-              <FormDescription>
-                Collez l'URL de l'image de la carte d'identité.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
 
+        <Separator />
 
-        <FormItem>
-          <FormLabel>Autres Photos</FormLabel>
-          <div className="space-y-2">
+        {/* Section 4: Documents (Photos) */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-primary font-semibold">
+            <CreditCard className="h-4 w-4" />
+            <span>Pièces Justificatives</span>
+          </div>
+          
+          <FormField
+            control={form.control}
+            name="photoCIN"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Photo de la CIN (URL)</FormLabel>
+                <FormControl>
+                  <Input type="text" placeholder="https://..." {...field} value={field.value ?? ''} />
+                </FormControl>
+                {watchPhotoCIN && watchPhotoCIN.startsWith('http') && (
+                  <div className="relative w-full aspect-[16/10] rounded-md overflow-hidden border bg-muted my-2">
+                      <Image 
+                          src={watchPhotoCIN} 
+                          alt="Aperçu CIN" 
+                          fill 
+                          className="object-contain"
+                          data-ai-hint="id card"
+                      />
+                  </div>
+                )}
+                <FormDescription>Collez l'URL de l'image de la carte d'identité.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <div className="space-y-3">
+            <FormLabel>Autres documents (Permis, Passeport...)</FormLabel>
             {fields.map((item, index) => (
               <FormField
                 key={item.id}
@@ -290,20 +323,15 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
                 name={`otherPhotos.${index}.url`}
                 render={({ field }) => (
                   <FormItem>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-2">
                       <FormControl>
-                        <Input
-                          {...field}
-                          placeholder="https://exemple.com/photo.jpg"
-                          className="h-9"
-                        />
+                        <Input {...field} placeholder="URL de la photo" />
                       </FormControl>
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        title="Supprimer l'URL"
-                        className="h-9 w-9 shrink-0 text-destructive"
+                        className="text-destructive"
                         onClick={() => remove(index)}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -317,20 +345,18 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
             <Button
               type="button"
               variant="outline"
-              className="w-full"
+              size="sm"
+              className="w-full border-dashed"
               onClick={() => append({ url: '' })}
             >
               <Plus className="mr-2 h-4 w-4" />
-              Ajouter une URL de photo
+              Ajouter un autre document
             </Button>
           </div>
-          <FormDescription>
-            Ajoutez des URLs pour d'autres photos pertinentes (ex: permis, passeport).
-          </FormDescription>
-        </FormItem>
+        </div>
 
         <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isSubmitting}>
-          {isSubmitting ? 'Enregistrement...' : (client ? 'Mettre à jour le client' : 'Ajouter un client')}
+          {isSubmitting ? 'Enregistrement...' : (client ? 'Mettre à jour le client' : 'Ajouter le client')}
         </Button>
       </form>
     </Form>
