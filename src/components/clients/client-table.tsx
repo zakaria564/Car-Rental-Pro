@@ -13,7 +13,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { PlusCircle, ArrowUpDown, ChevronDown, MoreHorizontal, User, Trash2, Mail, Phone, MapPin, CreditCard, FileText, Copy, Check, ExternalLink } from "lucide-react";
+import { PlusCircle, ArrowUpDown, ChevronDown, MoreHorizontal, User, Trash2, Mail, Phone, MapPin, CreditCard, FileText, Copy, Check } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -49,7 +49,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import Image from "next/image";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { cn, getSafeDate } from "@/lib/utils";
+import { getSafeDate } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 
 // New component for client details
@@ -94,7 +94,10 @@ function ClientDetails({ client }: { client: Client }) {
                                 variant="ghost" 
                                 size="icon" 
                                 className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={() => copyToClipboard(client.email!)}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    copyToClipboard(client.email!);
+                                }}
                             >
                                 {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
                             </Button>
@@ -237,16 +240,16 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
       cell: ({ row }) => {
         const email = row.getValue("email") as string;
         return email ? (
-            <a 
-                href={`mailto:${email.trim()}`} 
-                className="text-primary hover:underline flex items-center gap-1.5 text-xs truncate max-w-[150px]"
-                onClick={(e) => {
-                    e.stopPropagation();
-                }}
-            >
-                <Mail className="h-3 w-3" />
-                {email}
-            </a>
+            <div className="flex items-center gap-1 group">
+                <a 
+                    href={`mailto:${email.trim()}`} 
+                    className="text-primary hover:underline flex items-center gap-1.5 text-xs truncate max-w-[150px]"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <Mail className="h-3 w-3" />
+                    {email}
+                </a>
+            </div>
         ) : <span className="text-muted-foreground italic text-[10px]">N/A</span>;
       },
     },
@@ -273,10 +276,16 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
       cell: ({ row }) => {
         const adresse = row.getValue("adresse") as string;
         return (
-            <div className="flex items-center gap-1.5 max-w-[200px]">
-                <MapPin className="h-3 w-3 opacity-50 shrink-0" />
-                <span className="truncate text-xs text-muted-foreground">{adresse}</span>
-            </div>
+            <a 
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(adresse)}`} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="flex items-center gap-1.5 max-w-[200px] hover:text-primary transition-colors group"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <MapPin className="h-3 w-3 opacity-50 shrink-0 group-hover:opacity-100" />
+                <span className="truncate text-xs text-muted-foreground group-hover:underline">{adresse}</span>
+            </a>
         );
       },
     },
