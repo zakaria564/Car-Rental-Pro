@@ -68,14 +68,6 @@ function ClientDetails({ client }: { client: Client }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleEmailClick = (e: React.MouseEvent) => {
-    // Si l'e-mail ne s'ouvre pas, on s'assure qu'il n'y a pas d'espaces
-    const cleanEmail = client.email?.trim();
-    if (cleanEmail) {
-        window.location.href = `mailto:${cleanEmail}`;
-    }
-  };
-
   return (
     <ScrollArea className="max-h-[75vh] pr-4">
       <div className="space-y-6 pt-4">
@@ -166,12 +158,12 @@ function ClientDetails({ client }: { client: Client }) {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {client.otherPhotos.map((photoUrl, index) => (
                   photoUrl && (
-                    <a key={index} href={photoUrl} target="_blank" rel="noopener noreferrer" className="relative block aspect-video rounded-md overflow-hidden border bg-muted hover:ring-2 hover:ring-primary transition-all">
+                    <a key={index} href={photoUrl} target="_blank" rel="noopener noreferrer" className="relative block aspect-[4/3] rounded-md overflow-hidden border bg-muted hover:ring-2 hover:ring-primary transition-all">
                         <Image
                             src={photoUrl}
                             alt={`Document ${index + 1}`}
                             fill
-                            className="object-cover"
+                            className="object-contain p-1"
                             data-ai-hint="client document"
                         />
                     </a>
@@ -249,7 +241,6 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
                 href={`mailto:${email.trim()}`} 
                 className="text-primary hover:underline flex items-center gap-1.5 text-xs truncate max-w-[150px]"
                 onClick={(e) => {
-                    // Empêche la propagation du clic pour ne pas ouvrir les détails de la ligne si on clique sur l'email
                     e.stopPropagation();
                 }}
             >
