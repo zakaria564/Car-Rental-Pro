@@ -20,8 +20,8 @@ export const Invoice: React.FC<InvoiceProps> = ({ rental, payments, totalAmount 
     if (!rental) return null;
     
     const today = new Date();
-    const safeDebutDate = rental.location.dateDebut?.toDate ? format(rental.location.dateDebut.toDate(), "dd/MM/yy", { locale: fr }) : 'N/A';
-    const safeFinDate = rental.location.dateFin?.toDate ? format(rental.location.dateFin.toDate(), "dd/MM/yy", { locale: fr }) : 'N/A';
+    const safeDebutDate = rental.location.dateDebut?.toDate ? format(rental.location.dateDebut.toDate(), "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A';
+    const safeFinDate = rental.location.dateFin?.toDate ? format(rental.location.dateFin.toDate(), "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A';
 
     const totalPaid = payments.reduce((acc, p) => acc + p.amount, 0);
     const balance = totalAmount - totalPaid;
@@ -78,7 +78,7 @@ export const Invoice: React.FC<InvoiceProps> = ({ rental, payments, totalAmount 
                     <Table>
                         <TableHeader>
                             <TableRow className="bg-gray-100" style={{printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact'}}>
-                                <TableHead>Date</TableHead>
+                                <TableHead>Date et Heure</TableHead>
                                 <TableHead>Méthode</TableHead>
                                 <TableHead className="text-right">Montant</TableHead>
                             </TableRow>
@@ -86,7 +86,7 @@ export const Invoice: React.FC<InvoiceProps> = ({ rental, payments, totalAmount 
                         <TableBody>
                             {payments.map(p => (
                                 <TableRow key={p.id}>
-                                    <TableCell>{p.paymentDate?.toDate ? format(p.paymentDate.toDate(), "dd/MM/yyyy", { locale: fr }) : 'N/A'}</TableCell>
+                                    <TableCell>{p.paymentDate?.toDate ? format(p.paymentDate.toDate(), "dd/MM/yyyy HH:mm", { locale: fr }) : 'N/A'}</TableCell>
                                     <TableCell>{p.paymentMethod}</TableCell>
                                     <TableCell className="text-right">{formatCurrency(p.amount, 'MAD')}</TableCell>
                                 </TableRow>

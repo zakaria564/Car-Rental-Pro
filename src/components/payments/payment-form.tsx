@@ -29,7 +29,7 @@ import { ScrollArea } from "../ui/scroll-area";
 const paymentFormSchema = z.object({
   rentalId: z.string().min(1, "Veuillez sélectionner un contrat de location."),
   amount: z.coerce.number().positive("Le montant doit être un nombre positif."),
-  paymentDate: z.coerce.date({ required_error: "La date de paiement est requise." }),
+  paymentDate: z.coerce.date({ required_error: "La date et l'heure de paiement sont requises." }),
   paymentMethod: z.enum(["Especes", "Carte bancaire", "Virement", "Avance"], { required_error: "La méthode de paiement est requise." }),
 });
 
@@ -288,17 +288,17 @@ export default function PaymentForm({ payment, rentals, onFinished, preselectedR
               name="paymentDate"
               render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Date du paiement</FormLabel>
+                    <FormLabel>Date et Heure du paiement</FormLabel>
                     <FormControl>
                       <Input
-                        type="date"
-                        value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd") : ""}
+                        type="datetime-local"
+                        value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd'T'HH:mm") : ""}
                         onChange={(e) => {
                             const dateString = e.target.value;
                             if (!dateString) {
                                 field.onChange(null);
                             } else {
-                                field.onChange(new Date(`${dateString}T00:00:00`));
+                                field.onChange(new Date(dateString));
                             }
                         }}
                       />

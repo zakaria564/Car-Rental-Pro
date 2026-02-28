@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -97,7 +98,7 @@ const StatementDialog = ({ rental, payments, onPrintClick }: {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Date</TableHead>
+              <TableHead>Date et Heure</TableHead>
               <TableHead>Méthode</TableHead>
               <TableHead className="text-right">Montant</TableHead>
             </TableRow>
@@ -105,7 +106,7 @@ const StatementDialog = ({ rental, payments, onPrintClick }: {
           <TableBody>
             {payments.length > 0 ? payments.map(p => (
               <TableRow key={p.id}>
-                <TableCell>{p.paymentDate?.toDate ? format(p.paymentDate.toDate(), "dd/MM/yyyy", { locale: fr }) : 'N/A'}</TableCell>
+                <TableCell>{p.paymentDate?.toDate ? format(p.paymentDate.toDate(), "dd/MM/yyyy HH:mm", { locale: fr }) : 'N/A'}</TableCell>
                 <TableCell>{p.paymentMethod}</TableCell>
                 <TableCell className="text-right">{formatCurrency(p.amount, 'MAD')}</TableCell>
               </TableRow>

@@ -84,7 +84,7 @@ const RentalStatementDialog = ({ rental, payments, onDeletePaymentClick, onPrint
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Date</TableHead>
+              <TableHead>Date et Heure</TableHead>
               <TableHead>Méthode</TableHead>
               <TableHead className="text-right">Montant</TableHead>
               <TableHead><span className="sr-only">Actions</span></TableHead>
@@ -93,7 +93,7 @@ const RentalStatementDialog = ({ rental, payments, onDeletePaymentClick, onPrint
           <TableBody>
             {payments.length > 0 ? payments.map(p => (
               <TableRow key={p.id}>
-                <TableCell>{p.paymentDate?.toDate ? format(p.paymentDate.toDate(), "dd/MM/yyyy", { locale: fr }) : 'N/A'}</TableCell>
+                <TableCell>{p.paymentDate?.toDate ? format(p.paymentDate.toDate(), "dd/MM/yyyy HH:mm", { locale: fr }) : 'N/A'}</TableCell>
                 <TableCell>{p.paymentMethod}</TableCell>
                 <TableCell className="text-right">{formatCurrency(p.amount, 'MAD')}</TableCell>
                 <TableCell className="text-right">
@@ -682,7 +682,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
                     <AlertDialogHeader>
                         <AlertDialogTitle>Supprimer ce paiement ?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Cette action est irréversible. Le paiement de ${formatCurrency(paymentToDelete.amount, 'MAD')} du ${paymentToDelete.paymentDate?.toDate ? format(paymentToDelete.paymentDate.toDate(), "dd/MM/yyyy") : ''} sera supprimé.
+                            Cette action est irréversible. Le paiement de ${formatCurrency(paymentToDelete.amount, 'MAD')} du ${paymentToDelete.paymentDate?.toDate ? format(paymentToDelete.paymentDate.toDate(), "dd/MM/yyyy à HH:mm") : ''} sera supprimé.
                             Le montant sera déduit du total payé pour le contrat.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
