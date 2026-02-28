@@ -298,12 +298,12 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
           <AlertDialog>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0">
+                <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
                   <span className="sr-only">Ouvrir le menu</span>
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuContent align="end" className="w-48" onClick={(e) => e.stopPropagation()}>
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 <DropdownMenuItem onClick={() => { setSelectedClient(client); setIsDetailsOpen(true); }}>
                   <User className="mr-2 h-4 w-4" />
@@ -322,7 +322,7 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
                   </AlertDialogTrigger>
               </DropdownMenuContent>
             </DropdownMenu>
-             <AlertDialogContent>
+             <AlertDialogContent onClick={(e) => e.stopPropagation()}>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Supprimer ce client ?</AlertDialogTitle>
                   <AlertDialogDescription>
@@ -440,7 +440,14 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
                       }}
                     >
                       {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id}>
+                        <TableCell 
+                          key={cell.id}
+                          onClick={(e) => {
+                            if (cell.column.id === 'actions') {
+                              e.stopPropagation();
+                            }
+                          }}
+                        >
                           {flexRender(
                             cell.column.columnDef.cell,
                             cell.getContext()
