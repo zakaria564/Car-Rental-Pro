@@ -13,7 +13,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { PlusCircle, ArrowUpDown, ChevronDown, MoreHorizontal, User, Trash2, Mail, Phone, MapPin, CreditCard, FileText } from "lucide-react";
+import { PlusCircle, ArrowUpDown, ChevronDown, MoreHorizontal, User, Trash2, Mail, Phone, MapPin, CreditCard, FileText, Copy, Check, ExternalLink } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -50,11 +50,31 @@ import Image from "next/image";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn, getSafeDate } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 
 // New component for client details
 function ClientDetails({ client }: { client: Client }) {
+  const { toast } = useToast();
+  const [copied, setCopied] = React.useState(false);
   const safePermisDate = getSafeDate(client.permisDateDelivrance);
   const formattedPermisDate = safePermisDate ? format(safePermisDate, "dd/MM/yyyy", { locale: fr }) : 'N/A';
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    toast({
+      description: "Adresse e-mail copiée !",
+    });
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleEmailClick = (e: React.MouseEvent) => {
+    // Si l'e-mail ne s'ouvre pas, on s'assure qu'il n'y a pas d'espaces
+    const cleanEmail = client.email?.trim();
+    if (cleanEmail) {
+        window.location.href = `mailto:${cleanEmail}`;
+    }
+  };
 
   return (
     <ScrollArea className="max-h-[75vh] pr-4">
@@ -66,16 +86,37 @@ function ClientDetails({ client }: { client: Client }) {
               <p className="text-lg font-bold">{client.nom}</p>
               <p className="flex items-center gap-2"><CreditCard className="h-4 w-4 text-primary" /> {client.cin}</p>
               {client.email && (
-                <p className="flex items-center gap-2">
+                <div className="flex items-center gap-2 group">
                   <Mail className="h-4 w-4 text-primary" />
-                  <a href={`mailto:${client.email}`} className="underline hover:text-primary transition-colors">{client.email}</a>
-                </p>
+                  <a 
+                    href={`mailto:${client.email.trim()}`} 
+                    className="underline hover:text-primary transition-colors truncate max-w-[200px]"
+                    title="Ouvrir dans votre messagerie"
+                  >
+                    {client.email}
+                  </a>
+                  <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => copyToClipboard(client.email!)}
+                            >
+                                {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent><p>Copier l'e-mail</p></TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
               )}
             </div>
 
             <div className="space-y-1">
               <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Contact & Adresse</h4>
-              <p className="flex items-center gap-2"><Phone className="h-4 w-4 text-primary" /> <a href={`tel:${client.telephone}`} className="underline hover:text-primary">{client.telephone}</a></p>
+              <p className="flex items-center gap-2"><Phone className="h-4 w-4 text-primary" /> <a href={`tel:${client.telephone.replace(/\s/g, '')}`} className="underline hover:text-primary">{client.telephone}</a></p>
               <p className="flex items-start gap-2">
                 <MapPin className="h-4 w-4 text-primary mt-1 shrink-0" />
                 <a 
@@ -204,7 +245,14 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
       cell: ({ row }) => {
         const email = row.getValue("email") as string;
         return email ? (
-            <a href={`mailto:${email}`} className="text-primary hover:underline flex items-center gap-1.5 text-xs">
+            <a 
+                href={`mailto:${email.trim()}`} 
+                className="text-primary hover:underline flex items-center gap-1.5 text-xs truncate max-w-[150px]"
+                onClick={(e) => {
+                    // Empêche la propagation du clic pour ne pas ouvrir les détails de la ligne si on clique sur l'email
+                    e.stopPropagation();
+                }}
+            >
                 <Mail className="h-3 w-3" />
                 {email}
             </a>
@@ -217,7 +265,11 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
       cell: ({ row }) => {
         const telephone = row.getValue("telephone") as string;
         return (
-            <a href={`tel:${telephone}`} className="hover:text-primary transition-colors flex items-center gap-1.5 font-medium">
+            <a 
+                href={`tel:${telephone.replace(/\s/g, '')}`} 
+                className="hover:text-primary transition-colors flex items-center gap-1.5 font-medium"
+                onClick={(e) => e.stopPropagation()}
+            >
                 <Phone className="h-3 w-3 opacity-50" />
                 {telephone}
             </a>
@@ -381,7 +433,11 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
                     <TableRow
                       key={row.id}
                       data-state={row.getIsSelected() && "selected"}
-                      className="hover:bg-muted/30"
+                      className="hover:bg-muted/30 cursor-pointer"
+                      onClick={() => {
+                        setSelectedClient(row.original);
+                        setIsDetailsOpen(true);
+                      }}
                     >
                       {row.getVisibleCells().map((cell) => (
                         <TableCell key={cell.id}>
