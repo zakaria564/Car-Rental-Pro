@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -15,7 +16,7 @@ import {
   getGroupedRowModel,
   getExpandedRowModel,
 } from "@tanstack/react-table";
-import { ArrowUpDown, MoreHorizontal, Printer, FileText, DollarSign, History, Trash2, ChevronRight, ChevronDown } from "lucide-react";
+import { ArrowUpDown, MoreHorizontal, Printer, FileText, DollarSign, History, Trash2, ChevronRight, ChevronDown, AlertCircle } from "lucide-react";
 import { format, differenceInCalendarDays, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -320,25 +321,43 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
       ),
       cell: ({ row, getValue }) => {
         if (row.getIsGrouped()) {
+            const subRows = row.subRows;
+            const totalRemaining = subRows.reduce((acc, subRow) => {
+                const rental = subRow.original;
+                const total = calculateTotal(rental);
+                const paid = rental.location.montantPaye || 0;
+                return acc + Math.max(0, total - paid);
+            }, 0);
+
             return (
                 <Button
                     variant="ghost"
                     onClick={() => row.toggleExpanded()}
-                    className="w-full text-left justify-start pl-2 hover:bg-muted/50"
+                    className="w-full text-left justify-start pl-2 hover:bg-muted/50 group"
                 >
-                    <span className="flex items-center gap-2 font-semibold">
+                    <span className="flex items-center gap-2 font-bold text-base">
                         {row.getIsExpanded() ? (
-                            <ChevronDown className="h-4 w-4" />
+                            <ChevronDown className="h-5 w-5" />
                         ) : (
-                            <ChevronRight className="h-4 w-4" />
+                            <ChevronRight className="h-5 w-5" />
                         )}
-                        {getValue() as string} ({row.subRows.length})
+                        {getValue() as string}
+                        <Badge variant="outline" className="ml-2 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                            {row.subRows.length} contrat(s)
+                        </Badge>
+                        {totalRemaining > 0.01 && (
+                            <Badge variant="destructive" className="ml-2 animate-pulse bg-red-600 border-red-700 shadow-sm">
+                                <AlertCircle className="mr-1 h-3 w-3" />
+                                Reste: {formatCurrency(totalRemaining, 'MAD')}
+                            </Badge>
+                        )}
                     </span>
                 </Button>
             );
         }
         return (
-          <div className="pl-8 text-muted-foreground italic text-xs">
+          <div className="pl-10 text-muted-foreground italic text-xs flex items-center gap-2">
+            <span className="w-1 h-1 rounded-full bg-muted-foreground opacity-50" />
             {getValue() as string}
           </div>
         );
@@ -347,17 +366,17 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
     {
       accessorKey: "contractNumber",
       header: "Contrat N°",
-      cell: ({ row }) => row.getIsGrouped() ? null : <span className="font-mono">{row.original.contractNumber}</span>,
+      cell: ({ row }) => row.getIsGrouped() ? null : <span className="font-mono font-medium">{row.original.contractNumber}</span>,
     },
     {
         accessorKey: "vehicule.marque",
         header: "Voiture",
-        cell: ({ row }) => row.getIsGrouped() ? null : row.original.vehicule.marque,
+        cell: ({ row }) => row.getIsGrouped() ? null : <span className="text-sm">{row.original.vehicule.marque}</span>,
     },
     {
         accessorKey: "vehicule.immatriculation",
         header: "Immatriculation",
-        cell: ({ row }) => row.getIsGrouped() ? null : row.original.vehicule.immatriculation,
+        cell: ({ row }) => row.getIsGrouped() ? null : <Badge variant="secondary" className="font-mono text-[10px]">{row.original.vehicule.immatriculation}</Badge>,
     },
     {
       id: "montantTotal",
@@ -425,9 +444,10 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
           
           return (
             <Badge variant={variant} className={cn(
+              "font-bold",
               status === 'Payé' && "bg-green-100 text-green-800 border-green-300",
               status === 'Paiement Partiel' && "bg-orange-100 text-orange-800 border-orange-300",
-              status === 'Non Payé' && "bg-red-100 text-red-800 border-red-300"
+              status === 'Non Payé' && "bg-red-600 text-white border-red-700 animate-pulse"
             )}>
               {status}
             </Badge>
@@ -454,9 +474,9 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 {reste > 0.01 && 
-                  <DropdownMenuItem onClick={() => onAddPaymentForRental(rental.id)}>
+                  <DropdownMenuItem onClick={() => onAddPaymentForRental(rental.id)} className="bg-primary/5 text-primary focus:bg-primary focus:text-primary-foreground">
                     <DollarSign className="mr-2 h-4 w-4" />
-                    <span>Encaisser un paiement</span>
+                    <span className="font-semibold">Encaisser un paiement</span>
                   </DropdownMenuItem>
                 }
                 <DropdownMenuItem onClick={() => openStatement(rental)}>
@@ -523,14 +543,14 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
                   className="max-w-sm"
                 />
             </div>
-            <div className="rounded-md border bg-card">
+            <div className="rounded-md border bg-card shadow-sm">
             <Table>
                 <TableHeader>
                 {table.getHeaderGroups().map((headerGroup) => (
-                    <TableRow key={headerGroup.id}>
+                    <TableRow key={headerGroup.id} className="hover:bg-transparent">
                     {headerGroup.headers.map((header) => {
                         return (
-                        <TableHead key={header.id}>
+                        <TableHead key={header.id} className="font-bold text-foreground">
                             {header.isPlaceholder
                             ? null
                             : flexRender(
@@ -549,7 +569,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
                     <TableRow
                         key={row.id}
                         data-state={row.getIsSelected() && "selected"}
-                        className={cn(row.getIsGrouped() ? "bg-muted/30" : "hover:bg-muted/20")}
+                        className={cn(row.getIsGrouped() ? "bg-muted/40 border-l-4 border-l-primary" : "hover:bg-muted/20")}
                     >
                         {row.getVisibleCells().map((cell) => (
                         <TableCell key={cell.id}>
