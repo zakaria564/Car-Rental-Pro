@@ -13,7 +13,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { PlusCircle, ArrowUpDown, ChevronDown, MoreHorizontal, User, Trash2 } from "lucide-react";
+import { PlusCircle, ArrowUpDown, ChevronDown, MoreHorizontal, User, Trash2, Mail } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -61,6 +61,7 @@ function ClientDetails({ client }: { client: Client }) {
           <div className="space-y-1 text-sm">
             <p><strong>Nom:</strong> {client.nom}</p>
             <p><strong>CIN:</strong> {client.cin}</p>
+            {client.email && <p><strong>E-mail:</strong> <a href={`mailto:${client.email}`} className="underline text-primary hover:text-primary/80">{client.email}</a></p>}
             <p><strong>Téléphone:</strong> <a href={`tel:${client.telephone}`} className="underline text-primary hover:text-primary/80">{client.telephone}</a></p>
             <p><strong>Adresse:</strong> <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(client.adresse)}`} target="_blank" rel="noopener noreferrer" className="underline text-primary hover:text-primary/80">{client.adresse}</a></p>
             <p><strong>N° Permis:</strong> {client.permisNo || 'N/A'}</p>
@@ -118,7 +119,7 @@ function ClientDetails({ client }: { client: Client }) {
 export default function ClientTable({ clients }: { clients: Client[] }) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({ email: false });
   const [rowSelection, setRowSelection] = React.useState({});
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = React.useState(false);
@@ -165,6 +166,19 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
     {
       accessorKey: "cin",
       header: "CIN",
+    },
+    {
+      accessorKey: "email",
+      header: "E-mail",
+      cell: ({ row }) => {
+        const email = row.getValue("email") as string;
+        return email ? (
+            <a href={`mailto:${email}`} className="underline text-primary hover:text-primary/80 flex items-center gap-1">
+                <Mail className="h-3 w-3" />
+                {email}
+            </a>
+        ) : <span className="text-muted-foreground italic text-xs">N/A</span>;
+      },
     },
     {
       accessorKey: "telephone",

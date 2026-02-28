@@ -30,6 +30,7 @@ import { Plus, Trash2 } from "lucide-react";
 const clientFormSchema = z.object({
   nom: z.string().min(2, "Le nom doit comporter au moins 2 caractères."),
   cin: z.string().min(5, "La CIN semble trop courte."),
+  email: z.string().email("Veuillez entrer une adresse e-mail valide.").or(z.literal('')).optional(),
   permisNo: z.string().min(5, "Le numéro de permis semble trop court.").optional().nullable(),
   permisDateDelivrance: z.coerce.date().optional().nullable(),
   telephone: z.string().min(10, "Le numéro de téléphone semble incorrect."),
@@ -57,9 +58,11 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
     permisDateDelivrance: getSafeDate(client.permisDateDelivrance),
     photoCIN: client.photoCIN || "",
     otherPhotos: client.otherPhotos ? client.otherPhotos.map(url => ({ url })) : [],
+    email: client.email || "",
   } : {
     nom: "",
     cin: "",
+    email: "",
     permisNo: "",
     permisDateDelivrance: null,
     telephone: "",
@@ -103,6 +106,7 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
           photoCIN: data.photoCIN || '',
           permisDateDelivrance: data.permisDateDelivrance ?? null,
           permisNo: data.permisNo ?? null,
+          email: data.email || null,
         };
 
         await setDoc(clientRef, clientPayload, { merge: !isNewClient });
@@ -155,19 +159,34 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="cin"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Carte d'identité nationale (CIN)</FormLabel>
-              <FormControl>
-                <Input placeholder="AB123456" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="cin"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Carte d'identité nationale (CIN)</FormLabel>
+                <FormControl>
+                  <Input placeholder="AB123456" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Adresse E-mail</FormLabel>
+                <FormControl>
+                  <Input placeholder="jean.dupont@exemple.com" type="email" {...field} value={field.value ?? ''} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
          <FormField
           control={form.control}
           name="permisNo"

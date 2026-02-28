@@ -47,6 +47,7 @@ export type Client = {
   id: string;
   nom: string;
   cin: string;
+  email?: string;
   telephone: string;
   adresse: string;
   photoCIN: string;
@@ -148,9 +149,9 @@ export type Rental = {
     roueSecours?: boolean;
     posteRadio?: boolean;
     lavage?: boolean;
-    cric: boolean;
-    giletTriangle: boolean;
-    doubleCles: boolean;
+    cric?: boolean;
+    giletTriangle?: boolean;
+    doubleCles?: boolean;
     dommages?: { [key: string]: DamageType };
     dommagesNotes?: string;
     photos?: string[];
