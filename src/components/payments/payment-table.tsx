@@ -16,7 +16,7 @@ import {
   getGroupedRowModel,
   getExpandedRowModel,
 } from "@tanstack/react-table";
-import { ArrowUpDown, MoreHorizontal, Printer, FileText, DollarSign, History, Trash2, ChevronRight, ChevronDown, AlertCircle } from "lucide-react";
+import { ArrowUpDown, MoreHorizontal, Printer, FileText, DollarSign, Trash2, ChevronRight, ChevronDown, AlertCircle } from "lucide-react";
 import { format, differenceInCalendarDays, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -37,10 +37,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "../ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Invoice } from "./invoice";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { useFirebase } from "@/firebase";
-import { doc, runTransaction, query, where, getDocs, collection, getDoc } from "firebase/firestore";
+import { doc, runTransaction, query, where, getDocs, collection } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 
@@ -212,7 +211,6 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
     
             transaction.delete(rentalRef);
     
-            // Safely update car status
             const carRef = doc(firestore, 'cars', rental.vehicule.carId);
             const carDoc = await transaction.get(carRef);
             if (carDoc.exists()) {
@@ -263,12 +261,12 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
         print-color-adjust: exact !important;
        }
       * {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
+        -webkit-print-color-adjust: exact !important; 
+        print-color-adjust: exact !important; 
       }
       img, svg {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
+        -webkit-print-color-adjust: exact !important; 
+        print-color-adjust: exact !important; 
       }
       .no-print { display: none !important; }
        @page {
@@ -321,14 +319,6 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
       ),
       cell: ({ row, getValue }) => {
         if (row.getIsGrouped()) {
-            const subRows = row.subRows;
-            const totalRemaining = subRows.reduce((acc, subRow) => {
-                const rental = subRow.original;
-                const total = calculateTotal(rental);
-                const paid = rental.location.montantPaye || 0;
-                return acc + Math.max(0, total - paid);
-            }, 0);
-
             return (
                 <Button
                     variant="ghost"
@@ -345,12 +335,6 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
                         <Badge variant="outline" className="ml-2 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                             {row.subRows.length} contrat(s)
                         </Badge>
-                        {totalRemaining > 0.01 && (
-                            <Badge variant="destructive" className="ml-2 animate-pulse bg-red-600 border-red-700 shadow-sm">
-                                <AlertCircle className="mr-1 h-3 w-3" />
-                                Reste: {formatCurrency(totalRemaining, 'MAD')}
-                            </Badge>
-                        )}
                     </span>
                 </Button>
             );
@@ -400,11 +384,14 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
       id: "montantTotal",
       header: () => <div className="text-right">Montant Total</div>,
       cell: ({ row }) => {
-        const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
-        if (!rental) return null;
-        const total = calculateTotal(rental);
+        let total = 0;
+        if (row.getIsGrouped()) {
+            total = row.subRows.reduce((acc, subRow) => acc + calculateTotal(subRow.original), 0);
+        } else {
+            total = calculateTotal(row.original);
+        }
         return (
-            <div className={cn("text-right font-medium", row.getIsGrouped() && "text-muted-foreground text-xs")}>
+            <div className={cn("text-right font-medium", row.getIsGrouped() && "text-foreground/80")}>
             {formatCurrency(total || 0, 'MAD')}
             </div>
         );
@@ -414,11 +401,15 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
       accessorKey: "location.montantPaye",
       header: () => <div className="text-right">Montant Payé</div>,
       cell: ({ row }) => {
-        const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
-        if (!rental) return null;
+        let paid = 0;
+        if (row.getIsGrouped()) {
+            paid = row.subRows.reduce((acc, subRow) => acc + (subRow.original.location.montantPaye || 0), 0);
+        } else {
+            paid = row.original.location.montantPaye || 0;
+        }
         return (
-          <div className={cn("text-right font-medium text-green-600", row.getIsGrouped() && "text-xs opacity-70")}>
-            {formatCurrency(rental.location.montantPaye || 0, 'MAD')}
+          <div className={cn("text-right font-medium text-green-600", row.getIsGrouped() && "opacity-80")}>
+            {formatCurrency(paid || 0, 'MAD')}
           </div>
         )
       },
@@ -427,12 +418,17 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
       id: 'resteAPayer',
       header: () => <div className="text-right">Reste à Payer</div>,
       cell: ({ row }) => {
-        const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
-        if (!rental) return null;
-        const total = calculateTotal(rental);
-        const reste = (total || 0) - (rental.location.montantPaye || 0);
+        let reste = 0;
+        if (row.getIsGrouped()) {
+            const total = row.subRows.reduce((acc, subRow) => acc + calculateTotal(subRow.original), 0);
+            const paid = row.subRows.reduce((acc, subRow) => acc + (subRow.original.location.montantPaye || 0), 0);
+            reste = total - paid;
+        } else {
+            reste = calculateTotal(row.original) - (row.original.location.montantPaye || 0);
+        }
+        
         return (
-            <div className={cn("text-right font-bold", reste > 0.01 ? "text-destructive" : "text-muted-foreground", row.getIsGrouped() && "text-xs")}>
+            <div className={cn("text-right font-bold", reste > 0.01 ? "text-destructive" : "text-muted-foreground")}>
                 {formatCurrency(reste, 'MAD')}
             </div>
         )
@@ -442,11 +438,16 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
         id: 'paymentStatus',
         header: "Statut Paiement",
         cell: ({ row }) => {
-          const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
-          if (!rental) return null;
+          let total = 0;
+          let paye = 0;
           
-          const total = calculateTotal(rental);
-          const paye = rental.location.montantPaye || 0;
+          if (row.getIsGrouped()) {
+              total = row.subRows.reduce((acc, subRow) => acc + calculateTotal(subRow.original), 0);
+              paye = row.subRows.reduce((acc, subRow) => acc + (subRow.original.location.montantPaye || 0), 0);
+          } else {
+              total = calculateTotal(row.original);
+              paye = row.original.location.montantPaye || 0;
+          }
 
           if (!total || total === 0) {
             return <Badge variant="outline">N/A</Badge>
@@ -471,7 +472,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
               status === 'Payé' && "bg-green-100 text-green-800 border-green-300",
               status === 'Paiement Partiel' && "bg-orange-100 text-orange-800 border-orange-300",
               status === 'Non Payé' && "bg-red-600 text-white border-red-700",
-              row.getIsGrouped() && "scale-75 origin-right opacity-80"
+              row.getIsGrouped() && "scale-90"
             )}>
               {status}
             </Badge>
@@ -589,22 +590,35 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
                 </TableHeader>
                 <TableBody>
                 {table.getRowModel().rows?.length ? (
-                    table.getRowModel().rows.map((row) => (
-                    <TableRow
-                        key={row.id}
-                        data-state={row.getIsSelected() && "selected"}
-                        className={cn(row.getIsGrouped() ? "bg-muted/40 border-l-4 border-l-primary" : "hover:bg-muted/20")}
-                    >
-                        {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id}>
-                            {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                            )}
-                        </TableCell>
-                        ))}
-                    </TableRow>
-                    ))
+                    table.getRowModel().rows.map((row) => {
+                        // Logic to detect if a group row has unpaid amounts
+                        let hasUnpaid = false;
+                        if (row.getIsGrouped()) {
+                            const total = row.subRows.reduce((acc, subRow) => acc + calculateTotal(subRow.original), 0);
+                            const paid = row.subRows.reduce((acc, subRow) => acc + (subRow.original.location.montantPaye || 0), 0);
+                            hasUnpaid = (total - paid) > 0.01;
+                        }
+
+                        return (
+                            <TableRow
+                                key={row.id}
+                                data-state={row.getIsSelected() && "selected"}
+                                className={cn(
+                                    row.getIsGrouped() ? "bg-muted/40" : "hover:bg-muted/20",
+                                    hasUnpaid && row.getIsGrouped() && "border-l-4 border-l-red-600 bg-red-50/30"
+                                )}
+                            >
+                                {row.getVisibleCells().map((cell) => (
+                                <TableCell key={cell.id}>
+                                    {flexRender(
+                                    cell.column.columnDef.cell,
+                                    cell.getContext()
+                                    )}
+                                </TableCell>
+                                ))}
+                            </TableRow>
+                        )
+                    })
                 ) : (
                     <TableRow>
                     <TableCell
@@ -644,7 +658,6 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
         }}>
           {statementRental && (
              <>
-                {/* This is the hidden printable component */}
                 <div className="hidden">
                     <Invoice 
                         rental={statementRental} 
@@ -653,7 +666,6 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
                     />
                 </div>
 
-                {/* This is the visible dialog */}
                 <RentalStatementDialog 
                     rental={statementRental} 
                     payments={payments.filter(p => p.rentalId === statementRental.id)}
