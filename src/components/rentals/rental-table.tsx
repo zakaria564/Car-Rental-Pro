@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -16,7 +17,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { PlusCircle, MoreHorizontal, Printer, Pencil, CheckCircle, FileText, DollarSign } from "lucide-react";
-import { format, differenceInCalendarDays, startOfDay } from "date-fns";
+import { format, differenceInCalendarDays, startOfDay, isToday } from "date-fns";
 import { fr } from "date-fns/locale";
 
 import { Button } from "@/components/ui/button";
@@ -275,7 +276,24 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
           header: "Date de retour",
           cell: ({ row }) => {
             const date = getSafeDate(row.original.location.dateFin);
-            return date ? format(date, "dd/MM/yyyy", { locale: fr }) : "Date invalide";
+            if (!date) return "Date invalide";
+            
+            const isReturnToday = isToday(date);
+            const isOverdue = startOfDay(date).getTime() < startOfDay(new Date()).getTime() && row.original.statut === 'en_cours';
+
+            return (
+              <div className="flex items-center gap-2">
+                <span className={cn(isOverdue && "text-red-600 font-bold")}>
+                    {format(date, "dd/MM/yyyy", { locale: fr })}
+                </span>
+                {(isReturnToday || isOverdue) && row.original.statut === 'en_cours' && (
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                  </span>
+                )}
+              </div>
+            );
           },
         },
         {
@@ -347,7 +365,28 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       header: "Date de retour",
       cell: ({ row }) => {
           const date = getSafeDate(row.original.location.dateFin);
-          return date ? format(date, "dd/MM/yyyy", { locale: fr }) : "Date invalide";
+          if (!date) return "Date invalide";
+          
+          const isReturnToday = isToday(date);
+          const isOverdue = startOfDay(date).getTime() < startOfDay(new Date()).getTime() && row.original.statut === 'en_cours';
+
+          return (
+              <div className="flex flex-col gap-1">
+                  <span className={cn(isOverdue && "text-destructive font-bold")}>
+                    {format(date, "dd/MM/yyyy", { locale: fr })}
+                  </span>
+                  {isReturnToday && row.original.statut === 'en_cours' && (
+                      <Badge className="bg-red-600 hover:bg-red-700 text-white animate-pulse text-[10px] h-5 py-0 px-1.5 w-fit">
+                          RETOUR AUJOURD'HUI
+                      </Badge>
+                  )}
+                  {isOverdue && (
+                      <Badge variant="destructive" className="text-[10px] h-5 py-0 px-1.5 w-fit">
+                          EN RETARD
+                      </Badge>
+                  )}
+              </div>
+          );
       }
     },
     {

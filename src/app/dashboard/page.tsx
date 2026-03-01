@@ -1,6 +1,6 @@
 
 'use client';
-import { Car, KeyRound, TriangleAlert, Wrench } from "lucide-react";
+import { Car, KeyRound, TriangleAlert, Wrench, Clock } from "lucide-react";
 import { StatCard } from "@/components/stat-card";
 import RentalTable from "@/components/rentals/rental-table";
 import { DashboardHeader } from "@/components/dashboard-header";
@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { differenceInDays, format } from 'date-fns';
+import { differenceInDays, format, startOfDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Link from "next/link";
 import { cn, getSafeDate } from "@/lib/utils";
@@ -57,7 +57,17 @@ export default function DashboardPage() {
   const activeRentalsList = React.useMemo(() => 
     rentals.filter(r => r.statut === 'en_cours')
   , [rentals]);
+  
   const availableCars = cars.filter(c => c.disponibilite === 'disponible').length;
+  
+  const returnsToday = React.useMemo(() => {
+    const today = startOfDay(new Date()).getTime();
+    return rentals.filter(r => {
+        if (r.statut !== 'en_cours') return false;
+        const endDate = getSafeDate(r.location.dateFin);
+        return endDate && startOfDay(endDate).getTime() === today;
+    }).length;
+  }, [rentals]);
   
   const expiringDocuments = React.useMemo(() => {
     const today = new Date();
@@ -66,7 +76,7 @@ export default function DashboardPage() {
     cars.forEach(car => {
         const assuranceDate = getSafeDate(car.dateExpirationAssurance);
         if (assuranceDate) {
-            const daysDiff = differenceInDays(assuranceDate, today);
+            const daysDiff = differenceInCalendarDays(assuranceDate, today);
             if (daysDiff < 0) {
                 alerts.push({ car, documentName: 'Assurance', expiryDate: assuranceDate, status: 'Expiré' });
             } else if (daysDiff <= 7) {
@@ -76,7 +86,7 @@ export default function DashboardPage() {
 
         const visiteDate = getSafeDate(car.dateProchaineVisiteTechnique);
         if (visiteDate) {
-            const daysDiff = differenceInDays(visiteDate, today);
+            const daysDiff = differenceInCalendarDays(visiteDate, today);
             if (daysDiff < 0) {
                 alerts.push({ car, documentName: 'Visite Technique', expiryDate: visiteDate, status: 'Expiré' });
             } else if (daysDiff <= 7) {
@@ -113,7 +123,6 @@ export default function DashboardPage() {
 
     });
 
-    // Sort alerts by status and then by value/date
     return alerts.sort((a, b) => {
         if (a.status === 'À faire' && b.status !== 'À faire') return -1;
         if (a.status !== 'À faire' && b.status === 'À faire') return 1;
@@ -123,13 +132,20 @@ export default function DashboardPage() {
     });
   }, [cars]);
 
+  function differenceInCalendarDays(dateLeft: Date, dateRight: Date): number {
+    const startLeft = startOfDay(dateLeft);
+    const startRight = startOfDay(dateRight);
+    return Math.round((startLeft.getTime() - startRight.getTime()) / (1000 * 60 * 60 * 24));
+  }
+
 
   return (
     <>
       <DashboardHeader title="Tableau de bord" description="Un aperçu de votre activité de location." />
       {loading ? (
         <div className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
+                <Skeleton className="h-28" />
                 <Skeleton className="h-28" />
                 <Skeleton className="h-28" />
                 <Skeleton className="h-28" />
@@ -141,10 +157,16 @@ export default function DashboardPage() {
         </div>
       ) : (
       <div className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
             <StatCard title="Voitures totales" value={cars.length.toString()} icon={Car} />
             <StatCard title="Voitures disponibles" value={`${availableCars} / ${cars.length}`} icon={Car} color="text-green-500" />
             <StatCard title="Locations actives" value={activeRentalsList.length.toString()} icon={KeyRound} />
+            <StatCard 
+                title="Retours aujourd'hui" 
+                value={returnsToday.toString()} 
+                icon={Clock} 
+                color={returnsToday > 0 ? "text-red-500" : "text-muted-foreground"} 
+            />
         </div>
         <div className="grid auto-rows-fr gap-4 lg:grid-cols-2">
             <Card>
