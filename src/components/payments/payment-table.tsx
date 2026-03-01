@@ -70,9 +70,9 @@ const RentalStatementDialog = ({ rental, payments, onDeletePaymentClick, onPrint
           <TableBody>
             {payments.length > 0 ? payments.map(p => (
               <TableRow key={p.id}>
-                <TableCell>{getSafeDate(p.paymentDate) ? format(getSafeDate(p.paymentDate)!, "dd/MM/yyyy HH:mm", { locale: fr }) : 'N/A'}</TableCell>
-                <TableCell>{p.paymentMethod}</TableCell>
-                <TableCell className="text-right">{formatCurrency(p.amount, 'MAD')}</TableCell>
+                <TableCell className="text-[12px]">{getSafeDate(p.paymentDate) ? format(getSafeDate(p.paymentDate)!, "dd/MM/yyyy HH:mm", { locale: fr }) : 'N/A'}</TableCell>
+                <TableCell className="text-[12px]">{p.paymentMethod}</TableCell>
+                <TableCell className="text-right text-[12px]">{formatCurrency(p.amount, 'MAD')}</TableCell>
                 <TableCell className="text-right">
                    <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -279,14 +279,14 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
                     onClick={() => row.toggleExpanded()}
                     className="w-full text-left justify-start pl-2 hover:bg-muted/50 group"
                 >
-                    <span className="flex items-center gap-2 font-bold text-base">
+                    <span className="flex items-center gap-2 font-bold text-[14px]">
                         {row.getIsExpanded() ? (
                             <ChevronDown className="h-5 w-5" />
                         ) : (
                             <ChevronRight className="h-5 w-5" />
                         )}
                         {getValue() as string}
-                        <Badge variant="outline" className="ml-2 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                        <Badge variant="outline" className="ml-2 group-hover:bg-primary group-hover:text-primary-foreground transition-colors text-[11px]">
                             {row.subRows.length} contrat(s)
                         </Badge>
                     </span>
@@ -294,7 +294,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
             );
         }
         return (
-          <div className="pl-10 text-muted-foreground italic text-xs flex items-center gap-2">
+          <div className="pl-10 text-muted-foreground italic text-[12px] flex items-center gap-2">
             <span className="w-1 h-1 rounded-full bg-muted-foreground opacity-50" />
             {getValue() as string}
           </div>
@@ -307,9 +307,9 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
       cell: ({ row }) => {
         if (row.getIsGrouped()) {
             const latest = row.subRows[0]?.original;
-            return latest ? <span className="font-mono text-[10px] text-muted-foreground bg-muted p-1 rounded">Dernier: {latest.contractNumber}</span> : null;
+            return latest ? <span className="font-mono text-[11px] text-muted-foreground bg-muted p-1 rounded">Dernier: {latest.contractNumber}</span> : null;
         }
-        return <span className="font-mono font-medium">{row.original.contractNumber}</span>;
+        return <span className="font-mono font-medium text-[12px]">{row.original.contractNumber}</span>;
       },
     },
     {
@@ -318,9 +318,9 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
         cell: ({ row }) => {
             if (row.getIsGrouped()) {
                 const latest = row.subRows[0]?.original;
-                return latest ? <span className="text-xs text-muted-foreground">{latest.vehicule.marque}</span> : null;
+                return latest ? <span className="text-[12px] text-muted-foreground">{latest.vehicule.marque}</span> : null;
             }
-            return <span className="text-sm">{row.original.vehicule.marque}</span>;
+            return <span className="text-[12px]">{row.original.vehicule.marque}</span>;
         },
     },
     {
@@ -341,7 +341,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
         const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
         const total = rental ? calculateTotalRentalAmount(rental) : 0;
         return (
-            <div className={cn("text-right font-medium", row.getIsGrouped() && "text-foreground/80")}>
+            <div className={cn("text-right font-medium text-[12px]", row.getIsGrouped() && "text-foreground/80")}>
             {formatCurrency(total || 0, 'MAD')}
             </div>
         );
@@ -354,7 +354,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
         const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
         const paid = rental?.location.montantPaye || 0;
         return (
-          <div className={cn("text-right font-medium text-green-600", row.getIsGrouped() && "opacity-80")}>
+          <div className={cn("text-right font-medium text-green-600 text-[12px]", row.getIsGrouped() && "opacity-80")}>
             {formatCurrency(paid || 0, 'MAD')}
           </div>
         )
@@ -370,7 +370,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
         const reste = total - paid;
         
         return (
-            <div className={cn("text-right font-bold", reste > 0.01 ? "text-destructive" : "text-muted-foreground")}>
+            <div className={cn("text-right font-bold text-[12px]", reste > 0.01 ? "text-destructive" : "text-muted-foreground")}>
                 {formatCurrency(reste, 'MAD')}
             </div>
         )
@@ -405,7 +405,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
           
           return (
             <Badge variant={variant} className={cn(
-              "font-bold",
+              "font-bold text-[11px]",
               status === 'Payé' && "bg-green-100 text-green-800 border-green-300",
               status === 'Paiement Partiel' && "bg-orange-100 text-orange-800 border-orange-300",
               status === 'Non Payé' && "bg-red-600 text-white border-red-700",
@@ -546,7 +546,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
                                 )}
                             >
                                 {row.getVisibleCells().map((cell) => (
-                                <TableCell key={cell.id}>
+                                <TableCell key={cell.id} className="text-[12px]">
                                     {flexRender(
                                     cell.column.columnDef.cell,
                                     cell.getContext()
@@ -560,7 +560,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
                     <TableRow>
                     <TableCell
                         colSpan={columns.length}
-                        className="h-24 text-center"
+                        className="h-24 text-center text-[12px]"
                     >
                         Aucun contrat trouvé.
                     </TableCell>
