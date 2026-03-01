@@ -160,7 +160,7 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
     {
       id: "client",
       accessorFn: (row) => row.locataire.nomPrenom,
-      header: "Client",
+      header: () => <div className="text-[12px] font-bold text-foreground">Client</div>,
       cell: ({ row, getValue }) => {
         if (row.getIsGrouped()) {
             return (
@@ -176,7 +176,7 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
                             <ChevronRight className="h-5 w-5" />
                         )}
                         {getValue() as string}
-                        <Badge variant="outline" className="ml-2 text-[10px]">
+                        <Badge variant="outline" className="ml-2 text-[12px]">
                             {row.subRows.length}
                         </Badge>
                     </span>
@@ -193,7 +193,7 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
     },
     {
       accessorKey: "contractNumber",
-      header: "Contrat N°",
+      header: () => <div className="text-[12px] font-bold text-foreground">Contrat N°</div>,
        cell: ({ row }) => {
         const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
         return <span className={cn("font-mono text-[12px]", row.getIsGrouped() && "text-muted-foreground")}>{rental.contractNumber}</span>;
@@ -201,7 +201,7 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
     },
     {
       accessorKey: "vehicule.marque",
-      header: "Voiture",
+      header: () => <div className="text-[12px] font-bold text-foreground">Voiture</div>,
        cell: ({ row }) => {
         const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
         return <span className={cn("text-[12px]", row.getIsGrouped() && "text-muted-foreground")}>{rental.vehicule.marque}</span>;
@@ -209,7 +209,7 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
     },
     {
       accessorKey: "vehicule.immatriculation",
-      header: "Immatriculation",
+      header: () => <div className="text-[12px] font-bold text-foreground">Immatriculation</div>,
        cell: ({ row }) => {
         const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
         return <Badge variant="secondary" className={cn("font-mono text-[12px]", row.getIsGrouped() && "opacity-70")}>{rental.vehicule.immatriculation}</Badge>;
@@ -217,7 +217,7 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
     },
      {
       accessorKey: "location.dateDebut",
-      header: "Date départ",
+      header: () => <div className="text-[12px] font-bold text-foreground">Date départ</div>,
       cell: ({ row }) => {
         const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
         const date = getSafeDate(rental.location.dateDebut);
@@ -226,7 +226,7 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
     },
     {
       accessorKey: "location.dateFin",
-      header: "Date retour",
+      header: () => <div className="text-[12px] font-bold text-foreground">Date retour</div>,
       cell: ({ row }) => {
         const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
         const date = getSafeDate(rental.location.dateFin);
@@ -235,7 +235,7 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
     },
     {
       accessorKey: "statut",
-      header: "Statut Final",
+      header: () => <div className="text-[12px] font-bold text-foreground">Statut Final</div>,
       cell: ({ row }) => {
         const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
         const status = rental.statut;
@@ -270,17 +270,17 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuLabel className="text-[12px]">Actions</DropdownMenuLabel>
               <DropdownMenuItem onSelect={() => {
                 setSelectedRental(rental);
                 setIsDetailsOpen(true);
-              }}>
+              }} className="text-[12px]">
                 <FileText className="mr-2 h-4 w-4"/>
                 Voir les détails
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
-                className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                className="text-destructive focus:text-destructive focus:bg-destructive/10 text-[12px]"
                 onSelect={() => setRentalToDelete(rental)}
               >
                   <Trash2 className="mr-2 h-4 w-4" />
@@ -344,7 +344,7 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id} className="font-bold text-foreground">
+                    <TableHead key={header.id} className="text-[12px] font-bold text-foreground">
                       {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                     </TableHead>
                   ))}
@@ -362,7 +362,7 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={columns.length} className="h-24 text-center">
+                  <TableCell colSpan={columns.length} className="h-24 text-center text-[12px]">
                     Aucun contrat archivé.
                   </TableCell>
                 </TableRow>

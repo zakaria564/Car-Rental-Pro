@@ -97,9 +97,9 @@ const StatementDialog = ({ rental, payments, onPrintClick }: {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Date et Heure</TableHead>
-              <TableHead>Méthode</TableHead>
-              <TableHead className="text-right">Montant</TableHead>
+              <TableHead className="text-[12px]">Date et Heure</TableHead>
+              <TableHead className="text-[12px]">Méthode</TableHead>
+              <TableHead className="text-right text-[12px]">Montant</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -111,7 +111,7 @@ const StatementDialog = ({ rental, payments, onPrintClick }: {
               </TableRow>
             )) : (
               <TableRow>
-                <TableCell colSpan={3} className="h-24 text-center">Aucun paiement dans les archives pour ce contrat.</TableCell>
+                <TableCell colSpan={3} className="h-24 text-center text-[12px]">Aucun paiement dans les archives pour ce contrat.</TableCell>
               </TableRow>
             )}
           </TableBody>
@@ -240,6 +240,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
       header: ({ column }) => (
         <Button
           variant="ghost"
+          className="text-[12px] font-bold"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
           Client
@@ -274,12 +275,12 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
     },
     {
       accessorKey: "contractNumber",
-      header: "Contrat N°",
+      header: () => <div className="text-[12px] font-bold text-foreground">Contrat N°</div>,
       cell: ({ row }) => row.getIsGrouped() ? null : <span className="font-mono text-[12px]">{row.original.contractNumber}</span>,
     },
     {
       id: "montantTotal",
-      header: () => <div className="text-right">Montant Total</div>,
+      header: () => <div className="text-right text-[12px] font-bold text-foreground">Montant Total</div>,
       cell: ({ row }) => {
         if (row.getIsGrouped()) return null;
         const total = calculateTotal(row.original);
@@ -292,7 +293,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
     },
     {
       id: "montantPaye",
-      header: () => <div className="text-right">Montant Payé</div>,
+      header: () => <div className="text-right text-[12px] font-bold text-foreground">Montant Payé</div>,
       cell: ({ row }) => {
           if (row.getIsGrouped()) return null;
           const relatedPayments = payments.filter(p => p.contractNumber === row.original.contractNumber);
@@ -306,7 +307,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
     },
     {
       id: 'resteAPayer',
-      header: () => <div className="text-right">Reste</div>,
+      header: () => <div className="text-right text-[12px] font-bold text-foreground">Reste</div>,
       cell: ({ row }) => {
         if (row.getIsGrouped()) return null;
         const total = calculateTotal(row.original);
@@ -322,7 +323,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
     },
     {
       id: 'paymentStatus',
-      header: "Statut Paiement",
+      header: () => <div className="text-[12px] font-bold text-foreground">Statut Paiement</div>,
       cell: ({ row }) => {
           if (row.getIsGrouped()) return null;
           const total = calculateTotal(row.original);
@@ -330,7 +331,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
           const totalPaid = relatedPayments.reduce((acc, p) => acc + p.amount, 0);
         
           if (!total || total === 0) {
-            return <Badge variant="outline" className="text-[12px]">N/A</Badge>
+            return <Badge variant="outline" className="text-[12px] w-[90px] flex justify-center">N/A</Badge>
           }
           
           const reste = total - totalPaid;
@@ -348,7 +349,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
           
           return (
             <Badge variant={variant} className={cn(
-              "text-[12px]",
+              "text-[12px] w-[90px] flex justify-center",
               status === 'Payé' && "bg-green-100 text-green-700 border-green-200",
               status === 'Paiement Partiel' && "bg-orange-100 text-orange-700 border-orange-200",
               status === 'Non Payé' && "bg-red-100 text-red-800 border-red-300"
@@ -373,14 +374,14 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => openStatement(rental)}>
+                <DropdownMenuLabel className="text-[12px]">Actions</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => openStatement(rental)} className="text-[12px]">
                   <FileText className="mr-2 h-4 w-4" />
                   Voir le relevé
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                    className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                    className="text-destructive focus:text-destructive focus:bg-destructive/10 text-[12px]"
                     onSelect={() => setRentalToDelete(rental)}
                 >
                     <Trash2 className="mr-2 h-4 w-4" />
@@ -436,7 +437,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id} className="font-bold text-foreground">
+                    <TableHead key={header.id} className="text-[12px] font-bold text-foreground">
                       {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                     </TableHead>
                   ))}
@@ -454,7 +455,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={columns.length} className="h-24 text-center">
+                  <TableCell colSpan={columns.length} className="h-24 text-center text-[12px]">
                     Aucun paiement archivé.
                   </TableCell>
                 </TableRow>

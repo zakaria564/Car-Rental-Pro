@@ -99,7 +99,7 @@ function ClientDetails({ client }: { client: Client }) {
                                     copyToClipboard(client.email!);
                                 }}
                             >
-                                {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                                {copied ? <Check className="h-3 w-3 text-green-500" /> : <Check className="h-3 w-3" />}
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent><p>Copier l'e-mail</p></TooltipContent>
@@ -221,6 +221,7 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
       header: ({ column }) => (
         <Button
           variant="ghost"
+          className="text-[12px] font-bold"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
           Nom
@@ -231,12 +232,12 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
     },
     {
       accessorKey: "cin",
-      header: "CIN",
+      header: () => <div className="text-[12px] font-bold text-foreground">CIN</div>,
       cell: ({ row }) => <Badge variant="outline" className="font-mono text-[12px]">{row.getValue("cin")}</Badge>,
     },
     {
       accessorKey: "email",
-      header: "E-mail",
+      header: () => <div className="text-[12px] font-bold text-foreground">E-mail</div>,
       cell: ({ row }) => {
         const email = row.getValue("email") as string;
         return email ? (
@@ -255,7 +256,7 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
     },
     {
       accessorKey: "telephone",
-      header: "Téléphone",
+      header: () => <div className="text-[12px] font-bold text-foreground">Téléphone</div>,
       cell: ({ row }) => {
         const telephone = row.getValue("telephone") as string;
         return (
@@ -272,7 +273,7 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
     },
     {
       accessorKey: "adresse",
-      header: "Adresse",
+      header: () => <div className="text-[12px] font-bold text-foreground">Adresse</div>,
       cell: ({ row }) => {
         const adresse = row.getValue("adresse") as string;
         return (
@@ -304,18 +305,18 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48" onClick={(e) => e.stopPropagation()}>
-                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => { setSelectedClient(client); setIsDetailsOpen(true); }}>
+                <DropdownMenuLabel className="text-[12px]">Actions</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => { setSelectedClient(client); setIsDetailsOpen(true); }} className="text-[12px]">
                   <User className="mr-2 h-4 w-4" />
                   Voir la fiche complète
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setSelectedClient(client); setIsSheetOpen(true); }}>
+                <DropdownMenuItem onClick={() => { setSelectedClient(client); setIsSheetOpen(true); }} className="text-[12px]">
                   <FileText className="mr-2 h-4 w-4" />
                   Modifier
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                  <AlertDialogTrigger asChild>
-                    <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                    <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10 text-[12px]">
                       <Trash2 className="mr-2 h-4 w-4" />
                       Supprimer le client
                     </DropdownMenuItem>
@@ -377,7 +378,7 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
             />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="ml-auto">
+                <Button variant="outline" className="ml-auto text-[12px]">
                   Affichage <ChevronDown className="ml-2 h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -389,7 +390,7 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
                     return (
                       <DropdownMenuCheckboxItem
                         key={column.id}
-                        className="capitalize"
+                        className="capitalize text-[12px]"
                         checked={column.getIsVisible()}
                         onCheckedChange={(value) =>
                           column.toggleVisibility(!!value)

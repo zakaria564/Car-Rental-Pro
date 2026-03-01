@@ -518,7 +518,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id} className="hover:bg-transparent border-none">
                   {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id} className="h-8 px-2 text-[10px] font-bold uppercase text-muted-foreground/70">
+                    <TableHead key={header.id} className="h-8 px-2 text-[12px] font-bold uppercase text-muted-foreground/70">
                       {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                     </TableHead>
                   ))}
@@ -578,7 +578,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id}>
+                    <TableHead key={header.id} className="text-[12px] font-bold text-foreground">
                       {header.isPlaceholder
                         ? null
                         : flexRender(header.column.columnDef.header, header.getContext())}

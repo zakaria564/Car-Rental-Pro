@@ -60,9 +60,9 @@ const RentalStatementDialog = ({ rental, payments, onDeletePaymentClick, onPrint
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Date et Heure</TableHead>
-              <TableHead>Méthode</TableHead>
-              <TableHead className="text-right">Montant</TableHead>
+              <TableHead className="text-[12px]">Date et Heure</TableHead>
+              <TableHead className="text-[12px]">Méthode</TableHead>
+              <TableHead className="text-right text-[12px]">Montant</TableHead>
               <TableHead><span className="sr-only">Actions</span></TableHead>
             </TableRow>
           </TableHeader>
@@ -82,7 +82,7 @@ const RentalStatementDialog = ({ rental, payments, onDeletePaymentClick, onPrint
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                           <DropdownMenuItem 
-                              className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                              className="text-destructive focus:text-destructive focus:bg-destructive/10 text-[12px]"
                               onSelect={() => onDeletePaymentClick(p)}
                           >
                               <Trash2 className="mr-2 h-4 w-4" />
@@ -264,6 +264,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
       header: ({ column }) => (
         <Button
           variant="ghost"
+          className="text-[12px] font-bold"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
           Client
@@ -285,7 +286,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
                             <ChevronRight className="h-5 w-5" />
                         )}
                         {getValue() as string}
-                        <Badge variant="outline" className="ml-2 group-hover:bg-primary group-hover:text-primary-foreground transition-colors text-[11px]">
+                        <Badge variant="outline" className="ml-2 group-hover:bg-primary group-hover:text-primary-foreground transition-colors text-[12px]">
                             {row.subRows.length}
                         </Badge>
                     </span>
@@ -302,18 +303,18 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
     },
     {
       accessorKey: "contractNumber",
-      header: "Contrat N°",
+      header: () => <div className="text-[12px] font-bold text-foreground">Contrat N°</div>,
       cell: ({ row }) => {
         if (row.getIsGrouped()) {
             const latest = row.subRows[0]?.original;
-            return latest ? <span className="font-mono text-[11px] text-muted-foreground bg-muted p-1 rounded">Dernier: {latest.contractNumber}</span> : null;
+            return latest ? <span className="font-mono text-[12px] text-muted-foreground bg-muted p-1 rounded">Dernier: {latest.contractNumber}</span> : null;
         }
         return <span className="font-mono font-medium text-[12px]">{row.original.contractNumber}</span>;
       },
     },
     {
         accessorKey: "vehicule.marque",
-        header: "Voiture",
+        header: () => <div className="text-[12px] font-bold text-foreground">Voiture</div>,
         cell: ({ row }) => {
             if (row.getIsGrouped()) {
                 const latest = row.subRows[0]?.original;
@@ -324,7 +325,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
     },
     {
         accessorKey: "vehicule.immatriculation",
-        header: "Immatriculation",
+        header: () => <div className="text-[12px] font-bold text-foreground">Immatriculation</div>,
         cell: ({ row }) => {
             if (row.getIsGrouped()) {
                 const latest = row.subRows[0]?.original;
@@ -335,7 +336,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
     },
     {
       id: "montantTotal",
-      header: () => <div className="text-right">Montant Total</div>,
+      header: () => <div className="text-right text-[12px] font-bold text-foreground">Montant Total</div>,
       cell: ({ row }) => {
         const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
         const total = rental ? calculateTotalRentalAmount(rental) : 0;
@@ -348,7 +349,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
     },
     {
       accessorKey: "location.montantPaye",
-      header: () => <div className="text-right">Montant Payé</div>,
+      header: () => <div className="text-right text-[12px] font-bold text-foreground">Montant Payé</div>,
       cell: ({ row }) => {
         const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
         const paid = rental?.location.montantPaye || 0;
@@ -361,7 +362,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
     },
     {
       id: 'resteAPayer',
-      header: () => <div className="text-right">Reste à Payer</div>,
+      header: () => <div className="text-right text-[12px] font-bold text-foreground">Reste à Payer</div>,
       cell: ({ row }) => {
         const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
         const total = rental ? calculateTotalRentalAmount(rental) : 0;
@@ -377,7 +378,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
     },
     {
         id: 'paymentStatus',
-        header: "Statut Paiement",
+        header: () => <div className="text-[12px] font-bold text-foreground">Statut Paiement</div>,
         cell: ({ row }) => {
           const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
           if (!rental) return <Badge variant="outline" className="text-[12px] w-[90px] flex justify-center">N/A</Badge>;
@@ -404,7 +405,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
           
           return (
             <Badge variant={variant} className={cn(
-              "font-bold text-[12px] w-[90px] flex justify-center",
+              "text-[12px] w-[90px] flex justify-center",
               status === 'Payé' && "bg-green-100 text-green-800 border-green-300 hover:bg-green-100",
               status === 'Paiement Partiel' && "bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-100",
               status === 'Non Payé' && "bg-red-600 text-white border-red-700 hover:bg-red-600",
@@ -433,20 +434,20 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuLabel className="text-[12px]">Actions</DropdownMenuLabel>
                 {reste > 0.01 && 
-                  <DropdownMenuItem onClick={() => onAddPaymentForRental(rental.id)} className="bg-primary/5 text-primary focus:bg-primary focus:text-primary-foreground">
+                  <DropdownMenuItem onClick={() => onAddPaymentForRental(rental.id)} className="bg-primary/5 text-primary focus:bg-primary focus:text-primary-foreground text-[12px]">
                     <DollarSign className="mr-2 h-4 w-4" />
                     <span className="font-semibold">Encaisser un paiement</span>
                   </DropdownMenuItem>
                 }
-                <DropdownMenuItem onClick={() => openStatement(rental)}>
+                <DropdownMenuItem onClick={() => openStatement(rental)} className="text-[12px]">
                   <FileText className="mr-2 h-4 w-4" />
                   Voir le relevé
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                    className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                    className="text-destructive focus:text-destructive focus:bg-destructive/10 text-[12px]"
                     onSelect={() => setRentalToDelete(rental)}
                 >
                     <Trash2 className="mr-2 h-4 w-4" />
@@ -511,7 +512,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
                     <TableRow key={headerGroup.id} className="hover:bg-transparent">
                     {headerGroup.headers.map((header) => {
                         return (
-                        <TableHead key={header.id} className="font-bold text-foreground">
+                        <TableHead key={header.id}>
                             {header.isPlaceholder
                             ? null
                             : flexRender(
