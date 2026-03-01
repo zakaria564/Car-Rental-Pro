@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import type { Rental } from "@/lib/definitions";
-import { cn } from "@/lib/utils";
+import { cn, getSafeDate } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription as DialogDesc, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RentalDetails } from "../rentals/rental-contract-views";
@@ -169,19 +169,23 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
                     onClick={() => row.toggleExpanded()}
                     className="w-full text-left justify-start pl-2 hover:bg-muted/50"
                 >
-                    <span className="flex items-center gap-2 font-semibold">
+                    <span className="flex items-center gap-2 font-bold text-base">
                         {row.getIsExpanded() ? (
-                            <ChevronDown className="h-4 w-4" />
+                            <ChevronDown className="h-5 w-5" />
                         ) : (
-                            <ChevronRight className="h-4 w-4" />
+                            <ChevronRight className="h-5 w-5" />
                         )}
-                        {getValue() as string} ({row.subRows.length})
+                        {getValue() as string}
+                        <Badge variant="outline" className="ml-2">
+                            {row.subRows.length}
+                        </Badge>
                     </span>
                 </Button>
             );
         }
         return (
-          <div className={cn("pl-8 text-muted-foreground italic text-xs")}>
+          <div className={cn("pl-10 text-muted-foreground italic text-xs flex items-center gap-2")}>
+            <span className="w-1 h-1 rounded-full bg-muted-foreground opacity-50" />
             {getValue() as string}
           </div>
         );
@@ -190,47 +194,60 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
     {
       accessorKey: "contractNumber",
       header: "Contrat N°",
-       cell: ({ row }) => row.getIsGrouped() ? null : <span className="font-mono">{row.original.contractNumber}</span>,
+       cell: ({ row }) => {
+        const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
+        return <span className={cn("font-mono", row.getIsGrouped() && "text-muted-foreground")}>{rental.contractNumber}</span>;
+       },
     },
     {
       accessorKey: "vehicule.marque",
       header: "Voiture",
-       cell: ({ row }) => row.getIsGrouped() ? null : row.original.vehicule.marque,
+       cell: ({ row }) => {
+        const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
+        return <span className={cn(row.getIsGrouped() && "text-muted-foreground")}>{rental.vehicule.marque}</span>;
+       },
     },
     {
       accessorKey: "vehicule.immatriculation",
       header: "Immatriculation",
-       cell: ({ row }) => row.getIsGrouped() ? null : row.original.vehicule.immatriculation,
+       cell: ({ row }) => {
+        const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
+        return <Badge variant="secondary" className={cn("font-mono text-[10px]", row.getIsGrouped() && "opacity-70")}>{rental.vehicule.immatriculation}</Badge>;
+       },
     },
      {
       accessorKey: "location.dateDebut",
       header: "Date départ",
       cell: ({ row }) => {
-        if (row.getIsGrouped()) return null;
-        const date = row.original.location.dateDebut?.toDate ? row.original.location.dateDebut.toDate() : null;
-        return date ? format(date, "dd/MM/yyyy", { locale: fr }) : "N/A";
+        const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
+        const date = getSafeDate(rental.location.dateDebut);
+        return <span className={cn(row.getIsGrouped() && "text-muted-foreground text-xs")}>{date ? format(date, "dd/MM/yyyy", { locale: fr }) : "N/A"}</span>;
       },
     },
     {
       accessorKey: "location.dateFin",
       header: "Date retour",
       cell: ({ row }) => {
-         if (row.getIsGrouped()) return null;
-        const date = row.original.location.dateFin?.toDate ? row.original.location.dateFin.toDate() : null;
-        return date ? format(date, "dd/MM/yyyy", { locale: fr }) : "N/A";
+        const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
+        const date = getSafeDate(rental.location.dateFin);
+        return <span className={cn(row.getIsGrouped() && "text-muted-foreground text-xs")}>{date ? format(date, "dd/MM/yyyy", { locale: fr }) : "N/A"}</span>;
       },
     },
     {
       accessorKey: "statut",
       header: "Statut Final",
       cell: ({ row }) => {
-         if (row.getIsGrouped()) return null;
+        const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
+        const status = rental.statut;
         return (
             <Badge
-                variant={row.getValue("statut") === "en_cours" ? "default" : "outline"}
-                className={cn(row.getValue("statut") === "en_cours" ? "bg-orange-100 text-orange-700 border-orange-200" : "bg-green-100 text-green-700 border-green-200")}
+                variant={status === "en_cours" ? "default" : "outline"}
+                className={cn(
+                    status === "en_cours" ? "bg-orange-100 text-orange-700 border-orange-200" : "bg-green-100 text-green-700 border-green-200",
+                    row.getIsGrouped() && "scale-90 opacity-80"
+                )}
             >
-                {row.getValue("statut") === 'en_cours' ? "Non Terminé" : "Terminée"}
+                {status === 'en_cours' ? "En cours" : "Terminée"}
             </Badge>
         );
       },
@@ -324,7 +341,7 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id}>
+                    <TableHead key={header.id} className="font-bold text-foreground">
                       {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                     </TableHead>
                   ))}
