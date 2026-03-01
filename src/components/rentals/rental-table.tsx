@@ -254,21 +254,21 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       accessorKey: "contractNumber",
       header: "Contrat N°",
       cell: ({ row }) => {
-        return <span className={cn("font-mono", isDashboard && "text-[11px]")}>{row.original.contractNumber}</span>;
+        return <span className={cn("font-mono", isDashboard && "text-[12px]")}>{row.original.contractNumber}</span>;
       },
     },
     {
       accessorKey: "vehicule.marque",
       header: "Voiture",
       cell: ({ row }) => {
-          return <span className={cn(isDashboard && "text-[11px]")}>{row.original.vehicule.marque}</span>;
+          return <span className={cn(isDashboard && "text-[12px]")}>{row.original.vehicule.marque}</span>;
       },
     },
     {
         accessorKey: "vehicule.immatriculation",
         header: "Immat.",
         cell: ({ row }) => {
-            return <span className={cn("font-mono", isDashboard && "text-[10px]")}>{row.original.vehicule.immatriculation}</span>;
+            return <span className={cn("font-mono", isDashboard && "text-[12px]")}>{row.original.vehicule.immatriculation}</span>;
         },
     },
     {
@@ -277,7 +277,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       header: "Client",
        cell: ({ row, getValue }) => {
         return (
-          <div className={cn("font-medium", isDashboard && "text-[11px] truncate max-w-[100px]")}>
+          <div className={cn("font-medium", isDashboard && "text-[12px] truncate max-w-[100px]")}>
             {getValue() as string}
           </div>
         );
@@ -288,7 +288,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       header: isDashboard ? "Départ" : "Date départ",
       cell: ({ row }) => {
         const date = getSafeDate(row.original.location.dateDebut);
-        return <span className={cn(isDashboard && "text-[11px]")}>{date ? format(date, isDashboard ? "dd/MM/yy" : "dd/MM/yyyy", { locale: fr }) : "N/A"}</span>;
+        return <span className={cn(isDashboard && "text-[12px]")}>{date ? format(date, isDashboard ? "dd/MM/yy" : "dd/MM/yyyy", { locale: fr }) : "N/A"}</span>;
       },
     },
     {
@@ -303,7 +303,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
 
           return (
               <div className="flex items-center gap-1.5">
-                  <span className={cn(isOverdue && "text-destructive font-bold", isDashboard && "text-[11px]")}>
+                  <span className={cn(isOverdue && "text-destructive font-bold", isDashboard && "text-[12px]")}>
                     {format(date, isDashboard ? "dd/MM/yy" : "dd/MM/yyyy", { locale: fr })}
                   </span>
                   {(isReturnToday || isOverdue) && row.original.statut === 'en_cours' && (
@@ -330,7 +330,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
             <Badge
                 variant={"outline"}
                 className={cn(
-                  isDashboard ? "text-[9px] px-1.5 h-4" : "text-[10px]",
+                  isDashboard ? "text-[10px] px-1.5 h-4" : "text-[10px]",
                   status === "en_cours"
                     ? "bg-orange-100 text-orange-700 border-orange-200"
                     : "bg-green-100 text-green-700 border-green-200"
@@ -350,7 +350,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
         const paid = rental.location.montantPaye || 0;
         const remaining = total - paid;
         
-        const badgeClass = cn(isDashboard ? "text-[9px] px-1.5 h-4" : "text-[10px]");
+        const badgeClass = cn(isDashboard ? "text-[10px] px-1.5 h-4" : "text-[10px]");
 
         if (rental.statut === 'terminee' && remaining > 0.01) {
           return (
