@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -95,7 +94,7 @@ const RentalStatementDialog = ({ rental, payments, onDeletePaymentClick, onPrint
               </TableRow>
             )) : (
               <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center">Aucun paiement enregistré pour ce contrat.</TableCell>
+                <TableCell colSpan={4} className="h-24 text-center text-[12px]">Aucun paiement enregistré pour ce contrat.</TableCell>
               </TableRow>
             )}
           </TableBody>
@@ -279,7 +278,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
                     onClick={() => row.toggleExpanded()}
                     className="w-full text-left justify-start pl-2 hover:bg-muted/50 group"
                 >
-                    <span className="flex items-center gap-2 font-bold text-[14px]">
+                    <span className="flex items-center gap-2 font-bold text-[12px]">
                         {row.getIsExpanded() ? (
                             <ChevronDown className="h-5 w-5" />
                         ) : (
@@ -381,13 +380,13 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
         header: "Statut Paiement",
         cell: ({ row }) => {
           const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
-          if (!rental) return <Badge variant="outline">N/A</Badge>;
+          if (!rental) return <Badge variant="outline" className="text-[12px]">N/A</Badge>;
 
           const total = calculateTotalRentalAmount(rental);
           const paye = rental.location.montantPaye || 0;
 
           if (!total || total === 0) {
-            return <Badge variant="outline">N/A</Badge>
+            return <Badge variant="outline" className="text-[12px]">N/A</Badge>
           }
           
           const reste = total - paye;
@@ -405,7 +404,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
           
           return (
             <Badge variant={variant} className={cn(
-              "font-bold text-[11px]",
+              "font-bold text-[12px]",
               status === 'Payé' && "bg-green-100 text-green-800 border-green-300",
               status === 'Paiement Partiel' && "bg-orange-100 text-orange-800 border-orange-300",
               status === 'Non Payé' && "bg-red-600 text-white border-red-700",

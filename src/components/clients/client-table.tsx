@@ -227,12 +227,12 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       ),
-      cell: ({ row }) => <div className="font-bold text-foreground">{row.getValue("nom")}</div>,
+      cell: ({ row }) => <div className="font-bold text-foreground text-[12px]">{row.getValue("nom")}</div>,
     },
     {
       accessorKey: "cin",
       header: "CIN",
-      cell: ({ row }) => <Badge variant="outline" className="font-mono">{row.getValue("cin")}</Badge>,
+      cell: ({ row }) => <Badge variant="outline" className="font-mono text-[12px]">{row.getValue("cin")}</Badge>,
     },
     {
       accessorKey: "email",
@@ -243,14 +243,14 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
             <div className="flex items-center gap-1 group">
                 <a 
                     href={`mailto:${email.trim()}`} 
-                    className="text-primary hover:underline flex items-center gap-1.5 text-xs truncate max-w-[150px]"
+                    className="text-primary hover:underline flex items-center gap-1.5 text-[12px] truncate max-w-[150px]"
                     onClick={(e) => e.stopPropagation()}
                 >
                     <Mail className="h-3 w-3" />
                     {email}
                 </a>
             </div>
-        ) : <span className="text-muted-foreground italic text-[10px]">N/A</span>;
+        ) : <span className="text-muted-foreground italic text-[12px]">N/A</span>;
       },
     },
     {
@@ -261,7 +261,7 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
         return (
             <a 
                 href={`tel:${telephone.replace(/\s/g, '')}`} 
-                className="hover:text-primary transition-colors flex items-center gap-1.5 font-medium"
+                className="hover:text-primary transition-colors flex items-center gap-1.5 font-medium text-[12px]"
                 onClick={(e) => e.stopPropagation()}
             >
                 <Phone className="h-3 w-3 opacity-50" />
@@ -284,7 +284,7 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
                 onClick={(e) => e.stopPropagation()}
             >
                 <MapPin className="h-3 w-3 opacity-50 shrink-0 group-hover:opacity-100" />
-                <span className="truncate text-xs text-muted-foreground group-hover:underline">{adresse}</span>
+                <span className="truncate text-[12px] text-muted-foreground group-hover:underline">{adresse}</span>
             </a>
         );
       },
@@ -442,6 +442,7 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
                       {row.getVisibleCells().map((cell) => (
                         <TableCell 
                           key={cell.id}
+                          className="text-[12px]"
                           onClick={(e) => {
                             if (cell.column.id === 'actions') {
                               e.stopPropagation();
@@ -460,7 +461,7 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
                   <TableRow>
                     <TableCell
                       colSpan={columns.length}
-                      className="h-24 text-center"
+                      className="h-24 text-center text-[12px]"
                     >
                       Aucun client trouvé.
                     </TableCell>

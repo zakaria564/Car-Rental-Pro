@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -254,21 +253,21 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       accessorKey: "contractNumber",
       header: "Contrat N°",
       cell: ({ row }) => {
-        return <span className={cn("font-mono", isDashboard && "text-[12px]")}>{row.original.contractNumber}</span>;
+        return <span className="font-mono text-[12px]">{row.original.contractNumber}</span>;
       },
     },
     {
       accessorKey: "vehicule.marque",
       header: "Voiture",
       cell: ({ row }) => {
-          return <span className={cn(isDashboard && "text-[12px]")}>{row.original.vehicule.marque}</span>;
+          return <span className="text-[12px]">{row.original.vehicule.marque}</span>;
       },
     },
     {
         accessorKey: "vehicule.immatriculation",
         header: "Immat.",
         cell: ({ row }) => {
-            return <span className={cn("font-mono", isDashboard && "text-[12px]")}>{row.original.vehicule.immatriculation}</span>;
+            return <span className="font-mono text-[12px]">{row.original.vehicule.immatriculation}</span>;
         },
     },
     {
@@ -277,7 +276,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       header: "Client",
        cell: ({ row, getValue }) => {
         return (
-          <div className={cn("font-medium", isDashboard && "text-[12px] truncate max-w-[100px]")}>
+          <div className={cn("font-medium text-[12px]", isDashboard && "truncate max-w-[100px]")}>
             {getValue() as string}
           </div>
         );
@@ -288,7 +287,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       header: isDashboard ? "Départ" : "Date départ",
       cell: ({ row }) => {
         const date = getSafeDate(row.original.location.dateDebut);
-        return <span className={cn(isDashboard && "text-[12px]")}>{date ? format(date, isDashboard ? "dd/MM/yy" : "dd/MM/yyyy", { locale: fr }) : "N/A"}</span>;
+        return <span className="text-[12px]">{date ? format(date, isDashboard ? "dd/MM/yy" : "dd/MM/yyyy", { locale: fr }) : "N/A"}</span>;
       },
     },
     {
@@ -296,14 +295,14 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       header: isDashboard ? "Retour" : "Date de retour",
       cell: ({ row }) => {
           const date = getSafeDate(row.original.location.dateFin);
-          if (!date) return "Date invalide";
+          if (!date) return <span className="text-[12px]">Date invalide</span>;
           
           const isReturnToday = isToday(date);
           const isOverdue = startOfDay(date).getTime() < startOfDay(new Date()).getTime() && row.original.statut === 'en_cours';
 
           return (
               <div className="flex items-center gap-1.5">
-                  <span className={cn(isOverdue && "text-destructive font-bold", isDashboard && "text-[12px]")}>
+                  <span className={cn("text-[12px]", isOverdue && "text-destructive font-bold")}>
                     {format(date, isDashboard ? "dd/MM/yy" : "dd/MM/yyyy", { locale: fr })}
                   </span>
                   {(isReturnToday || isOverdue) && row.original.statut === 'en_cours' && (
@@ -330,7 +329,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
             <Badge
                 variant={"outline"}
                 className={cn(
-                  isDashboard ? "text-[10px] px-1.5 h-4" : "text-[10px]",
+                  "text-[10px] px-1.5 h-4",
                   status === "en_cours"
                     ? "bg-orange-100 text-orange-700 border-orange-200"
                     : "bg-green-100 text-green-700 border-green-200"
@@ -350,7 +349,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
         const paid = rental.location.montantPaye || 0;
         const remaining = total - paid;
         
-        const badgeClass = cn(isDashboard ? "text-[10px] px-1.5 h-4" : "text-[10px]");
+        const badgeClass = cn("text-[10px] px-1.5 h-4");
 
         if (rental.statut === 'terminee' && remaining > 0.01) {
           return (
@@ -531,7 +530,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
                 table.getRowModel().rows.map((row) => (
                   <TableRow key={row.id} className="border-b last:border-0">
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="px-2 py-1.5 h-10">
+                      <TableCell key={cell.id} className="px-2 py-1.5 h-10 text-[12px]">
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
                     ))}
@@ -593,7 +592,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
                 table.getRowModel().rows.map((row) => (
                   <TableRow key={row.id}>
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
+                      <TableCell key={cell.id} className="text-[12px]">
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
                     ))}
@@ -601,7 +600,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={columns.length} className="h-24 text-center">
+                  <TableCell colSpan={columns.length} className="h-24 text-center text-[12px]">
                     Aucun résultat.
                   </TableCell>
                 </TableRow>
