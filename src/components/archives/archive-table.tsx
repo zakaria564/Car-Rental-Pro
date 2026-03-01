@@ -169,14 +169,14 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
                     onClick={() => row.toggleExpanded()}
                     className="w-full text-left justify-start pl-2 hover:bg-muted/50"
                 >
-                    <span className="flex items-center gap-2 font-bold text-base">
+                    <span className="flex items-center gap-2 font-bold text-[12px]">
                         {row.getIsExpanded() ? (
                             <ChevronDown className="h-5 w-5" />
                         ) : (
                             <ChevronRight className="h-5 w-5" />
                         )}
                         {getValue() as string}
-                        <Badge variant="outline" className="ml-2">
+                        <Badge variant="outline" className="ml-2 text-[10px]">
                             {row.subRows.length}
                         </Badge>
                     </span>
@@ -184,7 +184,7 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
             );
         }
         return (
-          <div className={cn("pl-10 text-muted-foreground italic text-xs flex items-center gap-2")}>
+          <div className={cn("pl-10 text-muted-foreground italic text-[12px] flex items-center gap-2")}>
             <span className="w-1 h-1 rounded-full bg-muted-foreground opacity-50" />
             {getValue() as string}
           </div>
@@ -196,7 +196,7 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
       header: "Contrat N°",
        cell: ({ row }) => {
         const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
-        return <span className={cn("font-mono", row.getIsGrouped() && "text-muted-foreground")}>{rental.contractNumber}</span>;
+        return <span className={cn("font-mono text-[12px]", row.getIsGrouped() && "text-muted-foreground")}>{rental.contractNumber}</span>;
        },
     },
     {
@@ -204,7 +204,7 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
       header: "Voiture",
        cell: ({ row }) => {
         const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
-        return <span className={cn(row.getIsGrouped() && "text-muted-foreground")}>{rental.vehicule.marque}</span>;
+        return <span className={cn("text-[12px]", row.getIsGrouped() && "text-muted-foreground")}>{rental.vehicule.marque}</span>;
        },
     },
     {
@@ -212,7 +212,7 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
       header: "Immatriculation",
        cell: ({ row }) => {
         const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
-        return <Badge variant="secondary" className={cn("font-mono text-[10px]", row.getIsGrouped() && "opacity-70")}>{rental.vehicule.immatriculation}</Badge>;
+        return <Badge variant="secondary" className={cn("font-mono text-[12px]", row.getIsGrouped() && "opacity-70")}>{rental.vehicule.immatriculation}</Badge>;
        },
     },
      {
@@ -221,7 +221,7 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
       cell: ({ row }) => {
         const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
         const date = getSafeDate(rental.location.dateDebut);
-        return <span className={cn(row.getIsGrouped() && "text-muted-foreground text-xs")}>{date ? format(date, "dd/MM/yyyy", { locale: fr }) : "N/A"}</span>;
+        return <span className={cn("text-[12px]", row.getIsGrouped() && "text-muted-foreground")}>{date ? format(date, "dd/MM/yyyy", { locale: fr }) : "N/A"}</span>;
       },
     },
     {
@@ -230,7 +230,7 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
       cell: ({ row }) => {
         const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
         const date = getSafeDate(rental.location.dateFin);
-        return <span className={cn(row.getIsGrouped() && "text-muted-foreground text-xs")}>{date ? format(date, "dd/MM/yyyy", { locale: fr }) : "N/A"}</span>;
+        return <span className={cn("text-[12px]", row.getIsGrouped() && "text-muted-foreground")}>{date ? format(date, "dd/MM/yyyy", { locale: fr }) : "N/A"}</span>;
       },
     },
     {
@@ -243,6 +243,7 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
             <Badge
                 variant={status === "en_cours" ? "default" : "outline"}
                 className={cn(
+                    "text-[12px]",
                     status === "en_cours" ? "bg-orange-100 text-orange-700 border-orange-200" : "bg-green-100 text-green-700 border-green-200",
                     row.getIsGrouped() && "scale-90 opacity-80"
                 )}
@@ -353,7 +354,7 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
                 table.getRowModel().rows.map((row) => (
                   <TableRow key={row.id} className={cn(row.getIsGrouped() ? "bg-muted/30" : "hover:bg-muted/20")}>
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                      <TableCell key={cell.id} className="text-[12px]">{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                     ))}
                   </TableRow>
                 ))

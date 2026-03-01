@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -106,9 +105,9 @@ const StatementDialog = ({ rental, payments, onPrintClick }: {
           <TableBody>
             {payments.length > 0 ? payments.map(p => (
               <TableRow key={p.id}>
-                <TableCell>{p.paymentDate?.toDate ? format(p.paymentDate.toDate(), "dd/MM/yyyy HH:mm", { locale: fr }) : 'N/A'}</TableCell>
-                <TableCell>{p.paymentMethod}</TableCell>
-                <TableCell className="text-right">{formatCurrency(p.amount, 'MAD')}</TableCell>
+                <TableCell className="text-[12px]">{p.paymentDate?.toDate ? format(p.paymentDate.toDate(), "dd/MM/yyyy HH:mm", { locale: fr }) : 'N/A'}</TableCell>
+                <TableCell className="text-[12px]">{p.paymentMethod}</TableCell>
+                <TableCell className="text-right text-[12px]">{formatCurrency(p.amount, 'MAD')}</TableCell>
               </TableRow>
             )) : (
               <TableRow>
@@ -255,7 +254,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
                     onClick={() => row.toggleExpanded()}
                     className="w-full text-left justify-start pl-2 hover:bg-muted/50"
                 >
-                    <span className="flex items-center gap-2 font-semibold">
+                    <span className="flex items-center gap-2 font-semibold text-[12px]">
                         {row.getIsExpanded() ? (
                             <ChevronDown className="h-4 w-4" />
                         ) : (
@@ -267,7 +266,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
             );
         }
         return (
-          <div className="pl-8 text-muted-foreground italic text-xs">
+          <div className="pl-8 text-muted-foreground italic text-[12px]">
             {getValue() as string}
           </div>
         );
@@ -276,7 +275,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
     {
       accessorKey: "contractNumber",
       header: "Contrat N°",
-      cell: ({ row }) => row.getIsGrouped() ? null : <span className="font-mono">{row.original.contractNumber}</span>,
+      cell: ({ row }) => row.getIsGrouped() ? null : <span className="font-mono text-[12px]">{row.original.contractNumber}</span>,
     },
     {
       id: "montantTotal",
@@ -285,7 +284,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
         if (row.getIsGrouped()) return null;
         const total = calculateTotal(row.original);
         return (
-            <div className="text-right font-medium">
+            <div className="text-right font-medium text-[12px]">
             {formatCurrency(total || 0, 'MAD')}
             </div>
         );
@@ -299,7 +298,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
           const relatedPayments = payments.filter(p => p.contractNumber === row.original.contractNumber);
           const totalPaid = relatedPayments.reduce((acc, p) => acc + p.amount, 0);
           return (
-            <div className="text-right font-medium text-green-600">
+            <div className="text-right font-medium text-green-600 text-[12px]">
               {formatCurrency(totalPaid, 'MAD')}
             </div>
           );
@@ -315,7 +314,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
         const totalPaid = relatedPayments.reduce((acc, p) => acc + p.amount, 0);
         const reste = total - totalPaid;
         return (
-            <div className={cn("text-right font-bold", reste > 0.01 ? "text-destructive" : "text-muted-foreground")}>
+            <div className={cn("text-right font-bold text-[12px]", reste > 0.01 ? "text-destructive" : "text-muted-foreground")}>
                 {formatCurrency(reste, 'MAD')}
             </div>
         )
@@ -331,7 +330,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
           const totalPaid = relatedPayments.reduce((acc, p) => acc + p.amount, 0);
         
           if (!total || total === 0) {
-            return <Badge variant="outline">N/A</Badge>
+            return <Badge variant="outline" className="text-[12px]">N/A</Badge>
           }
           
           const reste = total - totalPaid;
@@ -349,6 +348,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
           
           return (
             <Badge variant={variant} className={cn(
+              "text-[12px]",
               status === 'Payé' && "bg-green-100 text-green-700 border-green-200",
               status === 'Paiement Partiel' && "bg-orange-100 text-orange-700 border-orange-200",
               status === 'Non Payé' && "bg-red-100 text-red-800 border-red-300"
@@ -436,7 +436,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id}>
+                    <TableHead key={header.id} className="font-bold text-foreground">
                       {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                     </TableHead>
                   ))}
@@ -448,7 +448,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
                 table.getRowModel().rows.map((row) => (
                   <TableRow key={row.id} className={cn(row.getIsGrouped() ? "bg-muted/30" : "hover:bg-muted/20")}>
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                      <TableCell key={cell.id} className="text-[12px]">{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                     ))}
                   </TableRow>
                 ))
