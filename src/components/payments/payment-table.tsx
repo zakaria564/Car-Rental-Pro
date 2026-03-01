@@ -381,13 +381,13 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
         header: () => <div className="text-[12px] font-bold text-foreground">Statut Paiement</div>,
         cell: ({ row }) => {
           const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
-          if (!rental) return <Badge variant="outline" className="text-[12px] w-[90px] flex justify-center">N/A</Badge>;
+          if (!rental) return <Badge variant="outline" className="text-[11px] w-[80px] flex justify-center">N/A</Badge>;
 
           const total = calculateTotalRentalAmount(rental);
           const paye = rental.location.montantPaye || 0;
 
           if (!total || total === 0) {
-            return <Badge variant="outline" className="text-[12px] w-[90px] flex justify-center">N/A</Badge>
+            return <Badge variant="outline" className="text-[11px] w-[80px] flex justify-center">N/A</Badge>
           }
           
           const reste = total - paye;
@@ -405,7 +405,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
           
           return (
             <Badge variant={variant} className={cn(
-              "text-[12px] w-[90px] flex justify-center",
+              "text-[11px] w-[80px] flex justify-center",
               status === 'Payé' && "bg-green-100 text-green-800 border-green-300 hover:bg-green-100",
               status === 'Paiement Partiel' && "bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-100",
               status === 'Non Payé' && "bg-red-600 text-white border-red-700 hover:bg-red-600"

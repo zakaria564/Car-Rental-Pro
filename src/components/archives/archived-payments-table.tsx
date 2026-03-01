@@ -331,7 +331,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
           const totalPaid = relatedPayments.reduce((acc, p) => acc + p.amount, 0);
         
           if (!total || total === 0) {
-            return <Badge variant="outline" className="text-[12px] w-[90px] flex justify-center">N/A</Badge>
+            return <Badge variant="outline" className="text-[11px] w-[80px] flex justify-center">N/A</Badge>
           }
           
           const reste = total - totalPaid;
@@ -349,7 +349,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
           
           return (
             <Badge variant={variant} className={cn(
-              "text-[12px] w-[90px] flex justify-center",
+              "text-[11px] w-[80px] flex justify-center",
               status === 'Payé' && "bg-green-100 text-green-700 border-green-200",
               status === 'Paiement Partiel' && "bg-orange-100 text-orange-700 border-orange-200",
               status === 'Non Payé' && "bg-red-100 text-red-800 border-red-300"
