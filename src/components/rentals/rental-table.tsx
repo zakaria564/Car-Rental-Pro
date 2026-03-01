@@ -249,7 +249,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
   };
   
   const columns: ColumnDef<Rental>[] = React.useMemo(() => {
-    return [
+    const cols: ColumnDef<Rental>[] = [
     {
       accessorKey: "contractNumber",
       header: "Contrat N°",
@@ -408,8 +408,11 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
 
         return <Badge variant="outline">N/A</Badge>;
       },
-    },
-    {
+    }
+  ];
+
+  if (!isDashboard) {
+    cols.push({
       id: "actions",
       enableHiding: false,
       cell: ({ row }) => {
@@ -465,8 +468,10 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
           </DropdownMenu>
         );
       },
-    },
-  ];
+    });
+  }
+
+  return cols;
   }, [isDashboard, openSheet, openDetails, openAlert, openPaymentSheet]);
 
 
