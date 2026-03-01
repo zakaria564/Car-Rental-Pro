@@ -286,7 +286,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
                         )}
                         {getValue() as string}
                         <Badge variant="outline" className="ml-2 group-hover:bg-primary group-hover:text-primary-foreground transition-colors text-[11px]">
-                            {row.subRows.length} contrat(s)
+                            {row.subRows.length}
                         </Badge>
                     </span>
                 </Button>
