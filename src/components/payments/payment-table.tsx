@@ -202,7 +202,6 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
         const permissionError = new FirestorePermissionError({
             path: rentalRef.path,
             operation: 'delete',
-            operation: 'delete'
         }, serverError as Error);
         errorEmitter.emit('permission-error', permissionError);
 
@@ -330,9 +329,9 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
         cell: ({ row }) => {
             if (row.getIsGrouped()) {
                 const latest = row.subRows[0]?.original;
-                return latest ? <Badge variant="outline" className="font-mono text-[9px] opacity-70">{latest.vehicule.immatriculation}</Badge> : null;
+                return latest ? <Badge variant="outline" className="font-mono text-[12px] opacity-70">{latest.vehicule.immatriculation}</Badge> : null;
             }
-            return <Badge variant="secondary" className="font-mono text-[10px]">{row.original.vehicule.immatriculation}</Badge>;
+            return <Badge variant="secondary" className="font-mono text-[12px]">{row.original.vehicule.immatriculation}</Badge>;
         },
     },
     {
