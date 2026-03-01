@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -201,6 +202,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
         const permissionError = new FirestorePermissionError({
             path: rentalRef.path,
             operation: 'delete',
+            operation: 'delete'
         }, serverError as Error);
         errorEmitter.emit('permission-error', permissionError);
 
@@ -337,12 +339,8 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
       id: "montantTotal",
       header: () => <div className="text-right">Montant Total</div>,
       cell: ({ row }) => {
-        let total = 0;
-        if (row.getIsGrouped()) {
-            total = row.subRows.reduce((acc, subRow) => acc + calculateTotalRentalAmount(subRow.original), 0);
-        } else {
-            total = calculateTotalRentalAmount(row.original);
-        }
+        const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
+        const total = rental ? calculateTotalRentalAmount(rental) : 0;
         return (
             <div className={cn("text-right font-medium", row.getIsGrouped() && "text-foreground/80")}>
             {formatCurrency(total || 0, 'MAD')}
@@ -354,12 +352,8 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
       accessorKey: "location.montantPaye",
       header: () => <div className="text-right">Montant Payé</div>,
       cell: ({ row }) => {
-        let paid = 0;
-        if (row.getIsGrouped()) {
-            paid = row.subRows.reduce((acc, subRow) => acc + (subRow.original.location.montantPaye || 0), 0);
-        } else {
-            paid = row.original.location.montantPaye || 0;
-        }
+        const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
+        const paid = rental?.location.montantPaye || 0;
         return (
           <div className={cn("text-right font-medium text-green-600", row.getIsGrouped() && "opacity-80")}>
             {formatCurrency(paid || 0, 'MAD')}
@@ -371,14 +365,10 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
       id: 'resteAPayer',
       header: () => <div className="text-right">Reste à Payer</div>,
       cell: ({ row }) => {
-        let reste = 0;
-        if (row.getIsGrouped()) {
-            const total = row.subRows.reduce((acc, subRow) => acc + calculateTotalRentalAmount(subRow.original), 0);
-            const paid = row.subRows.reduce((acc, subRow) => acc + (subRow.original.location.montantPaye || 0), 0);
-            reste = total - paid;
-        } else {
-            reste = calculateTotalRentalAmount(row.original) - (row.original.location.montantPaye || 0);
-        }
+        const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
+        const total = rental ? calculateTotalRentalAmount(rental) : 0;
+        const paid = rental?.location.montantPaye || 0;
+        const reste = total - paid;
         
         return (
             <div className={cn("text-right font-bold", reste > 0.01 ? "text-destructive" : "text-muted-foreground")}>
@@ -391,16 +381,11 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
         id: 'paymentStatus',
         header: "Statut Paiement",
         cell: ({ row }) => {
-          let total = 0;
-          let paye = 0;
-          
-          if (row.getIsGrouped()) {
-              total = row.subRows.reduce((acc, subRow) => acc + calculateTotalRentalAmount(subRow.original), 0);
-              paye = row.subRows.reduce((acc, subRow) => acc + (subRow.original.location.montantPaye || 0), 0);
-          } else {
-              total = calculateTotalRentalAmount(row.original);
-              paye = row.original.location.montantPaye || 0;
-          }
+          const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
+          if (!rental) return <Badge variant="outline">N/A</Badge>;
+
+          const total = calculateTotalRentalAmount(rental);
+          const paye = rental.location.montantPaye || 0;
 
           if (!total || total === 0) {
             return <Badge variant="outline">N/A</Badge>
@@ -546,6 +531,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
                     table.getRowModel().rows.map((row) => {
                         let hasUnpaid = false;
                         if (row.getIsGrouped()) {
+                            // On signale toujours si le client a une dette sur N'IMPORTE QUEL contrat
                             const total = row.subRows.reduce((acc, subRow) => acc + calculateTotalRentalAmount(subRow.original), 0);
                             const paid = row.subRows.reduce((acc, subRow) => acc + (subRow.original.location.montantPaye || 0), 0);
                             hasUnpaid = (total - paid) > 0.01;
