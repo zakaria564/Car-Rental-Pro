@@ -329,7 +329,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
             <Badge
                 variant={"outline"}
                 className={cn(
-                  "text-[10px] px-1.5 h-4",
+                  "text-[12px]",
                   status === "en_cours"
                     ? "bg-orange-100 text-orange-700 border-orange-200"
                     : "bg-green-100 text-green-700 border-green-200"
@@ -349,7 +349,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
         const paid = rental.location.montantPaye || 0;
         const remaining = total - paid;
         
-        const badgeClass = cn("text-[10px] px-1.5 h-4");
+        const badgeClass = cn("text-[12px]");
 
         if (rental.statut === 'terminee' && remaining > 0.01) {
           return (
