@@ -249,75 +249,6 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
   };
   
   const columns: ColumnDef<Rental>[] = React.useMemo(() => {
-    if (isDashboard) {
-      return [
-        {
-          accessorKey: "vehicule.marque",
-          header: "Voiture",
-        },
-        {
-          accessorFn: (row) => row.locataire.nomPrenom,
-          header: "Client",
-        },
-        {
-          accessorKey: "vehicule.immatriculation",
-          header: "Immatriculation",
-        },
-        {
-          accessorKey: "location.dateDebut",
-          header: "Date départ",
-          cell: ({ row }) => {
-            const date = getSafeDate(row.original.location.dateDebut);
-            return date ? format(date, "dd/MM/yyyy", { locale: fr }) : "N/A";
-          },
-        },
-        {
-          accessorKey: "location.dateFin",
-          header: "Date de retour",
-          cell: ({ row }) => {
-            const date = getSafeDate(row.original.location.dateFin);
-            if (!date) return "Date invalide";
-            
-            const isReturnToday = isToday(date);
-            const isOverdue = startOfDay(date).getTime() < startOfDay(new Date()).getTime() && row.original.statut === 'en_cours';
-
-            return (
-              <div className="flex items-center gap-2">
-                <span className={cn(isOverdue && "text-red-600 font-bold")}>
-                    {format(date, "dd/MM/yyyy", { locale: fr })}
-                </span>
-                {(isReturnToday || isOverdue) && row.original.statut === 'en_cours' && (
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                  </span>
-                )}
-              </div>
-            );
-          },
-        },
-        {
-          accessorKey: "statut",
-          header: "Statut",
-          cell: ({ row }) => {
-            const status = row.original.statut;
-            return (
-              <Badge
-                variant={"outline"}
-                className={cn(
-                  status === "en_cours"
-                    ? "bg-orange-100 text-orange-700 border-orange-200"
-                    : "bg-green-100 text-green-700 border-green-200"
-                )}
-              >
-                {status === "en_cours" ? "En cours" : "Terminée"}
-              </Badge>
-            );
-          },
-        },
-      ];
-    }
-    
     return [
     {
       accessorKey: "contractNumber",
@@ -371,16 +302,17 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
           const isOverdue = startOfDay(date).getTime() < startOfDay(new Date()).getTime() && row.original.statut === 'en_cours';
 
           return (
-              <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
                   <span className={cn(isOverdue && "text-destructive font-bold")}>
                     {format(date, "dd/MM/yyyy", { locale: fr })}
                   </span>
-                  {isReturnToday && row.original.statut === 'en_cours' && (
-                      <Badge className="bg-red-600 hover:bg-red-700 text-white animate-pulse text-[10px] h-5 py-0 px-1.5 w-fit">
-                          RETOUR AUJOURD'HUI
-                      </Badge>
+                  {(isReturnToday || isOverdue) && row.original.statut === 'en_cours' && (
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                    </span>
                   )}
-                  {isOverdue && (
+                  {isOverdue && !isDashboard && (
                       <Badge variant="destructive" className="text-[10px] h-5 py-0 px-1.5 w-fit">
                           EN RETARD
                       </Badge>
