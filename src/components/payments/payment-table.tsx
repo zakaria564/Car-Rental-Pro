@@ -408,8 +408,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
               "text-[12px] w-[90px] flex justify-center",
               status === 'Payé' && "bg-green-100 text-green-800 border-green-300 hover:bg-green-100",
               status === 'Paiement Partiel' && "bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-100",
-              status === 'Non Payé' && "bg-red-600 text-white border-red-700 hover:bg-red-600",
-              row.getIsGrouped() && "scale-90"
+              status === 'Non Payé' && "bg-red-600 text-white border-red-700 hover:bg-red-600"
             )}>
               {status}
             </Badge>
