@@ -257,7 +257,7 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
                    cric: insp.cric,
                    giletTriangle: insp.giletTriangle,
                    doubleCles: insp.doubleCles,
-                   dommagesNotes: insp.notes,
+                   dommagesNotes: insp.dommagesNotes,
                    damages: insp.damages,
                    photos: insp.photos || []
                }
@@ -341,6 +341,25 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
   const selectedCarId = form.watch("voitureId");
   const dateRange = form.watch("dateRange");
   const dateRetour = form.watch("dateRetour");
+
+  // Liste des clients disponibles (ceux qui n'ont pas de contrat en cours)
+  const availableClients = React.useMemo(() => {
+    if (mode !== 'new') return clients;
+    
+    // On collecte les CIN des clients qui ont actuellement une location "en_cours"
+    const busyClientCins = new Set<string>();
+    rentals.forEach(r => {
+      if (r.statut === 'en_cours') {
+        busyClientCins.add(r.locataire.cin);
+        if (r.conducteur2?.cin) {
+          busyClientCins.add(r.conducteur2.cin);
+        }
+      }
+    });
+    
+    // On filtre la liste des clients pour exclure ceux qui sont occupés
+    return clients.filter(c => !busyClientCins.has(c.cin));
+  }, [clients, rentals, mode]);
 
   React.useEffect(() => {
     if (selectedCarId && mode === 'new') {
@@ -632,8 +651,7 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
                 locataire: {
                     cin: selectedClient.cin,
                     nomPrenom: selectedClient.nom,
-                    permisNo: selectedClient.permisNo || 'N/A',
-                    permisDateDelivrance: selectedClient.permisDateDelivrance,
+                    permisNo: selectedClient.nom,
                     telephone: selectedClient.telephone,
                 },
                 ...(selectedConducteur2 && {
@@ -794,7 +812,7 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
                               <SelectTrigger><SelectValue placeholder="Sélectionner un client" /></SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {clients.map(client => <SelectItem key={client.id} value={client.id}>{client.nom} ({client.cin})</SelectItem>)}
+                              {availableClients.map(client => <SelectItem key={client.id} value={client.id}>{client.nom} ({client.cin})</SelectItem>)}
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -819,7 +837,7 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
                             </FormControl>
                             <SelectContent>
                                <SelectItem value="_none_">Aucun</SelectItem>
-                               {clients.filter(client => client.id !== selectedClientId).map(client => (
+                               {availableClients.filter(client => client.id !== selectedClientId).map(client => (
                                 <SelectItem key={client.id} value={client.id}>{client.nom} ({client.cin})</SelectItem>
                                ))}
                             </SelectContent>
