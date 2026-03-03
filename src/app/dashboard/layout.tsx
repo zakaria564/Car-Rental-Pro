@@ -32,7 +32,7 @@ export default function DashboardLayout({
       <div className="flex flex-col">
         <header className="flex h-20 items-center gap-4 border-b bg-card px-4 lg:h-[80px] lg:px-6">
           <div className="flex-1 flex justify-center">
-            <h2 className="text-3xl md:text-4xl font-black tracking-tighter text-center uppercase bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent drop-shadow-md">
+            <h2 className="text-3xl md:text-4xl font-black text-center uppercase bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent drop-shadow-md">
               Welcome to the Boukhari family
             </h2>
           </div>
