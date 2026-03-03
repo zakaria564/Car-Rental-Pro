@@ -160,67 +160,17 @@ export default function DashboardPage() {
             />
         </div>
         <div className="grid gap-6">
-            {/* Alertes Documents */}
+            {/* Locations en cours */}
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <TriangleAlert className="h-5 w-5 text-destructive" />
-                        <span>Alertes Documents</span>
-                    </CardTitle>
-                    <CardDescription>
-                        Véhicules avec documents expirés ou expirant bientôt.
-                    </CardDescription>
+                    <CardTitle>Locations en cours</CardTitle>
                 </CardHeader>
                 <CardContent>
-                   {expiringDocuments.length > 0 ? (
-                    <div className="space-y-4">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="text-[12px] font-bold">Véhicule</TableHead>
-                                    <TableHead className="text-[12px] font-bold">Document</TableHead>
-                                    <TableHead className="text-right text-[12px] font-bold">Expire le</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {expiringDocuments.slice(0, 5).map((alert, index) => (
-                                    <TableRow key={index}>
-                                        <TableCell className="text-[12px]">
-                                            <div className="font-medium">{alert.car.marque} {alert.car.modele}</div>
-                                            <div className="text-[11px] text-muted-foreground">
-                                                {alert.car.immat}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-[12px]">{alert.documentName}</TableCell>
-                                        <TableCell className="text-right text-[12px]">
-                                            <div className="flex flex-col items-end">
-                                                <span>{format(alert.expiryDate, "dd/MM/yyyy", { locale: fr })}</span>
-                                                <Badge variant={alert.status === 'Expiré' ? 'destructive' : 'default'} className={cn("h-5 px-1.5 text-[10px] w-[80px] flex justify-center", alert.status === 'Expire bientôt' && 'bg-accent text-accent-foreground hover:bg-accent/80')}>
-                                                    {alert.status}
-                                                </Badge>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                         {expiringDocuments.length > 5 && (
-                            <div className="text-center mt-2">
-                                <Link href="/dashboard/cars" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "text-xs")}>
-                                    et {expiringDocuments.length - 5} autre(s)...
-                                </Link>
-                            </div>
-                        )}
-                    </div>
-                   ) : (
-                    <div className="flex flex-col items-center justify-center h-full text-center p-8">
-                        <p className="text-muted-foreground text-sm">Aucune alerte de document pour le moment.</p>
-                    </div>
-                   )}
+                    <RentalTable rentals={activeRentalsList.slice(0, 5)} isDashboard={true} />
                 </CardContent>
             </Card>
 
-            {/* Alertes Entretien - Full Width to avoid scrolling */}
+            {/* Alertes Entretien */}
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -282,13 +232,63 @@ export default function DashboardPage() {
                 </CardContent>
             </Card>
 
-            {/* Locations en cours */}
+            {/* Alertes Documents */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Locations en cours</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                        <TriangleAlert className="h-5 w-5 text-destructive" />
+                        <span>Alertes Documents</span>
+                    </CardTitle>
+                    <CardDescription>
+                        Véhicules avec documents expirés ou expirant bientôt.
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <RentalTable rentals={activeRentalsList.slice(0, 5)} isDashboard={true} />
+                   {expiringDocuments.length > 0 ? (
+                    <div className="space-y-4">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="text-[12px] font-bold">Véhicule</TableHead>
+                                    <TableHead className="text-[12px] font-bold">Document</TableHead>
+                                    <TableHead className="text-right text-[12px] font-bold">Expire le</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {expiringDocuments.slice(0, 5).map((alert, index) => (
+                                    <TableRow key={index}>
+                                        <TableCell className="text-[12px]">
+                                            <div className="font-medium">{alert.car.marque} {alert.car.modele}</div>
+                                            <div className="text-[11px] text-muted-foreground">
+                                                {alert.car.immat}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-[12px]">{alert.documentName}</TableCell>
+                                        <TableCell className="text-right text-[12px]">
+                                            <div className="flex flex-col items-end">
+                                                <span>{format(alert.expiryDate, "dd/MM/yyyy", { locale: fr })}</span>
+                                                <Badge variant={alert.status === 'Expiré' ? 'destructive' : 'default'} className={cn("h-5 px-1.5 text-[10px] w-[80px] flex justify-center", alert.status === 'Expire bientôt' && 'bg-accent text-accent-foreground hover:bg-accent/80')}>
+                                                    {alert.status}
+                                                </Badge>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                         {expiringDocuments.length > 5 && (
+                            <div className="text-center mt-2">
+                                <Link href="/dashboard/cars" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "text-xs")}>
+                                    et {expiringDocuments.length - 5} autre(s)...
+                                </Link>
+                            </div>
+                        )}
+                    </div>
+                   ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-center p-8">
+                        <p className="text-muted-foreground text-sm">Aucune alerte de document pour le moment.</p>
+                    </div>
+                   )}
                 </CardContent>
             </Card>
         </div>
