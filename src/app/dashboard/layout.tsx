@@ -1,4 +1,3 @@
-
 import { UserAvatar } from '@/components/user-avatar';
 import { SidebarBrand } from '@/components/sidebar-brand';
 import { Button } from '@/components/ui/button';
@@ -24,7 +23,7 @@ export default function DashboardLayout({
     <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
       <div className="hidden border-r bg-card md:block">
         <div className="flex h-full max-h-screen flex-col gap-2">
-          <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
+          <div className="flex h-20 items-center border-b px-4 lg:h-[80px] lg:px-6">
             <SidebarBrand />
           </div>
           <div className="flex-1">
@@ -33,7 +32,7 @@ export default function DashboardLayout({
         </div>
       </div>
       <div className="flex flex-col">
-        <header className="flex h-14 items-center gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6">
+        <header className="flex h-20 items-center gap-4 border-b bg-card px-4 lg:h-[80px] lg:px-6">
           <div className="w-full flex-1">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />

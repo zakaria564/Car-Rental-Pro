@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useFirebase } from '@/firebase';
@@ -10,9 +9,9 @@ export function SidebarBrand() {
     const companyName = companySettings?.companyName || "Location Auto Pro";
 
     return (
-        <Link href="/dashboard" className="flex items-center gap-3 font-bold text-lg">
+        <Link href="/dashboard" className="flex items-center gap-3 font-bold text-xl py-2">
             <Logo />
-            <span className="truncate">{companyName}</span>
+            <span className="truncate max-w-[180px]">{companyName}</span>
         </Link>
     );
 }
