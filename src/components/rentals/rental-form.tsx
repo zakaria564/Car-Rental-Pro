@@ -556,8 +556,21 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
             
             await batch.commit();
             
-            toast({ title: "Contrat mis à jour", description: `La location a été étendue jusqu'au ${format(dateRange.to, "dd/MM/yyyy")}.` });
-            onFinished();
+            toast({ title: "Contrat prolongé", description: `La location a été étendue jusqu'au ${format(dateRange.to, "dd/MM/yyyy")}.` });
+            
+            // Transition directly to payment view after extension
+            const updatedRental: Rental = {
+                ...rental,
+                location: {
+                    ...rental.location,
+                    dateFin: dateRange.to,
+                    lieuRetour: lieuRetour || "Agence",
+                    nbrJours: finalRentalDays,
+                    montantTotal: finalAmountToPay,
+                }
+            };
+            setNewlyCreatedRental(updatedRental);
+            setShowPaymentForm(true);
 
         } else { // mode === 'new'
             const batch = writeBatch(firestore);
@@ -706,7 +719,7 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
   
   const buttonText = {
       new: 'Créer le contrat',
-      edit: 'Mettre à jour le contrat',
+      edit: 'Enregistrer le prolongement',
       'check-in': 'Terminer et Réceptionner le Véhicule'
   };
 
@@ -746,14 +759,16 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
       return (
           <div className="flex flex-col items-center justify-center h-full text-center p-8 mt-8">
               <CheckCircle className="w-16 h-16 text-green-500 mb-4" />
-              <h3 className="text-xl font-semibold">Contrat créé avec succès !</h3>
+              <h3 className="text-xl font-semibold">
+                {mode === 'edit' ? "Contrat prolongé !" : "Contrat enregistré !"}
+              </h3>
               <p className="text-muted-foreground mt-2 mb-6">
-                  Le contrat N° {newlyCreatedRental.contractNumber} pour {newlyCreatedRental.locataire.nomPrenom} a été créé.
+                  Le contrat N° {newlyCreatedRental.contractNumber} pour {newlyCreatedRental.locataire.nomPrenom} a été mis à jour.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 w-full">
                   <Button onClick={() => setShowPaymentForm(true)} className="w-full">
                       <DollarSign className="mr-2" />
-                      Ajouter un paiement
+                      Encaisser le paiement
                   </Button>
                   <Button variant="outline" onClick={onFinished} className="w-full">Fermer</Button>
               </div>
