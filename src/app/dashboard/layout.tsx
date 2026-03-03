@@ -9,8 +9,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Search } from 'lucide-react';
-import { Input } from '@/components/ui/input';
 import { DashboardNav } from '@/components/dashboard-nav';
 import Link from 'next/link';
 
@@ -34,14 +32,7 @@ export default function DashboardLayout({
       <div className="flex flex-col">
         <header className="flex h-20 items-center gap-4 border-b bg-card px-4 lg:h-[80px] lg:px-6">
           <div className="w-full flex-1">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Rechercher..."
-                className="w-full appearance-none bg-background pl-8 shadow-none md:w-2/3 lg:w-1/3"
-              />
-            </div>
+            <h2 className="text-xl font-bold text-primary tracking-tight">Bienvenue chez la famille Boukhari</h2>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
