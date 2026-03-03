@@ -336,14 +336,14 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
           
           const reste = total - totalPaid;
           
-          let status: 'Payé' | 'Paiement Partiel' | 'Non Payé' = 'Non Payé';
+          let status: 'Payé' | 'Partiel' | 'Non Payé' = 'Non Payé';
           let variant: "default" | "destructive" | "secondary" = "destructive";
 
           if (reste <= 0.01) {
             status = 'Payé';
             variant = 'default';
           } else if (totalPaid > 0 && reste > 0.01) {
-            status = 'Paiement Partiel';
+            status = 'Partiel';
             variant = 'secondary';
           }
           
@@ -351,7 +351,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
             <Badge variant={variant} className={cn(
               "text-[11px] w-[80px] flex justify-center",
               status === 'Payé' && "bg-green-100 text-green-700 border-green-200",
-              status === 'Paiement Partiel' && "bg-orange-100 text-orange-700 border-orange-200",
+              status === 'Partiel' && "bg-orange-100 text-orange-700 border-orange-200",
               status === 'Non Payé' && "bg-red-100 text-red-800 border-red-300"
             )}>
               {status}

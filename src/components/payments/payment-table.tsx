@@ -392,14 +392,14 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
           
           const reste = total - paye;
           
-          let status: 'Payé' | 'Paiement Partiel' | 'Non Payé' = 'Non Payé';
+          let status: 'Payé' | 'Partiel' | 'Non Payé' = 'Non Payé';
           let variant: "default" | "destructive" | "secondary" = "destructive";
 
           if (reste <= 0.01) {
             status = 'Payé';
             variant = 'default';
           } else if (paye > 0 && reste > 0.01) {
-            status = 'Paiement Partiel';
+            status = 'Partiel';
             variant = 'secondary';
           }
           
@@ -407,7 +407,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
             <Badge variant={variant} className={cn(
               "text-[11px] w-[80px] flex justify-center",
               status === 'Payé' && "bg-green-100 text-green-800 border-green-300 hover:bg-green-100",
-              status === 'Paiement Partiel' && "bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-100",
+              status === 'Partiel' && "bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-100",
               status === 'Non Payé' && "bg-red-600 text-white border-red-700 hover:bg-red-600"
             )}>
               {status}
