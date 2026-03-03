@@ -1,4 +1,3 @@
-
 'use client';
 import { Car, KeyRound, TriangleAlert, Wrench, Clock } from "lucide-react";
 import { StatCard } from "@/components/stat-card";
@@ -12,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { differenceInDays, format, startOfDay } from 'date-fns';
+import { differenceInDays, format, startOfDay, differenceInCalendarDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Link from "next/link";
 import { cn, getSafeDate } from "@/lib/utils";
@@ -105,7 +104,6 @@ export default function DashboardPage() {
         const { kilometrage, maintenanceSchedule } = car;
         if (!maintenanceSchedule) return;
 
-        // Mileage-based alerts
         const checkKmAlert = (nextKm: number | undefined, type: string, soonThreshold: number = 1000) => {
             if (typeof nextKm !== 'number') return;
             const diff = nextKm - kilometrage;
@@ -131,13 +129,6 @@ export default function DashboardPage() {
         return 0;
     });
   }, [cars]);
-
-  function differenceInCalendarDays(dateLeft: Date, dateRight: Date): number {
-    const startLeft = startOfDay(dateLeft);
-    const startRight = startOfDay(dateRight);
-    return Math.round((startLeft.getTime() - startRight.getTime()) / (1000 * 60 * 60 * 24));
-  }
-
 
   return (
     <>
@@ -176,7 +167,7 @@ export default function DashboardPage() {
                         <span>Alertes Documents</span>
                     </CardTitle>
                     <CardDescription>
-                        Véhicules avec documents expirés ou expirant dans les 7 prochains jours.
+                        Véhicules avec documents expirés ou expirant bientôt.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -185,25 +176,25 @@ export default function DashboardPage() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Véhicule</TableHead>
-                                    <TableHead>Document</TableHead>
-                                    <TableHead className="text-right">Expire le</TableHead>
+                                    <TableHead className="text-[12px] font-bold">Véhicule</TableHead>
+                                    <TableHead className="text-[12px] font-bold">Document</TableHead>
+                                    <TableHead className="text-right text-[12px] font-bold">Expire le</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {expiringDocuments.slice(0, 4).map((alert, index) => (
                                     <TableRow key={index}>
-                                        <TableCell>
+                                        <TableCell className="text-[12px]">
                                             <div className="font-medium">{alert.car.marque} {alert.car.modele}</div>
-                                            <div className="text-sm text-muted-foreground">
+                                            <div className="text-[11px] text-muted-foreground">
                                                 {alert.car.immat}
                                             </div>
                                         </TableCell>
-                                        <TableCell>{alert.documentName}</TableCell>
-                                        <TableCell className="text-right">
+                                        <TableCell className="text-[12px]">{alert.documentName}</TableCell>
+                                        <TableCell className="text-right text-[12px]">
                                             <div className="flex flex-col items-end">
                                                 <span>{format(alert.expiryDate, "dd/MM/yyyy", { locale: fr })}</span>
-                                                <Badge variant={alert.status === 'Expiré' ? 'destructive' : 'default'} className={cn(alert.status === 'Expire bientôt' && 'bg-accent text-accent-foreground hover:bg-accent/80')}>
+                                                <Badge variant={alert.status === 'Expiré' ? 'destructive' : 'default'} className={cn("h-5 px-1.5 text-[10px] w-[80px] flex justify-center", alert.status === 'Expire bientôt' && 'bg-accent text-accent-foreground hover:bg-accent/80')}>
                                                     {alert.status}
                                                 </Badge>
                                             </div>
@@ -213,8 +204,8 @@ export default function DashboardPage() {
                             </TableBody>
                         </Table>
                          {expiringDocuments.length > 4 && (
-                            <div className="text-center">
-                                <Link href="/dashboard/cars" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
+                            <div className="text-center mt-2">
+                                <Link href="/dashboard/cars" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "text-xs")}>
                                     et {expiringDocuments.length - 4} autre(s)...
                                 </Link>
                             </div>
@@ -222,7 +213,7 @@ export default function DashboardPage() {
                     </div>
                    ) : (
                     <div className="flex flex-col items-center justify-center h-full text-center p-8">
-                        <p className="text-muted-foreground">Aucune alerte de document pour le moment.</p>
+                        <p className="text-muted-foreground text-sm">Aucune alerte de document pour le moment.</p>
                     </div>
                    )}
                 </CardContent>
@@ -244,25 +235,27 @@ export default function DashboardPage() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Véhicule</TableHead>
-                                    <TableHead>Intervention</TableHead>
-                                    <TableHead className="text-right">Échéance</TableHead>
+                                    <TableHead className="text-[12px] font-bold">Véhicule</TableHead>
+                                    <TableHead className="text-[12px] font-bold">Intervention</TableHead>
+                                    <TableHead className="text-[12px] font-bold text-center">Km Actuel</TableHead>
+                                    <TableHead className="text-right text-[12px] font-bold">Échéance</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {maintenanceAlerts.slice(0, 4).map((alert, index) => (
                                     <TableRow key={index}>
-                                        <TableCell>
+                                        <TableCell className="text-[12px]">
                                             <div className="font-medium">{alert.car.marque} {alert.car.modele}</div>
-                                            <div className="text-sm text-muted-foreground">
+                                            <div className="text-[11px] text-muted-foreground">
                                                 {alert.car.immat}
                                             </div>
                                         </TableCell>
-                                        <TableCell>{alert.alertType}</TableCell>
-                                        <TableCell className="text-right">
+                                        <TableCell className="text-[12px]">{alert.alertType}</TableCell>
+                                        <TableCell className="text-[12px] text-center">{alert.currentValue}</TableCell>
+                                        <TableCell className="text-right text-[12px]">
                                             <div className="flex flex-col items-end">
-                                                <span>{alert.value}</span>
-                                                <Badge variant={alert.status === 'À faire' ? 'destructive' : 'default'} className={cn(alert.status === 'Bientôt' && 'bg-blue-100 text-blue-800 hover:bg-blue-100/80')}>
+                                                <span className="font-semibold">{alert.value}</span>
+                                                <Badge variant={alert.status === 'À faire' ? 'destructive' : 'default'} className={cn("h-5 px-1.5 text-[10px] w-[80px] flex justify-center", alert.status === 'Bientôt' && 'bg-blue-100 text-blue-800 hover:bg-blue-100/80')}>
                                                     {alert.status}
                                                 </Badge>
                                             </div>
@@ -272,8 +265,8 @@ export default function DashboardPage() {
                             </TableBody>
                         </Table>
                          {maintenanceAlerts.length > 4 && (
-                            <div className="text-center">
-                                <Link href="/dashboard/cars" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
+                            <div className="text-center mt-2">
+                                <Link href="/dashboard/cars" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "text-xs")}>
                                     et {maintenanceAlerts.length - 4} autre(s)...
                                 </Link>
                             </div>
@@ -281,7 +274,7 @@ export default function DashboardPage() {
                     </div>
                    ) : (
                     <div className="flex flex-col items-center justify-center h-full text-center p-8">
-                        <p className="text-muted-foreground">Aucune alerte d'entretien pour le moment.</p>
+                        <p className="text-muted-foreground text-sm">Aucune alerte d'entretien pour le moment.</p>
                     </div>
                    )}
                 </CardContent>
