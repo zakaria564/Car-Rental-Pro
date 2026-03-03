@@ -31,8 +31,10 @@ export default function DashboardLayout({
       </div>
       <div className="flex flex-col">
         <header className="flex h-20 items-center gap-4 border-b bg-card px-4 lg:h-[80px] lg:px-6">
-          <div className="w-full flex-1">
-            <h2 className="text-xl font-bold text-primary tracking-tight">Bienvenue chez la famille Boukhari</h2>
+          <div className="flex-1 flex justify-center">
+            <h2 className="text-3xl font-extrabold text-primary tracking-tight text-center uppercase">
+              Welcome to the Boukhari family
+            </h2>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
