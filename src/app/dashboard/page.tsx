@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { differenceInDays, format, startOfDay, differenceInCalendarDays } from 'date-fns';
+import { format, startOfDay, differenceInCalendarDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Link from "next/link";
 import { cn, getSafeDate } from "@/lib/utils";
@@ -159,7 +159,8 @@ export default function DashboardPage() {
                 color={returnsToday > 0 ? "text-red-500" : "text-muted-foreground"} 
             />
         </div>
-        <div className="grid auto-rows-fr gap-4 lg:grid-cols-2">
+        <div className="grid gap-6">
+            {/* Alertes Documents */}
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -182,7 +183,7 @@ export default function DashboardPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {expiringDocuments.slice(0, 4).map((alert, index) => (
+                                {expiringDocuments.slice(0, 5).map((alert, index) => (
                                     <TableRow key={index}>
                                         <TableCell className="text-[12px]">
                                             <div className="font-medium">{alert.car.marque} {alert.car.modele}</div>
@@ -203,10 +204,10 @@ export default function DashboardPage() {
                                 ))}
                             </TableBody>
                         </Table>
-                         {expiringDocuments.length > 4 && (
+                         {expiringDocuments.length > 5 && (
                             <div className="text-center mt-2">
                                 <Link href="/dashboard/cars" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "text-xs")}>
-                                    et {expiringDocuments.length - 4} autre(s)...
+                                    et {expiringDocuments.length - 5} autre(s)...
                                 </Link>
                             </div>
                         )}
@@ -219,6 +220,7 @@ export default function DashboardPage() {
                 </CardContent>
             </Card>
 
+            {/* Alertes Entretien - Full Width to avoid scrolling */}
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -242,7 +244,7 @@ export default function DashboardPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {maintenanceAlerts.slice(0, 4).map((alert, index) => (
+                                {maintenanceAlerts.slice(0, 5).map((alert, index) => (
                                     <TableRow key={index}>
                                         <TableCell className="text-[12px]">
                                             <div className="font-medium">{alert.car.marque} {alert.car.modele}</div>
@@ -264,10 +266,10 @@ export default function DashboardPage() {
                                 ))}
                             </TableBody>
                         </Table>
-                         {maintenanceAlerts.length > 4 && (
+                         {maintenanceAlerts.length > 5 && (
                             <div className="text-center mt-2">
                                 <Link href="/dashboard/cars" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "text-xs")}>
-                                    et {maintenanceAlerts.length - 4} autre(s)...
+                                    et {maintenanceAlerts.length - 5} autre(s)...
                                 </Link>
                             </div>
                         )}
@@ -280,7 +282,8 @@ export default function DashboardPage() {
                 </CardContent>
             </Card>
 
-            <Card className="lg:col-span-2">
+            {/* Locations en cours */}
+            <Card>
                 <CardHeader>
                     <CardTitle>Locations en cours</CardTitle>
                 </CardHeader>
