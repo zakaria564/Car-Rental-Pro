@@ -968,7 +968,7 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
                         <FormItem>
                           <FormLabel>Kilométrage de départ</FormLabel>
                           <FormControl>
-                            <Input type="number" placeholder="64000" {...field} value={field.value ?? ''} readOnly={mode !== 'new'} />
+                            <Input type="number" placeholder="64000" {...field} value={field.value ?? ''} readOnly />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
