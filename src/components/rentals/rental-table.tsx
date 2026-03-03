@@ -311,11 +311,6 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
                       <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500"></span>
                     </span>
                   )}
-                  {isOverdue && !isDashboard && (
-                      <Badge variant="destructive" className="text-[10px] h-5 py-0 px-1.5 w-fit">
-                          EN RETARD
-                      </Badge>
-                  )}
               </div>
           );
       }
