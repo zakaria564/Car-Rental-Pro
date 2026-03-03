@@ -67,14 +67,16 @@ export default function SignupPage() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-background">
       <Card className="mx-auto max-w-sm w-full">
-        <CardHeader className="space-y-2 text-center">
+        <CardHeader className="space-y-4 text-center">
           <div className="inline-block mx-auto">
-            <Logo />
+            <Logo className="h-20 w-20" />
           </div>
-          <CardTitle className="text-2xl font-bold">Créer un compte</CardTitle>
-          <CardDescription>
-            Entrez vos informations pour créer un nouveau compte
-          </CardDescription>
+          <div className="space-y-2">
+            <CardTitle className="text-2xl font-bold">Créer un compte</CardTitle>
+            <CardDescription>
+              Entrez vos informations pour créer un nouveau compte
+            </CardDescription>
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSignUp} className="space-y-4">

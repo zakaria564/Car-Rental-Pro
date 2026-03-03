@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useFirebase } from '@/firebase';
@@ -31,8 +30,8 @@ export function Logo({ className }: { className?: string }) {
   }
 
   return (
-    <div className={cn("bg-primary text-primary-foreground rounded-lg p-2.5 flex-shrink-0 flex items-center justify-center h-12 w-12", className)}>
-      <Car className="h-8 w-8" />
+    <div className={cn("bg-primary text-primary-foreground rounded-xl p-2.5 flex-shrink-0 flex items-center justify-center h-12 w-12 shadow-sm", className)}>
+      <Car className="h-full w-full" />
     </div>
   );
 }

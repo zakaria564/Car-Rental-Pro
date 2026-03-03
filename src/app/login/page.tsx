@@ -65,14 +65,16 @@ export default function LoginPage() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-background">
       <Card className="mx-auto max-w-sm w-full">
-        <CardHeader className="space-y-2 text-center">
+        <CardHeader className="space-y-4 text-center">
           <div className="inline-block mx-auto">
-            <Logo />
+            <Logo className="h-20 w-20" />
           </div>
-          <CardTitle className="text-2xl font-bold">Location Auto Pro</CardTitle>
-          <CardDescription>
-            Entrez votre email ci-dessous pour vous connecter à votre compte
-          </CardDescription>
+          <div className="space-y-2">
+            <CardTitle className="text-2xl font-bold">Location Auto Pro</CardTitle>
+            <CardDescription>
+              Entrez votre email ci-dessous pour vous connecter à votre compte
+            </CardDescription>
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
