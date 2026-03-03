@@ -11,15 +11,15 @@ import { errorEmitter } from '@/firebase/error-emitter';
 export function FirebaseErrorListener() {
   useEffect(() => {
     const handlePermissionError = (error: Error) => {
-      // In a Next.js development environment, throwing an error here will
-      // display it in the development overlay, which is very useful for
-      // debugging security rules.
+      // In a Next.js development environment, logging the error clearly
+      // is better than throwing it in a timeout which can disrupt the router.
       if (process.env.NODE_ENV === 'development') {
-        // We throw it in a timeout to break out of the current React render cycle
-        // and ensure it's caught by the global error handler.
-        setTimeout(() => {
-          throw error;
-        }, 0);
+        console.group('🔥 Firestore Security Error');
+        console.error(error.message);
+        if ('context' in error) {
+            console.info('Context:', (error as any).context);
+        }
+        console.groupEnd();
       } else {
         // In production, you might want to log this to a service
         // like Sentry, but we'll just log to console for now.

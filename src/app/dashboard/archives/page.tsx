@@ -12,6 +12,7 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ArchivedPaymentsTable from "@/components/archives/archived-payments-table";
+import { getSafeDate } from "@/lib/utils";
 
 export default function ArchivesPage() {
   const [archivedRentals, setArchivedRentals] = React.useState<Rental[]>([]);
@@ -37,8 +38,8 @@ export default function ArchivesPage() {
       } as Rental));
 
       rentalsData.sort((a, b) => {
-        const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
-        const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+        const dateA = getSafeDate(a.createdAt)?.getTime() || 0;
+        const dateB = getSafeDate(b.createdAt)?.getTime() || 0;
         return dateB - dateA;
       });
 
@@ -64,8 +65,8 @@ export default function ArchivesPage() {
       } as Payment));
 
       paymentsData.sort((a, b) => {
-        const dateA = a.paymentDate?.toDate ? a.paymentDate.toDate().getTime() : 0;
-        const dateB = b.paymentDate?.toDate ? b.paymentDate.toDate().getTime() : 0;
+        const dateA = getSafeDate(a.paymentDate)?.getTime() || 0;
+        const dateB = getSafeDate(b.paymentDate)?.getTime() || 0;
         return dateB - dateA;
       });
       

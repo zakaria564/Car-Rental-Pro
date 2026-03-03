@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useForm, useFieldArray } from "react-hook-form";
@@ -523,7 +522,8 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
                 };
 
                 transaction.update(rentalRef, updatePayload);
-                transaction.update(archivedRentalRef, updatePayload); // This will now execute reliably
+                // Use set merge for archives to be more robust
+                transaction.set(archivedRentalRef, updatePayload, { merge: true });
                 transaction.update(carDocRef, { kilometrage: data.kilometrageRetour, disponibilite: 'disponible' });
             });
 
@@ -552,7 +552,7 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
             };
 
             batch.update(rentalRef, updatePayload);
-            batch.update(archivedRentalRef, updatePayload);
+            batch.set(archivedRentalRef, updatePayload, { merge: true });
             
             await batch.commit();
             
