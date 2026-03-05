@@ -269,33 +269,7 @@ export default function CarCard({ car }: { car: Car }) {
 
   return (
     <Card className="relative flex flex-col sm:flex-row overflow-hidden group w-full">
-        <div className="absolute top-2 right-2 z-10 p-1 flex gap-1">
-            {documentAttention.needsAttention && (
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <div className="p-1 rounded-full bg-background/80 backdrop-blur-sm">
-                                <TriangleAlert className="h-5 w-5 text-destructive" />
-                            </div>
-                        </TooltipTrigger>
-                        <TooltipContent><p>{documentAttention.message}</p></TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
-            )}
-             {maintenanceAttention.needsAttention && (
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                             <div className="p-1 rounded-full bg-background/80 backdrop-blur-sm">
-                                <Wrench className="h-5 w-5 text-blue-500" />
-                            </div>
-                        </TooltipTrigger>
-                        <TooltipContent><p>{maintenanceAttention.message}</p></TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
-            )}
-        </div>
-      <div className="relative w-full sm:w-1/3 h-48 sm:h-auto bg-muted">
+      <div className="relative w-full sm:w-1/3 h-48 sm:h-auto bg-muted shrink-0">
         <div className="absolute top-2 left-2 z-10">
            <Badge className={cn(availability.className, "text-white")}>{availability.text}</Badge>
         </div>
@@ -315,8 +289,38 @@ export default function CarCard({ car }: { car: Car }) {
       </div>
       <div className="p-4 flex flex-col flex-grow w-full sm:w-2/3">
         <div className="flex-grow">
-          <h3 className="text-lg font-bold truncate">{car.marque} {car.modele}</h3>
-          <p className="text-sm text-muted-foreground">{car.immat}</p>
+          <div className="flex justify-between items-start gap-2 mb-1">
+            <div className="min-w-0">
+              <h3 className="text-lg font-bold truncate">{car.marque} {car.modele}</h3>
+              <p className="text-sm text-muted-foreground">{car.immat}</p>
+            </div>
+            <div className="flex gap-1 shrink-0">
+                {documentAttention.needsAttention && (
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className="p-1 rounded-full bg-destructive/10">
+                                    <TriangleAlert className="h-5 w-5 text-destructive" />
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent><p>{documentAttention.message}</p></TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                )}
+                 {maintenanceAttention.needsAttention && (
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                 <div className="p-1 rounded-full bg-blue-100 dark:bg-blue-900/30">
+                                    <Wrench className="h-5 w-5 text-blue-500" />
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent><p>{maintenanceAttention.message}</p></TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                )}
+            </div>
+          </div>
           <div className="mt-2 flex flex-wrap items-center text-xs text-muted-foreground gap-x-4 gap-y-1">
               <span className="inline-flex items-center gap-1.5">
                 <Gauge className="h-4 w-4" />
