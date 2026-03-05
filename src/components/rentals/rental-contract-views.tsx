@@ -8,7 +8,7 @@ import Image from 'next/image';
 import type { Rental, Damage, Inspection, DamageType, Payment } from "@/lib/definitions";
 import { damageTypes } from "@/lib/definitions";
 import { formatCurrency, cn } from "@/lib/utils";
-import { doc, getDoc, collection, getDocs, query, where } from "firebase/firestore";
+import { doc, onSnapshot, collection, query, where } from "firebase/firestore";
 import { useFirebase } from "@/firebase";
 import { ScrollArea } from "../ui/scroll-area";
 import CarDamageDiagram, { carParts } from "./car-damage-diagram";
@@ -136,28 +136,41 @@ export const InspectionDetailsView: React.FC<{ inspectionId: string, type: 'depa
             return;
         };
         
-        const fetchInspection = async () => {
-            setLoading(true);
-            try {
-                const inspectionRef = doc(firestore, 'inspections', inspectionId);
-                const inspectionSnap = await getDoc(inspectionRef);
+        setLoading(true);
+        const inspectionRef = doc(firestore, 'inspections', inspectionId);
+        const damagesRef = collection(firestore, `inspections/${inspectionId}/damages`);
 
-                if (inspectionSnap.exists()) {
-                    const inspectionData = inspectionSnap.data() as Omit<Inspection, 'id' | 'damages'>;
-                    const damagesRef = collection(firestore, `inspections/${inspectionId}/damages`);
-                    const damagesSnap = await getDocs(damagesRef);
-                    const damages = damagesSnap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Damage));
-                    
-                    setInspection({ ...inspectionData, id: inspectionSnap.id, damages });
-                }
-            } catch (error) {
-                console.error("Failed to fetch inspection details:", error);
-            } finally {
+        const unsubInspection = onSnapshot(inspectionRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const inspectionData = docSnap.data() as Omit<Inspection, 'id' | 'damages'>;
+                setInspection(prev => {
+                    const base = prev || { id: docSnap.id, damages: [] } as any;
+                    return { ...base, ...inspectionData, id: docSnap.id };
+                });
+                setLoading(false);
+            } else {
+                setInspection(null);
                 setLoading(false);
             }
-        };
+        }, (error) => {
+            console.error("Failed to listen to inspection details:", error);
+            setLoading(false);
+        });
 
-        fetchInspection();
+        const unsubDamages = onSnapshot(damagesRef, (damagesSnap) => {
+            const damages = damagesSnap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Damage));
+            setInspection(prev => {
+                if (!prev) return null;
+                return { ...prev, damages };
+            });
+        }, (error) => {
+            console.error("Failed to listen to damages:", error);
+        });
+
+        return () => {
+            unsubInspection();
+            unsubDamages();
+        };
     }, [firestore, inspectionId]);
     
     const damagesForDiagram = React.useMemo(() => {
@@ -276,20 +289,19 @@ export function RentalDetails({ rental, isArchived = false }: { rental: Rental, 
             return;
         }
 
-        const fetchPayments = async () => {
-            try {
-                const paymentsQuery = query(collection(firestore, "archived_payments"), where("rentalId", "==", rental.id));
-                const querySnapshot = await getDocs(paymentsQuery);
-                const paymentsData = querySnapshot.docs.map(doc => ({...doc.data(), id: doc.id } as Payment));
-                setArchivedPayments(paymentsData);
-            } catch (error) {
-                console.error("Error fetching archived payments:", error);
-            } finally {
-                setPaymentsLoading(false);
-            }
-        };
+        setPaymentsLoading(true);
+        const paymentsQuery = query(collection(firestore, "archived_payments"), where("rentalId", "==", rental.id));
+        
+        const unsubscribe = onSnapshot(paymentsQuery, (querySnapshot) => {
+            const paymentsData = querySnapshot.docs.map(doc => ({...doc.data(), id: doc.id } as Payment));
+            setArchivedPayments(paymentsData);
+            setPaymentsLoading(false);
+        }, (error) => {
+            console.error("Error fetching archived payments:", error);
+            setPaymentsLoading(false);
+        });
 
-        fetchPayments();
+        return () => unsubscribe();
     }, [isArchived, firestore, rental.id]);
 
     const safeDebutDate = getSafeDate(rental.location.dateDebut);
