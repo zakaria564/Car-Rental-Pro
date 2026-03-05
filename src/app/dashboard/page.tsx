@@ -285,7 +285,7 @@ export default function DashboardPage() {
                                         <TableCell className="text-right text-[12px]">
                                             <div className="flex flex-col items-end">
                                                 <span>{format(alert.expiryDate, "dd/MM/yyyy", { locale: fr })}</span>
-                                                <Badge variant={alert.status === 'Expiré' ? 'destructive' : 'default'} className={cn("h-5 px-1.5 text-[10px] w-[80px] flex justify-center", alert.status === 'Expire bientôt' && 'bg-accent text-accent-foreground hover:bg-accent/80')}>
+                                                <Badge variant={alert.status === 'Expiré' ? 'destructive' : 'default'} className={cn("h-5 px-2 text-[10px] w-[95px] flex justify-center", alert.status === 'Expire bientôt' && 'bg-accent text-accent-foreground hover:bg-accent/80')}>
                                                     {alert.status}
                                                 </Badge>
                                             </div>
