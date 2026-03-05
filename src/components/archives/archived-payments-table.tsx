@@ -133,7 +133,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
   const { firestore } = useFirebase();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [grouping, setGrouping] = React.useState<GroupingState>(['client']);
+  const [grouping, setGrouping] = React.useState<GroupingState>([]);
   
   const [statementRental, setStatementRental] = React.useState<Rental | null>(null);
   const [isStatementOpen, setIsStatementOpen] = React.useState(false);
@@ -267,7 +267,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
             );
         }
         return (
-          <div className="pl-8 text-muted-foreground italic text-[12px]">
+          <div className="pl-2 text-[12px] font-medium">
             {getValue() as string}
           </div>
         );

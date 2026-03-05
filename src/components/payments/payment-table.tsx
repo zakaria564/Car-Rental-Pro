@@ -117,7 +117,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
 }) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [grouping, setGrouping] = React.useState<GroupingState>(['client']);
+  const [grouping, setGrouping] = React.useState<GroupingState>([]);
   
   const [statementRental, setStatementRental] = React.useState<Rental | null>(null);
   const [isStatementOpen, setIsStatementOpen] = React.useState(false);
@@ -294,8 +294,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
             );
         }
         return (
-          <div className="pl-10 text-muted-foreground italic text-[12px] flex items-center gap-2">
-            <span className="w-1 h-1 rounded-full bg-muted-foreground opacity-50" />
+          <div className="pl-2 text-[12px] font-medium">
             {getValue() as string}
           </div>
         );

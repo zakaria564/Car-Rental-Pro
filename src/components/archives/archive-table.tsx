@@ -54,7 +54,7 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
   const { firestore } = useFirebase();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [grouping, setGrouping] = React.useState<GroupingState>(['client']);
+  const [grouping, setGrouping] = React.useState<GroupingState>([]);
   const [isDetailsOpen, setIsDetailsOpen] = React.useState(false);
   const [selectedRental, setSelectedRental] = React.useState<Rental | null>(null);
   const [rentalToDelete, setRentalToDelete] = React.useState<Rental | null>(null);
@@ -184,8 +184,7 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
             );
         }
         return (
-          <div className={cn("pl-10 text-muted-foreground italic text-[12px] flex items-center gap-2")}>
-            <span className="w-1 h-1 rounded-full bg-muted-foreground opacity-50" />
+          <div className={cn("pl-2 text-[12px] font-medium")}>
             {getValue() as string}
           </div>
         );

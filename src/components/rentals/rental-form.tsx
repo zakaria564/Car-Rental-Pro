@@ -639,22 +639,28 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
             const month = (now.getMonth() + 1).toString().padStart(2, '0');
             const prefix = `C-${year}-${month}-`;
 
-            const rentalsRef = collection(firestore, "rentals");
-            const q = query(
-                rentalsRef,
-                where("contractNumber", ">=", prefix),
-                where("contractNumber", "<", prefix + '\uf8ff'),
-                orderBy("contractNumber", "desc"),
-                limit(1)
-            );
-            
-            const querySnapshot = await getDocs(q);
-            let nextSeq = 1;
-            if (!querySnapshot.empty) {
+            // Uniqueness check: check BOTH rentals and archived_rentals
+            const getNextSeqForCollection = async (collectionPath: string) => {
+                const rentalsRef = collection(firestore, collectionPath);
+                const q = query(
+                    rentalsRef,
+                    where("contractNumber", ">=", prefix),
+                    where("contractNumber", "<", prefix + '\uf8ff'),
+                    orderBy("contractNumber", "desc"),
+                    limit(1)
+                );
+                const querySnapshot = await getDocs(q);
+                if (querySnapshot.empty) return 0;
                 const lastContractNumber = querySnapshot.docs[0].data().contractNumber;
-                const lastSeq = parseInt(lastContractNumber.split('-').pop() || '0', 10);
-                nextSeq = lastSeq + 1;
-            }
+                return parseInt(lastContractNumber.split('-').pop() || '0', 10);
+            };
+
+            const [seqActive, seqArchived] = await Promise.all([
+                getNextSeqForCollection("rentals"),
+                getNextSeqForCollection("archived_rentals")
+            ]);
+
+            const nextSeq = Math.max(seqActive, seqArchived) + 1;
             const newContractNumber = `${prefix}${nextSeq.toString().padStart(3, '0')}`;
             
             const dayDiff = differenceInCalendarDays(startOfDay(dateRange.to), startOfDay(dateRange.from));
