@@ -57,7 +57,25 @@ export default function DashboardPage() {
     rentals.filter(r => r.statut === 'en_cours')
   , [rentals]);
   
-  const availableCars = cars.filter(c => c.disponibilite === 'disponible').length;
+  // Une voiture est "disponible" seulement si son statut est 'disponible' 
+  // ET qu'elle n'a pas d'entretien en retard ("À faire")
+  const availableCarsCount = React.useMemo(() => {
+    return cars.filter(c => {
+        if (c.disponibilite !== 'disponible') return false;
+        
+        if (c.maintenanceSchedule) {
+            const km = c.kilometrage;
+            const s = c.maintenanceSchedule;
+            if ((s.prochainVidangeKm && km >= s.prochainVidangeKm) ||
+                (s.prochainFiltreGasoilKm && km >= s.prochainFiltreGasoilKm) ||
+                (s.prochainesPlaquettesFreinKm && km >= s.prochainesPlaquettesFreinKm) ||
+                (s.prochaineCourroieDistributionKm && km >= s.prochaineCourroieDistributionKm)) {
+                return false;
+            }
+        }
+        return true;
+    }).length;
+  }, [cars]);
   
   const returnsToday = React.useMemo(() => {
     const today = startOfDay(new Date()).getTime();
@@ -150,7 +168,7 @@ export default function DashboardPage() {
       <div className="space-y-6">
         <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
             <StatCard title="Voitures totales" value={cars.length.toString()} icon={Car} />
-            <StatCard title="Voitures disponibles" value={`${availableCars} / ${cars.length}`} icon={Car} color="text-green-500" />
+            <StatCard title="Voitures disponibles" value={`${availableCarsCount} / ${cars.length}`} icon={Car} color="text-green-500" />
             <StatCard title="Locations actives" value={activeRentalsList.length.toString()} icon={KeyRound} />
             <StatCard 
                 title="Retours aujourd'hui" 

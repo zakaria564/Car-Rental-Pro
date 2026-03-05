@@ -370,7 +370,28 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
     }
   }, [selectedCarId, cars, mode, setValue]);
 
-  const availableCars = cars.filter(car => car.disponibilite === 'disponible' || (rental && car.id === rental.vehicule.carId));
+  // Filtrer les voitures disponibles pour exclure celles qui ont un entretien à faire
+  const availableCars = React.useMemo(() => {
+    return cars.filter(car => {
+        // Condition de base : statut "disponible" ou voiture déjà affectée à ce contrat (en cas d'édition)
+        const isBaseAvailable = car.disponibilite === 'disponible' || (rental && car.id === rental.vehicule.carId);
+        if (!isBaseAvailable) return false;
+
+        // Restriction supplémentaire : pas de location si un entretien est dû ("À faire")
+        if (car.maintenanceSchedule) {
+            const km = car.kilometrage;
+            const s = car.maintenanceSchedule;
+            const isMaintenanceOverdue = (
+                (s.prochainVidangeKm && km >= s.prochainVidangeKm) ||
+                (s.prochainFiltreGasoilKm && km >= s.prochainFiltreGasoilKm) ||
+                (s.prochainesPlaquettesFreinKm && km >= s.prochainesPlaquettesFreinKm) ||
+                (s.prochaineCourroieDistributionKm && km >= s.prochaineCourroieDistributionKm)
+            );
+            if (isMaintenanceOverdue) return false;
+        }
+        return true;
+    });
+  }, [cars, rental]);
 
   const selectedCarForUI = React.useMemo(() => {
     return cars.find(car => car.id === selectedCarId);
