@@ -57,8 +57,6 @@ export default function DashboardPage() {
     rentals.filter(r => r.statut === 'en_cours')
   , [rentals]);
   
-  // Une voiture est "disponible" seulement si son statut est 'disponible' 
-  // ET qu'elle n'a pas d'entretien en retard ("À faire")
   const availableCarsCount = React.useMemo(() => {
     return cars.filter(c => {
         if (c.disponibilite !== 'disponible') return false;
@@ -86,18 +84,20 @@ export default function DashboardPage() {
     }).length;
   }, [rentals]);
   
-  const expiringDocuments = React.useMemo(() => {
+  const groupedExpiringDocuments = React.useMemo(() => {
     const today = new Date();
-    const alerts: { car: CarType, documentName: string, expiryDate: Date, status: 'Expiré' | 'Expire bientôt' }[] = [];
+    const carAlertsMap = new Map<string, { car: CarType, alerts: { documentName: string, expiryDate: Date, status: 'Expiré' | 'Expire bientôt' }[] }>();
 
     cars.forEach(car => {
+        const alerts: { documentName: string, expiryDate: Date, status: 'Expiré' | 'Expire bientôt' }[] = [];
+        
         const assuranceDate = getSafeDate(car.dateExpirationAssurance);
         if (assuranceDate) {
             const daysDiff = differenceInCalendarDays(assuranceDate, today);
             if (daysDiff < 0) {
-                alerts.push({ car, documentName: 'Assurance', expiryDate: assuranceDate, status: 'Expiré' });
+                alerts.push({ documentName: 'Assurance', expiryDate: assuranceDate, status: 'Expiré' });
             } else if (daysDiff <= 7) {
-                alerts.push({ car, documentName: 'Assurance', expiryDate: assuranceDate, status: 'Expire bientôt' });
+                alerts.push({ documentName: 'Assurance', expiryDate: assuranceDate, status: 'Expire bientôt' });
             }
         }
 
@@ -105,20 +105,30 @@ export default function DashboardPage() {
         if (visiteDate) {
             const daysDiff = differenceInCalendarDays(visiteDate, today);
             if (daysDiff < 0) {
-                alerts.push({ car, documentName: 'Visite Technique', expiryDate: visiteDate, status: 'Expiré' });
+                alerts.push({ documentName: 'Visite Technique', expiryDate: visiteDate, status: 'Expiré' });
             } else if (daysDiff <= 7) {
-                alerts.push({ car, documentName: 'Visite Technique', expiryDate: visiteDate, status: 'Expire bientôt' });
+                alerts.push({ documentName: 'Visite Technique', expiryDate: visiteDate, status: 'Expire bientôt' });
             }
+        }
+
+        if (alerts.length > 0) {
+            carAlertsMap.set(car.id, { 
+                car, 
+                alerts: alerts.sort((a, b) => a.expiryDate.getTime() - b.expiryDate.getTime()) 
+            });
         }
     });
 
-    return alerts.sort((a, b) => a.expiryDate.getTime() - b.expiryDate.getTime());
+    return Array.from(carAlertsMap.values()).sort((a, b) => {
+        return a.alerts[0].expiryDate.getTime() - b.alerts[0].expiryDate.getTime();
+    });
   }, [cars]);
   
- const maintenanceAlerts = React.useMemo(() => {
-    const alerts: { car: CarType, alertType: string, value: string, currentValue: string, status: 'À faire' | 'Bientôt' }[] = [];
+ const groupedMaintenanceAlerts = React.useMemo(() => {
+    const carAlertsMap = new Map<string, { car: CarType, alerts: { alertType: string, value: string, currentValue: string, status: 'À faire' | 'Bientôt' }[] }>();
 
     cars.forEach(car => {
+        const alerts: { alertType: string, value: string, currentValue: string, status: 'À faire' | 'Bientôt' }[] = [];
         const { kilometrage, maintenanceSchedule } = car;
         if (!maintenanceSchedule) return;
 
@@ -126,9 +136,9 @@ export default function DashboardPage() {
             if (typeof nextKm !== 'number') return;
             const diff = nextKm - kilometrage;
             if (diff <= 0) {
-                alerts.push({ car, alertType: type, value: `${nextKm.toLocaleString()} km`, currentValue: `${kilometrage.toLocaleString()} km`, status: 'À faire' });
+                alerts.push({ alertType: type, value: `${nextKm.toLocaleString()} km`, currentValue: `${kilometrage.toLocaleString()} km`, status: 'À faire' });
             } else if (diff <= soonThreshold) {
-                alerts.push({ car, alertType: type, value: `${nextKm.toLocaleString()} km`, currentValue: `${kilometrage.toLocaleString()} km`, status: 'Bientôt' });
+                alerts.push({ alertType: type, value: `${nextKm.toLocaleString()} km`, currentValue: `${kilometrage.toLocaleString()} km`, status: 'Bientôt' });
             }
         };
 
@@ -137,13 +147,23 @@ export default function DashboardPage() {
         checkKmAlert(maintenanceSchedule.prochainesPlaquettesFreinKm, "Plaquettes de frein", 2000);
         checkKmAlert(maintenanceSchedule.prochaineCourroieDistributionKm, "Courroie de distribution", 5000);
 
+        if (alerts.length > 0) {
+            carAlertsMap.set(car.id, { 
+                car, 
+                alerts: alerts.sort((a, b) => {
+                    if (a.status === 'À faire' && b.status !== 'À faire') return -1;
+                    if (a.status !== 'À faire' && b.status === 'À faire') return 1;
+                    return 0;
+                }) 
+            });
+        }
     });
 
-    return alerts.sort((a, b) => {
-        if (a.status === 'À faire' && b.status !== 'À faire') return -1;
-        if (a.status !== 'À faire' && b.status === 'À faire') return 1;
-        if (a.value < b.value) return -1;
-        if (a.value > b.value) return 1;
+    return Array.from(carAlertsMap.values()).sort((a, b) => {
+        const aHasAFaire = a.alerts.some(al => al.status === 'À faire');
+        const bHasAFaire = b.alerts.some(al => al.status === 'À faire');
+        if (aHasAFaire && !bHasAFaire) return -1;
+        if (!aHasAFaire && bHasAFaire) return 1;
         return 0;
     });
   }, [cars]);
@@ -200,7 +220,7 @@ export default function DashboardPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                   {maintenanceAlerts.length > 0 ? (
+                   {groupedMaintenanceAlerts.length > 0 ? (
                     <div className="space-y-4">
                         <Table>
                             <TableHeader>
@@ -212,32 +232,38 @@ export default function DashboardPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {maintenanceAlerts.slice(0, 5).map((alert, index) => (
-                                    <TableRow key={index}>
-                                        <TableCell className="text-[12px]">
-                                            <div className="font-medium">{alert.car.marque} {alert.car.modele}</div>
+                                {groupedMaintenanceAlerts.slice(0, 5).map((group, groupIndex) => (
+                                    <TableRow key={groupIndex}>
+                                        <TableCell className="text-[12px] align-top py-4">
+                                            <div className="font-medium">{group.car.marque} {group.car.modele}</div>
                                             <div className="text-[11px] text-muted-foreground">
-                                                {alert.car.immat}
+                                                {group.car.immat}
                                             </div>
                                         </TableCell>
-                                        <TableCell className="text-[12px]">{alert.alertType}</TableCell>
-                                        <TableCell className="text-[12px] text-center">{alert.currentValue}</TableCell>
-                                        <TableCell className="text-right text-[12px]">
-                                            <div className="flex flex-col items-end">
-                                                <span className="font-semibold">{alert.value}</span>
-                                                <Badge variant={alert.status === 'À faire' ? 'destructive' : 'default'} className={cn("h-5 px-1.5 text-[10px] w-[80px] flex justify-center", alert.status === 'Bientôt' && 'bg-blue-100 text-blue-800 hover:bg-blue-100/80')}>
-                                                    {alert.status}
-                                                </Badge>
+                                        <TableCell className="p-0 align-top" colSpan={3}>
+                                            <div className="flex flex-col divide-y divide-border/50">
+                                                {group.alerts.map((alert, alertIndex) => (
+                                                    <div key={alertIndex} className="grid grid-cols-3 gap-4 py-3 px-4">
+                                                        <div className="text-[12px] flex items-center">{alert.alertType}</div>
+                                                        <div className="text-[12px] text-center flex items-center justify-center">{alert.currentValue}</div>
+                                                        <div className="flex flex-col items-end text-[12px]">
+                                                            <span className="font-semibold">{alert.value}</span>
+                                                            <Badge variant={alert.status === 'À faire' ? 'destructive' : 'default'} className={cn("h-5 px-1.5 text-[10px] w-[80px] flex justify-center mt-0.5", alert.status === 'Bientôt' && 'bg-blue-100 text-blue-800 hover:bg-blue-100/80')}>
+                                                                {alert.status}
+                                                            </Badge>
+                                                        </div>
+                                                    </div>
+                                                ))}
                                             </div>
                                         </TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
                         </Table>
-                         {maintenanceAlerts.length > 5 && (
+                         {groupedMaintenanceAlerts.length > 5 && (
                             <div className="text-center mt-2">
                                 <Link href="/dashboard/cars" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "text-xs")}>
-                                    et {maintenanceAlerts.length - 5} autre(s)...
+                                    et {groupedMaintenanceAlerts.length - 5} autre(s) véhicule(s)...
                                 </Link>
                             </div>
                         )}
@@ -262,7 +288,7 @@ export default function DashboardPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                   {expiringDocuments.length > 0 ? (
+                   {groupedExpiringDocuments.length > 0 ? (
                     <div className="space-y-4">
                         <Table>
                             <TableHeader>
@@ -273,31 +299,37 @@ export default function DashboardPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {expiringDocuments.slice(0, 5).map((alert, index) => (
-                                    <TableRow key={index}>
-                                        <TableCell className="text-[12px]">
-                                            <div className="font-medium">{alert.car.marque} {alert.car.modele}</div>
+                                {groupedExpiringDocuments.slice(0, 5).map((group, groupIndex) => (
+                                    <TableRow key={groupIndex}>
+                                        <TableCell className="text-[12px] align-top py-4">
+                                            <div className="font-medium">{group.car.marque} {group.car.modele}</div>
                                             <div className="text-[11px] text-muted-foreground">
-                                                {alert.car.immat}
+                                                {group.car.immat}
                                             </div>
                                         </TableCell>
-                                        <TableCell className="text-[12px]">{alert.documentName}</TableCell>
-                                        <TableCell className="text-right text-[12px]">
-                                            <div className="flex flex-col items-end">
-                                                <span>{format(alert.expiryDate, "dd/MM/yyyy", { locale: fr })}</span>
-                                                <Badge variant={alert.status === 'Expiré' ? 'destructive' : 'default'} className={cn("h-5 px-2 text-[10px] w-[95px] flex justify-center", alert.status === 'Expire bientôt' && 'bg-accent text-accent-foreground hover:bg-accent/80')}>
-                                                    {alert.status}
-                                                </Badge>
+                                        <TableCell className="p-0 align-top" colSpan={2}>
+                                            <div className="flex flex-col divide-y divide-border/50">
+                                                {group.alerts.map((alert, alertIndex) => (
+                                                    <div key={alertIndex} className="grid grid-cols-2 gap-4 py-3 px-4">
+                                                        <div className="text-[12px] flex items-center">{alert.documentName}</div>
+                                                        <div className="flex flex-col items-end text-[12px]">
+                                                            <span>{format(alert.expiryDate, "dd/MM/yyyy", { locale: fr })}</span>
+                                                            <Badge variant={alert.status === 'Expiré' ? 'destructive' : 'default'} className={cn("h-5 px-2 text-[10px] w-[95px] flex justify-center mt-0.5", alert.status === 'Expire bientôt' && 'bg-accent text-accent-foreground hover:bg-accent/80')}>
+                                                                {alert.status}
+                                                            </Badge>
+                                                        </div>
+                                                    </div>
+                                                ))}
                                             </div>
                                         </TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
                         </Table>
-                         {expiringDocuments.length > 5 && (
+                         {groupedExpiringDocuments.length > 5 && (
                             <div className="text-center mt-2">
                                 <Link href="/dashboard/cars" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "text-xs")}>
-                                    et {expiringDocuments.length - 5} autre(s)...
+                                    et {groupedExpiringDocuments.length - 5} autre(s) véhicule(s)...
                                 </Link>
                             </div>
                         )}
