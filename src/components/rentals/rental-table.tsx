@@ -326,8 +326,8 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
                 className={cn(
                   "text-[11px] w-[80px] flex justify-center",
                   status === "en_cours"
-                    ? "bg-orange-100 text-orange-700 border-orange-200 hover:bg-orange-100"
-                    : "bg-green-100 text-green-700 border-green-200 hover:bg-green-100"
+                    ? "bg-blue-600 text-white border-blue-700 hover:bg-blue-600"
+                    : "bg-green-600 text-white border-green-700 hover:bg-green-600"
                 )}
               >
                 {status === "en_cours" ? "En cours" : "Terminée"}
@@ -351,7 +351,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
             <TooltipProvider>
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <Badge variant="destructive" className={badgeClass}>Non réglé</Badge>
+                        <Badge variant="destructive" className={cn(badgeClass, "bg-red-600 text-white border-red-700")}>Non réglé</Badge>
                     </TooltipTrigger>
                     <TooltipContent>
                         <p>Reste à payer: {formatCurrency(remaining, 'MAD')}</p>
@@ -366,7 +366,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
             <TooltipProvider>
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <Badge variant="secondary" className={cn(badgeClass, "bg-orange-100 text-orange-700 border-orange-200 hover:bg-orange-100")}>
+                        <Badge variant="secondary" className={cn(badgeClass, "bg-orange-500 text-white border-orange-600 hover:bg-orange-500")}>
                             Partiel
                         </Badge>
                     </TooltipTrigger>
@@ -383,7 +383,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
             <TooltipProvider>
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <Badge variant="destructive" className={cn(badgeClass, "bg-red-100 text-red-800 border-red-300 hover:bg-red-100")}>
+                        <Badge variant="destructive" className={cn(badgeClass, "bg-red-600 text-white border-red-700 hover:bg-red-600")}>
                             Non payé
                         </Badge>
                     </TooltipTrigger>
@@ -397,7 +397,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
 
         if (remaining <= 0.01 && total > 0) {
             return (
-                <Badge variant="default" className={cn(badgeClass, "bg-green-100 text-green-700 border-green-200 hover:bg-green-100")}>
+                <Badge variant="default" className={cn(badgeClass, "bg-green-600 text-white border-green-700 hover:bg-green-600")}>
                     Payé
                 </Badge>
             );

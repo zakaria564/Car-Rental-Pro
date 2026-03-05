@@ -406,8 +406,8 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
           return (
             <Badge variant={variant} className={cn(
               "text-[11px] w-[80px] flex justify-center",
-              status === 'Payé' && "bg-green-100 text-green-800 border-green-300 hover:bg-green-100",
-              status === 'Partiel' && "bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-100",
+              status === 'Payé' && "bg-green-600 text-white border-green-700 hover:bg-green-600",
+              status === 'Partiel' && "bg-orange-500 text-white border-orange-600 hover:bg-orange-500",
               status === 'Non Payé' && "bg-red-600 text-white border-red-700 hover:bg-red-600"
             )}>
               {status}

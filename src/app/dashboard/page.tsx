@@ -248,7 +248,7 @@ export default function DashboardPage() {
                                                         <div className="text-[12px] text-center flex items-center justify-center">{alert.currentValue}</div>
                                                         <div className="flex flex-col items-end text-[12px]">
                                                             <span className="font-semibold">{alert.value}</span>
-                                                            <Badge variant={alert.status === 'À faire' ? 'destructive' : 'default'} className={cn("h-5 px-1.5 text-[10px] w-[80px] flex justify-center mt-0.5", alert.status === 'Bientôt' && 'bg-blue-100 text-blue-800 hover:bg-blue-100/80')}>
+                                                            <Badge variant={alert.status === 'À faire' ? 'destructive' : 'default'} className={cn("h-5 px-1.5 text-[10px] w-[80px] flex justify-center mt-0.5", alert.status === 'Bientôt' && 'bg-amber-500 text-white hover:bg-amber-600 border-none')}>
                                                                 {alert.status}
                                                             </Badge>
                                                         </div>
@@ -314,7 +314,7 @@ export default function DashboardPage() {
                                                         <div className="text-[12px] flex items-center">{alert.documentName}</div>
                                                         <div className="flex flex-col items-end text-[12px]">
                                                             <span>{format(alert.expiryDate, "dd/MM/yyyy", { locale: fr })}</span>
-                                                            <Badge variant={alert.status === 'Expiré' ? 'destructive' : 'default'} className={cn("h-5 px-2 text-[10px] w-[95px] flex justify-center mt-0.5", alert.status === 'Expire bientôt' && 'bg-accent text-accent-foreground hover:bg-accent/80')}>
+                                                            <Badge variant={alert.status === 'Expiré' ? 'destructive' : 'default'} className={cn("h-5 px-2 text-[10px] w-[95px] flex justify-center mt-0.5", alert.status === 'Expire bientôt' && 'bg-amber-500 text-white hover:bg-amber-600 border-none')}>
                                                                 {alert.status}
                                                             </Badge>
                                                         </div>

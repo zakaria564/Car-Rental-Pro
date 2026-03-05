@@ -350,9 +350,9 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
           return (
             <Badge variant={variant} className={cn(
               "text-[11px] w-[80px] flex justify-center",
-              status === 'Payé' && "bg-green-100 text-green-700 border-green-200",
-              status === 'Partiel' && "bg-orange-100 text-orange-700 border-orange-200",
-              status === 'Non Payé' && "bg-red-100 text-red-800 border-red-300"
+              status === 'Payé' && "bg-green-600 text-white border-green-700",
+              status === 'Partiel' && "bg-orange-500 text-white border-orange-600",
+              status === 'Non Payé' && "bg-red-600 text-white border-red-700"
             )}>
               {status}
             </Badge>

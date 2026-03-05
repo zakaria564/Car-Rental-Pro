@@ -245,8 +245,8 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
                 className={cn(
                     "text-[11px] w-[80px] flex justify-center",
                     status === "en_cours" 
-                      ? "bg-orange-100 text-orange-700 border-orange-200 hover:bg-orange-100" 
-                      : "bg-green-100 text-green-700 border-green-200 hover:bg-green-100"
+                      ? "bg-blue-600 text-white border-blue-700 hover:bg-blue-600" 
+                      : "bg-green-600 text-white border-green-700 hover:bg-green-600"
                 )}
             >
                 {status === 'en_cours' ? "En cours" : "Terminée"}
