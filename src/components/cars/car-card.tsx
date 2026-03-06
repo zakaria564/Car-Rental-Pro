@@ -161,31 +161,26 @@ export default function CarCard({ car }: { car: Car }) {
 
   const { documentAttention, maintenanceAttention } = React.useMemo(() => {
     const today = new Date();
-    const docInfo = { needsAttention: false, message: "" };
+    let hasExpired = false;
+    let hasSoon = false;
+    let docMessages: string[] = [];
     const maintInfo = { needsAttention: false, message: "" };
 
-    const assuranceDate = getSafeDate(car.dateExpirationAssurance);
-    if (assuranceDate) {
-      const daysDiff = differenceInDays(assuranceDate, today);
+    const checkDoc = (date: any, name: string) => {
+      const d = getSafeDate(date);
+      if (!d) return;
+      const daysDiff = differenceInDays(d, today);
       if (daysDiff < 0) {
-        docInfo.needsAttention = true;
-        docInfo.message = "Assurance expirée.";
+        hasExpired = true;
+        docMessages.push(`${name} expirée.`);
       } else if (daysDiff <= 7) {
-        docInfo.needsAttention = true;
-        docInfo.message = "Assurance expire bientôt.";
+        hasSoon = true;
+        docMessages.push(`${name} expire bientôt.`);
       }
-    }
-    const visiteDate = getSafeDate(car.dateProchaineVisiteTechnique);
-    if (visiteDate) {
-      const daysDiff = differenceInDays(visiteDate, today);
-      if (daysDiff < 0) {
-        docInfo.needsAttention = true;
-        docInfo.message = docInfo.message ? docInfo.message + " Visite technique expirée." : "Visite technique expirée.";
-      } else if (daysDiff <= 7) {
-        docInfo.needsAttention = true;
-        docInfo.message = docInfo.message ? docInfo.message + " Visite technique expire bientôt." : "Visite technique expire bientôt.";
-      }
-    }
+    };
+
+    checkDoc(car.dateExpirationAssurance, "Assurance");
+    checkDoc(car.dateProchaineVisiteTechnique, "Visite technique");
 
     const { kilometrage, maintenanceSchedule } = car;
     if (maintenanceSchedule) {
@@ -211,7 +206,14 @@ export default function CarCard({ car }: { car: Car }) {
         }
     }
 
-    return { documentAttention: docInfo, maintenanceAttention: maintInfo };
+    return { 
+        documentAttention: {
+            needsAttention: hasExpired || hasSoon,
+            message: docMessages.join(' '),
+            status: hasExpired ? 'expired' : (hasSoon ? 'soon' : null)
+        }, 
+        maintenanceAttention: maintInfo 
+    };
   }, [car]);
 
   const handlePrint = () => {
@@ -300,8 +302,14 @@ export default function CarCard({ car }: { car: Car }) {
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <div className="p-1 rounded-full bg-destructive/10">
-                                    <TriangleAlert className="h-5 w-5 text-destructive" />
+                                <div className={cn(
+                                    "p-1 rounded-full",
+                                    documentAttention.status === 'expired' ? "bg-destructive/10" : "bg-amber-100 dark:bg-amber-900/30"
+                                )}>
+                                    <TriangleAlert className={cn(
+                                        "h-5 w-5",
+                                        documentAttention.status === 'expired' ? "text-destructive" : "text-amber-500"
+                                    )} />
                                 </div>
                             </TooltipTrigger>
                             <TooltipContent><p>{documentAttention.message}</p></TooltipContent>
