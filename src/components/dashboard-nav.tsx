@@ -25,7 +25,8 @@ export function DashboardNav() {
   const [activeRentals, setActiveRentals] = React.useState(0);
   const [unpaidCount, setUnpaidCount] = React.useState(0);
   const [maintAlertCount, setMaintAlertCount] = React.useState(0);
-  const [docAlertCount, setDocAlertCount] = React.useState(0);
+  const [expiredDocCount, setExpiredDocCount] = React.useState(0);
+  const [soonDocCount, setSoonDocCount] = React.useState(0);
   const { firestore } = useFirebase();
 
   React.useEffect(() => {
@@ -53,7 +54,7 @@ export function DashboardNav() {
         const carsData = snapshot.docs.map(doc => doc.data() as CarType);
         const today = new Date();
 
-        // 1. Calcul des alertes entretien (Kilométrage atteint ou dépassé)
+        // 1. Calcul des alertes entretien
         const maintAlerts = carsData.filter(car => {
             if (car.maintenanceSchedule) {
                 const km = car.kilometrage;
@@ -69,16 +70,31 @@ export function DashboardNav() {
         }).length;
         setMaintAlertCount(maintAlerts);
 
-        // 2. Calcul des alertes documents (Expiration sous 7 jours ou déjà expiré)
-        const docAlerts = carsData.filter(car => {
-            const assuranceDate = getSafeDate(car.dateExpirationAssurance);
-            if (assuranceDate && differenceInCalendarDays(assuranceDate, today) <= 7) return true;
+        // 2. Calcul des alertes documents
+        let expired = 0;
+        let soon = 0;
 
-            const visiteDate = getSafeDate(car.dateProchaineVisiteTechnique);
-            if (visiteDate && differenceInCalendarDays(visiteDate, today) <= 7) return true;
-            return false;
-        }).length;
-        setDocAlertCount(docAlerts);
+        carsData.forEach(car => {
+            let isCarExpired = false;
+            let isCarSoon = false;
+
+            const checkDoc = (date: any) => {
+                const d = getSafeDate(date);
+                if (!d) return;
+                const diff = differenceInCalendarDays(d, today);
+                if (diff < 0) isCarExpired = true;
+                else if (diff <= 7) isCarSoon = true;
+            };
+
+            checkDoc(car.dateExpirationAssurance);
+            checkDoc(car.dateProchaineVisiteTechnique);
+
+            if (isCarExpired) expired++;
+            else if (isCarSoon) soon++;
+        });
+
+        setExpiredDocCount(expired);
+        setSoonDocCount(soon);
     });
 
     return () => {
@@ -111,9 +127,15 @@ export function DashboardNav() {
                         {maintAlertCount}
                     </Badge>
                 )}
-                {docAlertCount > 0 && (
-                    <Badge title="Documents expirés ou imminents" className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-destructive text-destructive-foreground hover:bg-destructive border-none p-0 text-[10px]">
-                        {docAlertCount}
+                {(expiredDocCount > 0 || soonDocCount > 0) && (
+                    <Badge 
+                        title={expiredDocCount > 0 ? "Documents expirés" : "Documents expirant bientôt"} 
+                        className={cn(
+                            "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-none p-0 text-[10px] text-white",
+                            expiredDocCount > 0 ? "bg-destructive hover:bg-destructive" : "bg-amber-500 hover:bg-amber-600"
+                        )}
+                    >
+                        {expiredDocCount + soonDocCount}
                     </Badge>
                 )}
              </div>
