@@ -1,4 +1,3 @@
-
 'use client';
 import { DashboardHeader } from "@/components/dashboard-header";
 import PaymentTable from "@/components/payments/payment-table";
@@ -8,14 +7,13 @@ import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import type { Payment, Rental } from "@/lib/definitions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, PlusCircle, Eye, EyeOff, TrendingUp } from "lucide-react";
+import { AlertCircle, PlusCircle, Eye, EyeOff } from "lucide-react";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import PaymentForm from "@/components/payments/payment-form";
 import { formatCurrency } from "@/lib/utils";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function PaymentsPage() {
   const [payments, setPayments] = React.useState<Payment[]>([]);
@@ -103,7 +101,7 @@ export default function PaymentsPage() {
       
         {loading ? (
             <div className="space-y-4">
-                <Skeleton className="h-24 w-full max-w-[300px]" />
+                <Skeleton className="h-10 w-48 ml-2" />
                 <div className="space-y-2">
                     <Skeleton className="h-12 w-full" />
                     <Skeleton className="h-12 w-full" />
@@ -118,29 +116,19 @@ export default function PaymentsPage() {
             </Alert>
         ) : (
             <div className="space-y-6">
-                <div className="flex justify-start">
-                    <Card className="w-full max-w-[300px] shadow-sm">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-bold uppercase text-muted-foreground">Total Encaissé</CardTitle>
-                            <TrendingUp className="h-4 w-4 text-green-500" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex items-center justify-between">
-                                <div className="text-2xl font-black tracking-tight">
-                                    {showTotal ? formatCurrency(totalCollected, 'MAD') : "••••••"}
-                                </div>
-                                <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    onClick={() => setShowTotal(!showTotal)}
-                                    className="h-8 w-8 hover:bg-muted"
-                                    title={showTotal ? "Masquer le montant" : "Afficher le montant"}
-                                >
-                                    {showTotal ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
+                <div className="flex items-center gap-3 px-2 h-10">
+                    <div className="text-xl font-black tracking-tight text-foreground/90">
+                        {showTotal ? formatCurrency(totalCollected, 'MAD') : "••••••"}
+                    </div>
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => setShowTotal(!showTotal)}
+                        className="h-8 w-8 hover:bg-muted rounded-full"
+                        title={showTotal ? "Masquer le montant" : "Afficher le montant"}
+                    >
+                        {showTotal ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
+                    </Button>
                 </div>
 
                 <PaymentTable 
