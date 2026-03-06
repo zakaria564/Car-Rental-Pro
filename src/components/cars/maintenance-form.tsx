@@ -15,7 +15,7 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import React from "react";
 import { maintenanceInterventionTypes } from "@/lib/car-data";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "../ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "../ui/select";
 import { format } from 'date-fns';
 import { getSafeDate } from "@/lib/utils";
 import { Plus, Trash2, Construction, CheckCircle2 } from "lucide-react";
@@ -205,13 +205,16 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
                             <SelectTrigger><SelectValue placeholder="Sélectionner..." /></SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                                {Object.entries(maintenanceInterventionTypes).map(([group, options]) => (
-                                    <SelectGroup key={group}>
-                                    <SelectLabel>{group}</SelectLabel>
-                                    {options.map((option) => (
-                                        <SelectItem key={option} value={option}>{option}</SelectItem>
-                                    ))}
-                                    </SelectGroup>
+                                {Object.entries(maintenanceInterventionTypes).map(([group, options], idx, arr) => (
+                                    <React.Fragment key={group}>
+                                        <SelectGroup>
+                                            <SelectLabel className="text-primary font-bold">{group}</SelectLabel>
+                                            {options.map((option) => (
+                                                <SelectItem key={option} value={option}>{option}</SelectItem>
+                                            ))}
+                                        </SelectGroup>
+                                        {idx < arr.length - 1 && <SelectSeparator />}
+                                    </React.Fragment>
                                 ))}
                             </SelectContent>
                         </Select>
@@ -295,9 +298,7 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
                                 render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Km actuel</FormLabel>
-                                    <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
+                                    <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormItem>
                                 )}
                             />
                         </div>
@@ -331,13 +332,16 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
                                     <SelectTrigger><SelectValue placeholder="Sélectionner..." /></SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {Object.entries(maintenanceInterventionTypes).map(([group, options]) => (
-                                            <SelectGroup key={group}>
-                                            <SelectLabel>{group}</SelectLabel>
-                                            {options.map((option) => (
-                                                <SelectItem key={option} value={option}>{option}</SelectItem>
-                                            ))}
-                                            </SelectGroup>
+                                        {Object.entries(maintenanceInterventionTypes).map(([group, options], idx, arr) => (
+                                            <React.Fragment key={group}>
+                                                <SelectGroup>
+                                                    <SelectLabel className="text-primary font-bold">{group}</SelectLabel>
+                                                    {options.map((option) => (
+                                                        <SelectItem key={option} value={option}>{option}</SelectItem>
+                                                    ))}
+                                                </SelectGroup>
+                                                {idx < arr.length - 1 && <SelectSeparator />}
+                                            </React.Fragment>
                                         ))}
                                     </SelectContent>
                                 </Select>
