@@ -35,9 +35,9 @@ const startMaintenanceSchema = z.object({
 const finishMaintenanceSchema = z.object({
   date: z.coerce.date({ required_error: "La date est requise." }),
   kilometrage: z.coerce.number({ required_error: "Le kilométrage est requis." }).int().min(0, "Le kilométrage doit être positif."),
-  prices: z.record(z.string(), z.preprocess((val) => (val === "" ? undefined : Number(val)), z.number().min(0).optional())),
+  prices: z.record(z.string(), z.any()).optional(),
   otherIntervention: z.string().optional(),
-  otherPrice: z.preprocess((val) => (val === "" ? undefined : Number(val)), z.number().min(0).optional()),
+  otherPrice: z.any().optional(),
 });
 
 export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinished: () => void }) {
@@ -96,29 +96,31 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
 
             const newHistoryEvents: Maintenance[] = [];
             
-            // Collect prices from fixed fields
+            // Collect prices from fixed fields, only those with a value > 0
             if (data.prices) {
                 Object.entries(data.prices).forEach(([type, price]) => {
-                    if (price && Number(price) > 0) {
+                    const numPrice = price === "" || price === null || price === undefined ? NaN : Number(price);
+                    if (!isNaN(numPrice) && numPrice > 0) {
                         newHistoryEvents.push({
                             date: data.date,
                             kilometrage: data.kilometrage,
                             typeIntervention: type,
                             description: type,
-                            cout: Number(price),
+                            cout: numPrice,
                         });
                     }
                 });
             }
 
-            // Collect other intervention
-            if (data.otherIntervention && data.otherPrice) {
+            // Collect other intervention if both name and price are provided
+            const otherNumPrice = data.otherPrice === "" || data.otherPrice === null || data.otherPrice === undefined ? NaN : Number(data.otherPrice);
+            if (data.otherIntervention && !isNaN(otherNumPrice) && otherNumPrice > 0) {
                 newHistoryEvents.push({
                     date: data.date,
                     kilometrage: data.kilometrage,
                     typeIntervention: data.otherIntervention,
                     description: data.otherIntervention,
-                    cout: Number(data.otherPrice),
+                    cout: otherNumPrice,
                 });
             }
 
