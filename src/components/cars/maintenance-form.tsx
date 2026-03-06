@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useForm, useFieldArray } from "react-hook-form";
@@ -19,8 +18,16 @@ import { maintenanceInterventionTypes } from "@/lib/car-data";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "../ui/select";
 import { format } from 'date-fns';
 import { getSafeDate } from "@/lib/utils";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Construction, CheckCircle2 } from "lucide-react";
 import { Separator } from "../ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { ScrollArea } from "../ui/scroll-area";
+
+const eventSchema = z.object({
+  typeIntervention: z.string().min(1, "Le type d'intervention est requis."),
+  description: z.string().optional(),
+  cout: z.coerce.number().min(0).optional().nullable(),
+});
 
 const startMaintenanceSchema = z.object({
   reason: z.string().min(3, "La raison est requise."),
@@ -30,12 +37,7 @@ const startMaintenanceSchema = z.object({
 const finishMaintenanceSchema = z.object({
   date: z.coerce.date({ required_error: "La date est requise." }),
   kilometrage: z.coerce.number({ required_error: "Le kilométrage est requis." }).int().min(0, "Le kilométrage doit être positif."),
-  
-  maintenanceEvents: z.array(z.object({
-    typeIntervention: z.string().min(1, "Le type d'intervention est requis."),
-    description: z.string().optional(),
-    cout: z.coerce.number().min(0).optional().nullable(),
-  })).min(1, "Au moins une intervention est requise."),
+  maintenanceEvents: z.array(eventSchema).min(1, "Au moins une intervention est requise."),
 });
 
 
@@ -43,11 +45,19 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
   const { toast } = useToast();
   const { firestore } = useFirebase();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [activeTab, setActiveTab] = React.useState<string>("start");
   
-  const isFinishing = car.disponibilite === 'maintenance';
+  const isCurrentlyInMaintenance = car.disponibilite === 'maintenance';
 
   const form = useForm({
-    resolver: zodResolver(isFinishing ? finishMaintenanceSchema : startMaintenanceSchema),
+    resolver: zodResolver(activeTab === "direct_finish" || isCurrentlyInMaintenance ? finishMaintenanceSchema : startMaintenanceSchema),
+    defaultValues: {
+        reason: "",
+        notes: "",
+        date: new Date(),
+        kilometrage: car.kilometrage,
+        maintenanceEvents: [{ typeIntervention: "", description: "", cout: null }]
+    }
   });
 
   const { fields, append, remove } = useFieldArray({
@@ -56,35 +66,31 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
   });
   
   React.useEffect(() => {
-    if (isFinishing && car) {
+    if (isCurrentlyInMaintenance && car) {
         form.reset({
             date: getSafeDate(car.currentMaintenance?.startDate) || new Date(),
             kilometrage: car.kilometrage,
             maintenanceEvents: [{
                 typeIntervention: car.currentMaintenance?.reason || "",
                 description: car.currentMaintenance?.notes || "",
-                cout: undefined,
+                cout: null,
             }]
         });
-    } else {
-        form.reset({
-          reason: "",
-          notes: ""
-        });
     }
-  }, [car, isFinishing, form]);
+  }, [car, isCurrentlyInMaintenance, form]);
 
   const onSubmit = async (data: any) => {
     if (!firestore) return;
     setIsSubmitting(true);
     
     const carRef = doc(firestore, 'cars', car.id);
+    const isFinishing = isCurrentlyInMaintenance || activeTab === "direct_finish";
 
     try {
       await runTransaction(firestore, async (transaction) => {
         const carDoc = await transaction.get(carRef);
         if (!carDoc.exists()) {
-          throw new Error("Car document not found.");
+          throw new Error("Véhicule introuvable.");
         }
         
         const carData = carDoc.data() as Car;
@@ -138,7 +144,7 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
                 });
                 updatePayload.maintenanceSchedule = newSchedule;
             }
-        } else { // Starting maintenance
+        } else { // Starting maintenance (Immobilization)
             updatePayload.disponibilite = 'maintenance';
             updatePayload.currentMaintenance = {
                 startDate: serverTimestamp(),
@@ -151,8 +157,8 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
       });
 
       toast({ 
-        title: isFinishing ? "Maintenance terminée" : "Voiture en maintenance", 
-        description: isFinishing ? "La voiture est de nouveau marquée comme disponible." : "Le statut de la voiture a été mis à jour." 
+        title: isFinishing ? "Maintenance enregistrée" : "Voiture en maintenance", 
+        description: isFinishing ? "Les interventions ont été ajoutées à l'historique." : "Le véhicule est maintenant marqué en maintenance." 
       });
       onFinished();
     } catch (serverError: any) {
@@ -163,146 +169,40 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
         toast({
             variant: "destructive",
             title: "Une erreur est survenue",
-            description: serverError.message || "Impossible de mettre à jour le statut de la voiture.",
+            description: serverError.message || "Impossible de mettre à jour le statut du véhicule.",
         });
     } finally {
         setIsSubmitting(false);
     }
   };
 
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-4">
-        {isFinishing ? (
-            <div className="space-y-4">
-                <div className="p-4 border rounded-md bg-muted/50">
-                    <h4 className="font-semibold">Terminer la maintenance</h4>
-                    <p className="text-sm text-muted-foreground">
-                        La voiture est en maintenance depuis le {car.currentMaintenance?.startDate ? format(getSafeDate(car.currentMaintenance.startDate)!, 'dd/MM/yyyy') : 'N/A'}.<br/>
-                        Raison initiale: <strong>{car.currentMaintenance?.reason}</strong>
-                    </p>
+  const renderInterventionFields = () => (
+    <div className="space-y-4">
+        {fields.map((item, index) => (
+            <div key={item.id} className="p-4 border rounded-md relative bg-muted/20">
+                <div className="flex justify-between items-center mb-4">
+                    <h5 className="font-semibold text-sm">Intervention #{index + 1}</h5>
+                    {fields.length > 1 && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive"
+                            onClick={() => remove(index)}
+                        >
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    )}
                 </div>
-                 <div className="p-4 border rounded-md space-y-4">
-                    <h4 className="font-semibold">Détails de l'intervention</h4>
-                     <FormField
-                        control={form.control}
-                        name="date"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Date de l'intervention</FormLabel>
-                                <FormControl>
-                                    <Input
-                                        type="date"
-                                        value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd") : ""}
-                                        onChange={(e) => {
-                                            const dateString = e.target.value;
-                                            if (!dateString) field.onChange(null);
-                                            else field.onChange(new Date(`${dateString}T00:00:00`));
-                                        }}
-                                    />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="kilometrage"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Kilométrage actuel</FormLabel>
-                            <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                </div>
-                 <div className="space-y-4">
-                    {fields.map((item, index) => (
-                        <div key={item.id} className="p-4 border rounded-md relative">
-                            <h5 className="font-medium mb-4">Intervention #{index + 1}</h5>
-                             <FormField
-                                control={form.control}
-                                name={`maintenanceEvents.${index}.typeIntervention`}
-                                render={({ field }) => (
-                                <FormItem className="mb-4">
-                                    <FormLabel>Type d'intervention</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                        <FormControl>
-                                        <SelectTrigger><SelectValue placeholder="Sélectionner un type" /></SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {Object.entries(maintenanceInterventionTypes).map(([group, options]) => (
-                                                <SelectGroup key={group}>
-                                                <SelectLabel>{group}</SelectLabel>
-                                                {options.map((option) => (
-                                                    <SelectItem key={option} value={option}>{option}</SelectItem>
-                                                ))}
-                                                </SelectGroup>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name={`maintenanceEvents.${index}.description`}
-                                render={({ field }) => (
-                                <FormItem className="mb-4">
-                                    <FormLabel>Description</FormLabel>
-                                    <FormControl><Textarea placeholder="Ex: Remplacement des pièces..." {...field} value={field.value ?? ''} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name={`maintenanceEvents.${index}.cout`}
-                                render={({ field }) => (
-                                <FormItem className="mb-4">
-                                    <FormLabel>Coût (MAD)</FormLabel>
-                                    <FormControl><Input type="number" placeholder="350.00" {...field} value={field.value ?? ''} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                            {fields.length > 1 && (
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="absolute top-2 right-2 text-destructive"
-                                    onClick={() => remove(index)}
-                                >
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            )}
-                        </div>
-                    ))}
-                     <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full"
-                        onClick={() => append({ typeIntervention: '', description: '', cout: undefined })}
-                    >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Ajouter une autre intervention
-                    </Button>
-                </div>
-            </div>
-        ) : (
-            <div className="space-y-4">
                 <FormField
                     control={form.control}
-                    name="reason"
+                    name={`maintenanceEvents.${index}.typeIntervention`}
                     render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Raison de la maintenance</FormLabel>
+                    <FormItem className="mb-4">
+                        <FormLabel>Type</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
-                            <SelectTrigger><SelectValue placeholder="Sélectionner un type d'intervention" /></SelectTrigger>
+                            <SelectTrigger><SelectValue placeholder="Sélectionner..." /></SelectTrigger>
                             </FormControl>
                             <SelectContent>
                                 {Object.entries(maintenanceInterventionTypes).map(([group, options]) => (
@@ -319,28 +219,192 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
                     </FormItem>
                     )}
                 />
-                <FormField
-                    control={form.control}
-                    name="notes"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Notes supplémentaires</FormLabel>
-                        <FormControl><Textarea placeholder="Symptômes observés, détails spécifiques..." {...field} value={field.value ?? ''} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                        control={form.control}
+                        name={`maintenanceEvents.${index}.description`}
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Description (facultatif)</FormLabel>
+                            <FormControl><Input placeholder="Détails..." {...field} value={field.value ?? ''} /></FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name={`maintenanceEvents.${index}.cout`}
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Coût (MAD)</FormLabel>
+                            <FormControl><Input type="number" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                </div>
             </div>
+        ))}
+        <Button
+            type="button"
+            variant="outline"
+            className="w-full border-dashed"
+            onClick={() => append({ typeIntervention: '', description: '', cout: null })}
+        >
+            <Plus className="mr-2 h-4 w-4" />
+            Ajouter une intervention
+        </Button>
+    </div>
+  );
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex h-full flex-col space-y-4 pt-4">
+        {isCurrentlyInMaintenance ? (
+            <div className="flex-1 overflow-hidden flex flex-col space-y-4">
+                <div className="p-3 border rounded-md bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 text-sm">
+                    <p className="font-semibold text-yellow-800 dark:text-yellow-400">Véhicule immobilisé</p>
+                    <p className="text-xs text-yellow-700 dark:text-yellow-500">
+                        En maintenance depuis le {car.currentMaintenance?.startDate ? format(getSafeDate(car.currentMaintenance.startDate)!, 'dd/MM/yyyy') : 'N/A'}.<br/>
+                        Raison : <strong>{car.currentMaintenance?.reason}</strong>
+                    </p>
+                </div>
+                <ScrollArea className="flex-1 pr-4">
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                                control={form.control}
+                                name="date"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Date de fin</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                type="date"
+                                                value={field.value instanceof Date && !isNaN(field.value.getTime()) ? format(field.value, "yyyy-MM-dd") : ""}
+                                                onChange={(e) => field.onChange(e.target.value ? new Date(`${e.target.value}T00:00:00`) : null)}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="kilometrage"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Km actuel</FormLabel>
+                                    <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                        </div>
+                        <Separator />
+                        <h4 className="font-bold text-sm">Interventions effectuées</h4>
+                        {renderInterventionFields()}
+                    </div>
+                </ScrollArea>
+            </div>
+        ) : (
+            <Tabs defaultValue="start" value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden flex flex-col">
+                <TabsList className="grid w-full grid-cols-2 mb-4">
+                    <TabsTrigger value="start" className="flex items-center gap-2">
+                        <Construction className="h-4 w-4" /> Immobiliser
+                    </TabsTrigger>
+                    <TabsTrigger value="direct_finish" className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4" /> Entretien fait
+                    </TabsTrigger>
+                </TabsList>
+                
+                <ScrollArea className="flex-1 pr-4">
+                    <TabsContent value="start" className="mt-0 space-y-4">
+                        <FormField
+                            control={form.control}
+                            name="reason"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Motif de l'immobilisation</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl>
+                                    <SelectTrigger><SelectValue placeholder="Sélectionner..." /></SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        {Object.entries(maintenanceInterventionTypes).map(([group, options]) => (
+                                            <SelectGroup key={group}>
+                                            <SelectLabel>{group}</SelectLabel>
+                                            {options.map((option) => (
+                                                <SelectItem key={option} value={option}>{option}</SelectItem>
+                                            ))}
+                                            </SelectGroup>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="notes"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Notes (facultatif)</FormLabel>
+                                <FormControl><Textarea placeholder="Précisions sur les travaux à prévoir..." {...field} value={field.value ?? ''} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                    </TabsContent>
+
+                    <TabsContent value="direct_finish" className="mt-0 space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                                control={form.control}
+                                name="date"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Date</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                type="date"
+                                                value={field.value instanceof Date && !isNaN(field.value.getTime()) ? format(field.value, "yyyy-MM-dd") : ""}
+                                                onChange={(e) => field.onChange(e.target.value ? new Date(`${e.target.value}T00:00:00`) : null)}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="kilometrage"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Kilométrage</FormLabel>
+                                    <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                        </div>
+                        <Separator />
+                        <h4 className="font-bold text-sm">Liste des interventions et prix</h4>
+                        {renderInterventionFields()}
+                    </TabsContent>
+                </ScrollArea>
+            </Tabs>
         )}
 
-        <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isSubmitting}>
-          {isSubmitting ? 'Enregistrement...' : (isFinishing ? 'Terminer la maintenance' : 'Mettre en maintenance')}
-        </Button>
+        <div className="pt-4 border-t mt-auto">
+            <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isSubmitting}>
+                {isSubmitting ? 'Enregistrement...' : 
+                 (isCurrentlyInMaintenance ? 'Valider et libérer le véhicule' : 
+                  (activeTab === 'start' ? 'Confirmer l\'immobilisation' : 'Enregistrer l\'entretien'))}
+            </Button>
+        </div>
       </form>
     </Form>
   );
 }
-
-    
-
-  

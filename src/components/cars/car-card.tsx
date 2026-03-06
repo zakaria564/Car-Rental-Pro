@@ -230,6 +230,7 @@ export default function CarCard({ car }: { car: Car }) {
     
     const styles = `
       body { 
+        font-family: 'Inter', sans-serif; 
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
        }
@@ -405,16 +406,19 @@ export default function CarCard({ car }: { car: Car }) {
                                 </SheetTrigger>
                             </TooltipTrigger>
                             <TooltipContent>
-                                <p>{car.disponibilite === 'maintenance' ? 'Terminer la maintenance' : 'Mettre en maintenance'}</p>
+                                <p>Gestion de l'entretien</p>
                             </TooltipContent>
                         </Tooltip>
-                        <SheetContent className="sm:max-w-md">
+                        <SheetContent className="sm:max-w-lg flex flex-col">
                             <SheetHeader>
-                                <SheetTitle>{car.disponibilite === 'maintenance' ? 'Terminer la maintenance' : 'Mettre en maintenance'}</SheetTitle>
+                                <SheetTitle>Gestion de l'entretien</SheetTitle>
+                                <SheetDescription>
+                                    {car.marque} {car.modele} ({car.immat})
+                                </SheetDescription>
                             </SheetHeader>
-                             <ScrollArea className="h-full pr-6">
+                             <div className="flex-1 overflow-hidden">
                                 <MaintenanceForm car={car} onFinished={() => setIsMaintenanceSheetOpen(false)} />
-                            </ScrollArea>
+                            </div>
                         </SheetContent>
                     </Sheet>
                     
