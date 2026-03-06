@@ -11,7 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { Car, Maintenance } from "@/lib/definitions";
 import { formatCurrency, cn, getSafeDate } from "@/lib/utils";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import CarForm from "./car-form";
 import MaintenanceForm from "./maintenance-form";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -232,7 +232,7 @@ export default function CarCard({ car }: { car: Car }) {
       body { 
         font-family: 'Inter', sans-serif; 
         -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
+        print-color-adjust: exact !important; 
        }
       .no-print { display: none !important; }
        @page {
