@@ -142,7 +142,7 @@ export function DashboardNav() {
           )}
 
           {item.label === 'Contrats' && activeRentals > 0 && (
-             <Badge className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground hover:bg-accent border-none p-0 text-[10px]">
+             <Badge className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white hover:bg-blue-700 border-none p-0 text-[10px]">
               {activeRentals}
             </Badge>
           )}
