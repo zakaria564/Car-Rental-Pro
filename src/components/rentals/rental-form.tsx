@@ -744,7 +744,7 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
   }
 
   const amountPaid = rental?.location?.montantPaye || 0;
-  const reste = prixTotalForUI - amountPaid;
+  const reste = Math.max(0, prixTotalForUI - amountPaid);
 
   return (
     <Form {...form}>
@@ -835,9 +835,9 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
             {mode !== 'new' && rental && (
               <>
                 <div className="flex justify-between text-green-600"><span>Payé :</span> <span className="font-medium">{formatCurrency(amountPaid, 'MAD')}</span></div>
-                <div className="flex justify-between font-bold text-lg text-destructive">
+                <div className={cn("flex justify-between font-bold text-lg", reste > 0.01 ? "text-destructive" : "text-muted-foreground")}>
                   <span>Reste :</span>
-                  <span>{formatCurrency(Math.max(0, reste), 'MAD')}</span>
+                  <span>{formatCurrency(reste, 'MAD')}</span>
                 </div>
               </>
             )}
