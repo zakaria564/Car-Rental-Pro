@@ -2,7 +2,7 @@
 import React from 'react';
 import type { Payment, Rental } from '@/lib/definitions';
 import { Logo } from '../logo';
-import { formatCurrency, getSafeDate } from '@/lib/utils';
+import { formatCurrency, getSafeDate, cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
@@ -107,7 +107,7 @@ export const Invoice: React.FC<InvoiceProps> = ({ rental, payments, totalAmount 
                             <span>Total payé :</span>
                             <span className="font-medium text-green-600">{formatCurrency(totalPaid, 'MAD')}</span>
                         </div>
-                        <div className="flex justify-between text-lg font-semibold py-2 border-t text-destructive">
+                        <div className={cn("flex justify-between text-lg font-semibold py-2 border-t", balance > 0.01 ? "text-destructive" : "text-green-600")}>
                             <span>Solde à payer :</span>
                             <span>{formatCurrency(balance, 'MAD')}</span>
                         </div>

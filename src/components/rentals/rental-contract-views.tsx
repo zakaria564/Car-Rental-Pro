@@ -368,7 +368,7 @@ export function RentalDetails({ rental, isArchived = false }: { rental: Rental, 
                             ) : (
                                 <>
                                     <div className="flex justify-between text-green-600"><span>Montant Payé:</span> <span className="font-medium">{formatCurrency(amountPaid, 'MAD')}</span></div>
-                                    <div className="flex justify-between font-bold"><span>Reste à Payer:</span> <span>{formatCurrency(amountRemaining, 'MAD')}</span></div>
+                                    <div className={cn("flex justify-between font-bold", amountRemaining > 0.01 && "text-destructive")}><span>Reste à Payer:</span> <span>{formatCurrency(amountRemaining, 'MAD')}</span></div>
                                 </>
                             )}
                         </div>
