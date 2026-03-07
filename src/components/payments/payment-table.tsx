@@ -174,19 +174,22 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
     if (!firestore || !rentalToDel?.id) return;
 
     const rentalRef = doc(firestore, 'rentals', rentalToDel.id);
+    const carRef = doc(firestore, 'cars', rentalToDel.vehicule.carId);
     const paymentsQuery = query(collection(firestore, 'payments'), where("rentalId", "==", rentalToDel.id));
 
     try {
         await runTransaction(firestore, async (transaction) => {
+            // READS FIRST
+            const carDoc = await transaction.get(carRef);
             const paymentsSnapshot = await getDocs(paymentsQuery);
+
+            // WRITES AFTER
             paymentsSnapshot.forEach(docSnap => {
                 transaction.delete(docSnap.ref);
             });
     
             transaction.delete(rentalRef);
     
-            const carRef = doc(firestore, 'cars', rentalToDel.vehicule.carId);
-            const carDoc = await transaction.get(carRef);
             if (carDoc.exists()) {
                 transaction.update(carRef, { disponibilite: 'disponible' });
             }

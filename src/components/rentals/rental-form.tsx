@@ -473,9 +473,11 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
             const receptionInspectionRef = doc(collection(firestore, 'inspections'));
             
             await runTransaction(firestore, async (transaction) => {
+                // READ FIRST
                 const rentalDoc = await transaction.get(rentalRef);
                 if (!rentalDoc.exists()) throw new Error("Contrat de location introuvable.");
 
+                // WRITES AFTER
                 const receptionInspectionId = receptionInspectionRef.id;
                 const photoUrls = data.photosRetour ? data.photosRetour.map((item: { url: string }) => item.url.trim()).filter((url: string) => url) : [];
                 const inspectionPayload: Omit<Inspection, 'id' | 'damages'> = {
@@ -557,26 +559,16 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
                 'location.montantTotal': finalAmountToPay,
             };
 
+            // First, outside transaction, resolve which archived doc to update
+            const q = query(collection(firestore, 'archived_rentals'), where('contractNumber', '==', rental.contractNumber));
+            const qSnap = await getDocs(q);
+            const targetArchiveRef = !qSnap.empty ? qSnap.docs[0].ref : archivedRentalRef;
+
             // Use runTransaction to ensure sync between both collections
             await runTransaction(firestore, async (transaction) => {
-                // Update active rental
+                // Perform writes (blind updates are fine here since we have refs)
                 transaction.update(rentalRef, updateData);
-                
-                // Update archived rental fallback mechanism
-                const archivedSnap = await transaction.get(archivedRentalRef);
-                if (archivedSnap.exists()) {
-                    transaction.update(archivedRentalRef, updateData);
-                } else {
-                    // Safety check by contract number if ID mismatch (legacy)
-                    const q = query(collection(firestore, 'archived_rentals'), where('contractNumber', '==', rental.contractNumber));
-                    const qSnap = await getDocs(q);
-                    if (!qSnap.empty) {
-                        transaction.update(qSnap.docs[0].ref, updateData);
-                    } else {
-                        // If not even in archives, create a copy there
-                        transaction.set(archivedRentalRef, updateData, { merge: true });
-                    }
-                }
+                transaction.set(targetArchiveRef, updateData, { merge: true });
             });
             
             toast({ title: "Contrat mis à jour", description: "Les modifications ont été synchronisées partout." });
