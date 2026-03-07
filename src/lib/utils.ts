@@ -25,50 +25,56 @@ export const getSafeDate = (date: any): Date | null => {
 };
 
 /**
- * Récupère une date de location de manière robuste, en gérant les champs imbriqués
- * et les champs "à plat" (dotted keys) qui peuvent exister suite à des erreurs de synchro.
+ * Récupère une date de location de manière robuste.
+ * PRIORITÉ : Structure imbriquée standard (location.dateFin).
+ * REPLI : Champs "à plat" (dotted keys) qui peuvent exister suite à des erreurs de synchro.
  */
 export const getRentalDate = (rental: any, field: 'dateDebut' | 'dateFin'): Date | null => {
-    if (!rental || !rental.location) return null;
+    if (!rental) return null;
     
-    // On vérifie d'abord le champ à plat (souvent le plus récent suite à un prolongement)
+    // 1. Tenter la lecture standard imbriquée (Priorité)
+    if (rental.location && rental.location[field]) {
+        return getSafeDate(rental.location[field]);
+    }
+    
+    // 2. Tenter la lecture du champ à plat (Legacy/Backup)
     const flatKey = `location.${field}`;
-    const value = rental[flatKey] ?? rental.location[field];
+    if (rental[flatKey]) {
+        return getSafeDate(rental[flatKey]);
+    }
     
-    return getSafeDate(value);
+    return null;
 };
 
 /**
- * Calcule le montant total d'une location.
- * Priorise le montant total enregistré en base pour éviter les erreurs d'arrondi ou de calcul de jours.
+ * Calcule le montant total d'une location de manière robuste.
+ * Priorise le montant enregistré dans la structure standard.
  */
 export const calculateTotalRentalAmount = (rental: any): number => {
     if (!rental || !rental.location) return 0;
 
-    // 1. Vérifier si un montant total est déjà explicitement enregistré (priorité absolue)
-    const montantTotal = rental['location.montantTotal'] ?? rental.location.montantTotal;
-    
+    // 1. Vérifier le montant standard (Priorité)
+    const montantTotal = rental.location.montantTotal;
     if (typeof montantTotal === 'number' && !isNaN(montantTotal) && montantTotal > 0) {
       return montantTotal;
     }
 
-    // 2. Calculer basé sur les dates si le montant n'est pas enregistré
+    // 2. Vérifier le champ à plat
+    const flatTotal = rental['location.montantTotal'];
+    if (typeof flatTotal === 'number' && !isNaN(flatTotal) && flatTotal > 0) {
+        return flatTotal;
+    }
+
+    // 3. Calcul basé sur les dates si non enregistré
     const from = getRentalDate(rental, 'dateDebut');
     const to = getRentalDate(rental, 'dateFin');
-    const pricePerDay = rental['location.prixParJour'] ?? rental.location.prixParJour ?? 0;
+    const pricePerDay = rental.location.prixParJour ?? rental['location.prixParJour'] ?? 0;
 
     if (from && to && pricePerDay > 0) {
         const daysDiff = differenceInCalendarDays(startOfDay(to), startOfDay(from));
-        // Si même jour, on compte 1 jour minimum
         const rentalDays = daysDiff <= 0 ? 1 : daysDiff;
         return rentalDays * pricePerDay;
     }
 
-    // 3. Repli sur le nombre de jours enregistré
-    const nbrJours = rental['location.nbrJours'] ?? rental.location.nbrJours;
-    if (nbrJours && pricePerDay > 0) {
-      return nbrJours * pricePerDay;
-    }
-    
     return 0;
 };

@@ -472,17 +472,17 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
             const carDocRef = doc(firestore, 'cars', rental.vehicule.carId);
             const receptionInspectionRef = doc(collection(firestore, 'inspections'));
             
-            // Search for potential duplicates or archives by contract number
+            // Recherche des archives AVANT la transaction (Les lectures indépendantes hors transaction sont autorisées avant)
             const q = query(collection(firestore, 'archived_rentals'), where('contractNumber', '==', rental.contractNumber));
             const qSnap = await getDocs(q);
 
             await runTransaction(firestore, async (transaction) => {
-                // READ FIRST
+                // LECTURES Firestore (transaction.get)
                 const rentalDoc = await transaction.get(rentalRef);
                 const carDoc = await transaction.get(carDocRef);
                 if (!rentalDoc.exists()) throw new Error("Contrat de location introuvable.");
 
-                // WRITES AFTER
+                // ÉCRITURES Firestore (set, update, delete)
                 const receptionInspectionId = receptionInspectionRef.id;
                 const photoUrls = data.photosRetour ? data.photosRetour.map((item: { url: string }) => item.url.trim()).filter((url: string) => url) : [];
                 const inspectionPayload: Omit<Inspection, 'id' | 'damages'> = {
@@ -524,7 +524,7 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
                 const finalRentalDays = rentalDaysForUI;
                 const finalAmountToPay = finalRentalDays * rental.location.prixParJour;
                 
-                // Use flat keys update to ensure synchronization even if old structure exists
+                // Payload de mise à jour structuré
                 const updatePayload: any = {
                     "receptionInspectionId": receptionInspectionId,
                     "location.dateFin": data.dateRetour,
@@ -534,14 +534,9 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
                     "statut": 'terminee',
                 };
 
-                // Also update literal flat keys if they exist in the source document
-                const rData = rentalDoc.data() as any;
-                if (rData["location.dateFin"]) updatePayload["location.dateFin"] = data.dateRetour;
-                if (rData["location.montantTotal"]) updatePayload["location.montantTotal"] = finalAmountToPay;
-
                 transaction.update(rentalRef, updatePayload);
                 
-                // Sync Archives
+                // Synchronisation des Archives
                 if (!qSnap.empty) {
                     qSnap.docs.forEach(archiveDoc => {
                         transaction.update(archiveDoc.ref, updatePayload);
@@ -565,7 +560,6 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
             const finalRentalDays = dayDiff >= 1 ? dayDiff : 1;
             const finalAmountToPay = finalRentalDays * rental.location.prixParJour;
 
-            // Use dot notation for Firestore update to ensure nested fields are updated
             const updatePayload: any = {
                 "location.dateFin": dateRange.to,
                 "location.lieuRetour": lieuRetour || "Agence",
@@ -573,25 +567,20 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
                 "location.montantTotal": finalAmountToPay,
             };
 
-            // Search for archives by contract number to ensure sync
+            // Recherche des archives AVANT la transaction
             const q = query(collection(firestore, 'archived_rentals'), where('contractNumber', '==', rental.contractNumber));
             const qSnap = await getDocs(q);
 
             await runTransaction(firestore, async (transaction) => {
-                // READ FIRST
+                // LECTURES
                 const rentalDoc = await transaction.get(rentalRef);
-                const archiveDocs = qSnap.docs;
+                if (!rentalDoc.exists()) throw new Error("Contrat de location introuvable.");
 
-                // WRITES AFTER
-                const rData = rentalDoc.data() as any;
-                // If ghost fields exist at root, update them too
-                if (rData["location.dateFin"]) updatePayload["location.dateFin"] = dateRange.to;
-                if (rData["location.montantTotal"]) updatePayload["location.montantTotal"] = finalAmountToPay;
-
+                // ÉCRITURES
                 transaction.update(rentalRef, updatePayload);
                 
-                if (archiveDocs.length > 0) {
-                    archiveDocs.forEach(archiveDoc => {
+                if (!qSnap.empty) {
+                    qSnap.docs.forEach(archiveDoc => {
                         transaction.update(archiveDoc.ref, updatePayload);
                     });
                 } else {
@@ -632,8 +621,8 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
 
             const getNextSeqForCollection = async (collectionPath: string) => {
                 const rentalsRef = collection(firestore, collectionPath);
-                const q = query(rentalsRef, where("contractNumber", ">=", prefix), where("contractNumber", "<", prefix + '\uf8ff'), orderBy("contractNumber", "desc"), limit(1));
-                const querySnapshot = await getDocs(q);
+                const qSeq = query(rentalsRef, where("contractNumber", ">=", prefix), where("contractNumber", "<", prefix + '\uf8ff'), orderBy("contractNumber", "desc"), limit(1));
+                const querySnapshot = await getDocs(qSeq);
                 if (querySnapshot.empty) return 0;
                 const lastContractNumber = querySnapshot.docs[0].data().contractNumber;
                 return parseInt(lastContractNumber.split('-').pop() || '0', 10);

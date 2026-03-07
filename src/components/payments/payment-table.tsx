@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -177,13 +178,15 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
     const carRef = doc(firestore, 'cars', rentalToDel.vehicule.carId);
     const paymentsQuery = query(collection(firestore, 'payments'), where("rentalId", "==", rentalToDel.id));
 
+    // Lectures hors transaction pour éviter les conflits reads/writes
+    const paymentsSnapshot = await getDocs(paymentsQuery);
+
     try {
         await runTransaction(firestore, async (transaction) => {
-            // READS FIRST
+            // LECTURES Firestore (transaction.get)
             const carDoc = await transaction.get(carRef);
-            const paymentsSnapshot = await getDocs(paymentsQuery);
 
-            // WRITES AFTER
+            // ÉCRITURES Firestore (delete, update)
             paymentsSnapshot.forEach(docSnap => {
                 transaction.delete(docSnap.ref);
             });
