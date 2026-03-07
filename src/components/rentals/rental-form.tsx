@@ -65,7 +65,6 @@ const baseSchema = z.object({
   dommagesDepart: z.record(z.string(), damageTypeEnum).optional(),
   photosDepart: z.array(z.object({ url: z.string().url("Veuillez entrer une URL valide.").or(z.literal('')) })).optional(),
   
-  // Champs de retour
   kilometrageRetour: z.preprocess(
     (val) => (val === "" || val === null || val === undefined ? undefined : Number(val)),
     z.coerce.number({invalid_type_error: "Veuillez entrer un nombre."}).positive("Le kilométrage de retour doit être un nombre positif.").optional()
@@ -83,7 +82,6 @@ const baseSchema = z.object({
   dateRetour: z.coerce.date().optional(),
 });
 
-// A robust function to convert Firestore Timestamps or other formats to a JS Date object.
 const timestampToDate = (timestamp: any): Date | null => {
     if (!timestamp) return null;
     if (timestamp instanceof Date) return timestamp;
@@ -255,7 +253,7 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
                }
             }
         } else if (rental.livraison) {
-            livraisonData = rental.livraison; // backward compatibility
+            livraisonData = rental.livraison; 
         }
 
         if (mode === 'check-in' && rental.receptionInspectionId) {
@@ -277,7 +275,7 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
                 }
              }
         } else if (mode === 'check-in' && rental.reception) {
-            receptionData = rental.reception; // backward compatibility
+            receptionData = rental.reception;
         }
 
         const defaults = {
@@ -325,7 +323,6 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
     } else {
          form.reset(newRentalInitialValues);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rental, mode, firestore, clients]);
   
   const { setValue } = form;
@@ -334,11 +331,8 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
   const dateRange = form.watch("dateRange");
   const dateRetour = form.watch("dateRetour");
 
-  // Liste des clients disponibles (ceux qui n'ont pas de contrat en cours)
   const availableClients = React.useMemo(() => {
     if (mode !== 'new') return clients;
-    
-    // On collecte les CIN des clients qui ont actuellement une location "en_cours"
     const busyClientCins = new Set<string>();
     rentals.forEach(r => {
       if (r.statut === 'en_cours') {
@@ -348,8 +342,6 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
         }
       }
     });
-    
-    // On filtre la liste des clients pour exclure ceux qui sont occupés
     return clients.filter(c => !busyClientCins.has(c.cin));
   }, [clients, rentals, mode]);
 
@@ -362,14 +354,10 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
     }
   }, [selectedCarId, cars, mode, setValue]);
 
-  // Filtrer les voitures disponibles pour exclure celles qui ont un entretien à faire
   const availableCars = React.useMemo(() => {
     return cars.filter(car => {
-        // Condition de base : statut "disponible" ou voiture déjà affectée à ce contrat (en cas d'édition)
         const isBaseAvailable = car.disponibilite === 'disponible' || (rental && car.id === rental.vehicule.carId);
         if (!isBaseAvailable) return false;
-
-        // Restriction supplémentaire : pas de location si un entretien est dû ("À faire")
         if (car.maintenanceSchedule) {
             const km = car.kilometrage;
             const s = car.maintenanceSchedule;
@@ -415,7 +403,6 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
     if (Object.keys(errors).length > 0) {
       const firstErrorKey = Object.keys(errors)[0];
       const firstErrorMessage = errors[firstErrorKey]?.message || (Array.isArray(errors[firstErrorKey]) ? errors[firstErrorKey][0]?.url?.message : "Erreur de validation");
-      
       toast({
           variant: "destructive",
           title: "Erreur de validation",
@@ -425,15 +412,7 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
   };
 
   async function onSubmit(data: z.infer<typeof rentalFormSchema>) {
-    if (!firestore || !auth.currentUser) {
-        toast({
-            variant: "destructive",
-            title: "Erreur d'authentification",
-            description: "Vous devez être connecté pour effectuer cette action."
-        });
-        return;
-    }
-    
+    if (!firestore || !auth.currentUser) return;
     setIsSubmitting(true);
     const userId = auth.currentUser.uid;
     
@@ -445,7 +424,6 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
         batch: import("firebase/firestore").WriteBatch
     ) => {
         const inspectionRef = doc(collection(firestore, 'inspections'));
-        
         const photosArray = type === 'depart' ? inspectionData.photosDepart : inspectionData.photosRetour;
         const photoUrls = photosArray ? photosArray.map((item: {url:string}) => item.url.trim()).filter((url: string) => url) : [];
 
@@ -484,26 +462,20 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
                 batch.set(damageDocRef, damagePayload);
             }
         }
-        
         return inspectionRef.id;
     }
-
 
     try {
         if (mode === 'check-in' && rental) {
             const rentalRef = doc(firestore, 'rentals', rental.id);
             const archivedRentalRef = doc(firestore, 'archived_rentals', rental.id);
             const carDocRef = doc(firestore, 'cars', rental.vehicule.carId);
-
             const receptionInspectionRef = doc(collection(firestore, 'inspections'));
             
             await runTransaction(firestore, async (transaction) => {
                 const rentalDoc = await transaction.get(rentalRef);
-                if (!rentalDoc.exists()) {
-                    throw new Error("Contrat de location introuvable.");
-                }
+                if (!rentalDoc.exists()) throw new Error("Contrat de location introuvable.");
 
-                // Create inspection document and its sub-collection within the transaction
                 const receptionInspectionId = receptionInspectionRef.id;
                 const photoUrls = data.photosRetour ? data.photosRetour.map((item: { url: string }) => item.url.trim()).filter((url: string) => url) : [];
                 const inspectionPayload: Omit<Inspection, 'id' | 'damages'> = {
@@ -545,7 +517,6 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
                 const finalRentalDays = rentalDaysForUI;
                 const finalAmountToPay = finalRentalDays * rental.location.prixParJour;
                 
-                // Nest the update payload for setDoc merge to be clean
                 const updatePayloadNested = {
                     receptionInspectionId: receptionInspectionId,
                     location: {
@@ -557,7 +528,6 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
                     statut: 'terminee' as const,
                 };
 
-                // For updateDoc, flat keys with dots work fine
                 transaction.update(rentalRef, {
                     receptionInspectionId: receptionInspectionId,
                     'location.dateFin': data.dateRetour,
@@ -567,15 +537,11 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
                     statut: 'terminee',
                 });
                 
-                // For setDoc merge, use nested object to avoid "location.montantTotal" root keys
                 transaction.set(archivedRentalRef, updatePayloadNested, { merge: true });
                 transaction.update(carDocRef, { kilometrage: data.kilometrageRetour, disponibilite: 'disponible' });
             });
 
-            toast({
-                title: "Location terminée",
-                description: `La réception pour ${rental.locataire.nomPrenom} a été enregistrée.`,
-            });
+            toast({ title: "Location terminée", description: `La réception pour ${rental.locataire.nomPrenom} a été enregistrée.` });
             onFinished();
 
         } else if (mode === 'edit' && rental) {
@@ -586,32 +552,24 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
 
             const dayDiff = differenceInCalendarDays(startOfDay(dateRange.to), startOfDay(dateRange.from));
             const finalRentalDays = dayDiff >= 1 ? dayDiff : 1;
-
             const finalAmountToPay = finalRentalDays * rental.location.prixParJour;
 
-            // Flat keys for update
-            batch.update(rentalRef, {
-                'location.dateFin': dateRange.to,
-                'location.lieuRetour': lieuRetour,
-                'location.nbrJours': finalRentalDays,
-                'location.montantTotal': finalAmountToPay,
-            });
-            
-            // Nested object for set merge
-            batch.set(archivedRentalRef, {
+            // We use setDoc with merge for both to be safe in case one is missing
+            const updatePayload = {
                 location: {
                     dateFin: dateRange.to,
                     lieuRetour: lieuRetour,
                     nbrJours: finalRentalDays,
-                    montantTotal: finalAmountToPay
+                    montantTotal: finalAmountToPay,
                 }
-            }, { merge: true });
+            };
+
+            batch.set(rentalRef, updatePayload, { merge: true });
+            batch.set(archivedRentalRef, updatePayload, { merge: true });
             
             await batch.commit();
+            toast({ title: "Contrat mis à jour", description: "Les modifications ont été enregistrées dans les archives et les contrats actifs." });
             
-            toast({ title: "Contrat prolongé", description: `La location a été étendue jusqu'au ${format(dateRange.to, "dd/MM/yyyy")}.` });
-            
-            // Transition directly to payment view after extension
             const updatedRental: Rental = {
                 ...rental,
                 location: {
@@ -625,64 +583,39 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
             setNewlyCreatedRental(updatedRental);
             setShowPaymentForm(true);
 
-        } else { // mode === 'new'
+        } else { 
             const batch = writeBatch(firestore);
-            const {
-                voitureId,
-                clientId,
-                conducteur2_clientId,
-                dateRange,
-                caution,
-                lieuDepart,
-                lieuRetour,
-            } = data;
+            const { voitureId, clientId, conducteur2_clientId, dateRange, caution, lieuDepart, lieuRetour } = data;
 
             const selectedCar = cars.find(c => c.id === voitureId);
             const selectedClient = clients.find(c => c.id === clientId);
-            const selectedConducteur2 = (conducteur2_clientId && conducteur2_clientId !== '_none_') 
-                ? clients.find(c => c.id === conducteur2_clientId) 
-                : null;
+            const selectedConducteur2 = (conducteur2_clientId && conducteur2_clientId !== '_none_') ? clients.find(c => c.id === conducteur2_clientId) : null;
 
-            if (!selectedCar || !selectedClient) {
-                 throw new Error("Client ou voiture invalides. Veuillez réessayer.");
-            }
+            if (!selectedCar || !selectedClient) throw new Error("Client ou voiture invalides.");
 
             const now = new Date();
             const year = now.getFullYear();
             const month = (now.getMonth() + 1).toString().padStart(2, '0');
             const prefix = `C-${year}-${month}-`;
 
-            // Uniqueness check: check BOTH rentals and archived_rentals
             const getNextSeqForCollection = async (collectionPath: string) => {
                 const rentalsRef = collection(firestore, collectionPath);
-                const q = query(
-                    rentalsRef,
-                    where("contractNumber", ">=", prefix),
-                    where("contractNumber", "<", prefix + '\uf8ff'),
-                    orderBy("contractNumber", "desc"),
-                    limit(1)
-                );
+                const q = query(rentalsRef, where("contractNumber", ">=", prefix), where("contractNumber", "<", prefix + '\uf8ff'), orderBy("contractNumber", "desc"), limit(1));
                 const querySnapshot = await getDocs(q);
                 if (querySnapshot.empty) return 0;
                 const lastContractNumber = querySnapshot.docs[0].data().contractNumber;
                 return parseInt(lastContractNumber.split('-').pop() || '0', 10);
             };
 
-            const [seqActive, seqArchived] = await Promise.all([
-                getNextSeqForCollection("rentals"),
-                getNextSeqForCollection("archived_rentals")
-            ]);
-
+            const [seqActive, seqArchived] = await Promise.all([getNextSeqForCollection("rentals"), getNextSeqForCollection("archived_rentals")]);
             const nextSeq = Math.max(seqActive, seqArchived) + 1;
             const newContractNumber = `${prefix}${nextSeq.toString().padStart(3, '0')}`;
             
             const dayDiff = differenceInCalendarDays(startOfDay(dateRange.to), startOfDay(dateRange.from));
             const rentalDays = dayDiff > 0 ? dayDiff : 1;
             const totalAmount = rentalDays * selectedCar.prixParJour;
-            
             const safeDateMiseEnCirculation = timestampToDate(selectedCar.dateMiseEnCirculation);
             const newRentalRef = doc(collection(firestore, 'rentals'));
-            
             const livraisonInspectionId = handleInspectionInBatch(newRentalRef.id, selectedCar.id, 'depart', data, batch);
             const carRef = doc(firestore, 'cars', selectedCar.id);
 
@@ -737,36 +670,17 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
             batch.update(carRef, { disponibilite: 'louee' });
             
             await batch.commit();
-            toast({
-                title: "Contrat créé",
-                description: `Le contrat pour ${selectedClient.nom} a été créé avec succès.`,
-            });
+            toast({ title: "Contrat créé", description: `Le contrat pour ${selectedClient.nom} a été créé avec succès.` });
             
-            const tempRentalForUI: Rental = {
-                id: newRentalRef.id,
-                ...rentalPayload,
-                createdAt: Timestamp.now(),
-            };
+            const tempRentalForUI: Rental = { id: newRentalRef.id, ...rentalPayload, createdAt: Timestamp.now() };
             setNewlyCreatedRental(tempRentalForUI);
         }
     } catch (error: any) {
         console.error("Submission error:", error);
-        const isPermissionError = error.code === 'permission-denied';
-        
-        if (isPermissionError) {
-             const permissionError = new FirestorePermissionError({
-                path: `rentals`,
-                operation: mode === 'new' ? 'create' : 'update',
-            }, error as Error);
-            errorEmitter.emit('permission-error', permissionError);
-        }
-
         toast({
             variant: "destructive",
             title: "Erreur",
-            description: isPermissionError 
-                ? "Permission refusée. Impossible de sauvegarder le contrat."
-                : error.message || "Une erreur est survenue lors de l'enregistrement."
+            description: error.message || "Une erreur est survenue lors de l'enregistrement."
         });
     } finally {
         setIsSubmitting(false);
@@ -774,21 +688,12 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
   }
 
   const displayPricePerDay = rental ? rental.location.prixParJour : (selectedCarForUI?.prixParJour || 0);
-  
-  const buttonText = {
-      new: 'Créer le contrat',
-      edit: 'Enregistrer le prolongement',
-      'check-in': 'Terminer et Réceptionner le Véhicule'
-  };
+  const buttonText = { new: 'Créer le contrat', edit: 'Enregistrer les modifications', 'check-in': 'Terminer et Réceptionner le Véhicule' };
 
   if (isLoadingDefaults) {
     return (
         <div className="space-y-4 mt-4">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-20 w-full" />
-            <Skeleton className="h-40 w-full" />
-            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /><Skeleton className="h-20 w-full" /><Skeleton className="h-40 w-full" /><Skeleton className="h-10 w-full" />
         </div>
     );
   }
@@ -797,18 +702,9 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
     const rentalsForPayment = [newlyCreatedRental, ...rentals.filter(r => r.id !== newlyCreatedRental!.id)];
     return (
         <div className="mt-4">
-            <h4 className="text-lg font-semibold mb-1">Ajouter un paiement</h4>
+            <h4 className="text-lg font-semibold mb-1">Paiement</h4>
             <p className="text-sm text-muted-foreground mb-4">pour le contrat N° {newlyCreatedRental.contractNumber}</p>
-            <PaymentForm
-                payment={null}
-                rentals={rentalsForPayment}
-                onFinished={() => {
-                    setNewlyCreatedRental(null);
-                    setShowPaymentForm(false);
-                    onFinished();
-                }}
-                preselectedRentalId={newlyCreatedRental.id}
-            />
+            <PaymentForm payment={null} rentals={rentalsForPayment} onFinished={() => { setNewlyCreatedRental(null); setShowPaymentForm(false); onFinished(); }} preselectedRentalId={newlyCreatedRental.id} />
         </div>
     );
   }
@@ -817,17 +713,10 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
       return (
           <div className="flex flex-col items-center justify-center h-full text-center p-8 mt-8">
               <CheckCircle className="w-16 h-16 text-green-500 mb-4" />
-              <h3 className="text-xl font-semibold">
-                {mode === 'edit' ? "Contrat prolongé !" : "Contrat enregistré !"}
-              </h3>
-              <p className="text-muted-foreground mt-2 mb-6">
-                  Le contrat N° {newlyCreatedRental.contractNumber} pour {newlyCreatedRental.locataire.nomPrenom} a été mis à jour.
-              </p>
+              <h3 className="text-xl font-semibold">{mode === 'edit' ? "Contrat mis à jour !" : "Contrat enregistré !"}</h3>
+              <p className="text-muted-foreground mt-2 mb-6">Le contrat N° {newlyCreatedRental.contractNumber} pour {newlyCreatedRental.locataire.nomPrenom} a été enregistré.</p>
               <div className="flex flex-col sm:flex-row gap-4 w-full">
-                  <Button onClick={() => setShowPaymentForm(true)} className="w-full">
-                      <DollarSign className="mr-2" />
-                      Encaisser le paiement
-                  </Button>
+                  <Button onClick={() => setShowPaymentForm(true)} className="w-full"><DollarSign className="mr-2" />Encaisser le paiement</Button>
                   <Button variant="outline" onClick={onFinished} className="w-full">Fermer</Button>
               </div>
           </div>
@@ -841,501 +730,81 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
             <AccordionItem value="item-1">
                 <AccordionTrigger>Détails du contrat</AccordionTrigger>
                 <AccordionContent className="space-y-4 px-1">
-                    <FormField
-                      control={form.control}
-                      name="clientId"
-                      render={({ field }) => (
+                    <FormField control={form.control} name="clientId" render={({ field }) => (
                         <FormItem>
                           <FormLabel>Client</FormLabel>
                           <Select onValueChange={field.onChange} value={field.value} disabled={mode !== 'new'}>
-                            <FormControl>
-                              <SelectTrigger><SelectValue placeholder="Sélectionner un client" /></SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {availableClients.map(client => <SelectItem key={client.id} value={client.id}>{client.nom} ({client.cin})</SelectItem>)}
-                            </SelectContent>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Sélectionner un client" /></SelectTrigger></FormControl>
+                            <SelectContent>{availableClients.map(client => <SelectItem key={client.id} value={client.id}>{client.nom} ({client.cin})</SelectItem>)}</SelectContent>
                           </Select>
                           <FormMessage />
                         </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="conducteur2_clientId"
-                      render={({ field }) => (
+                      )} />
+                    <FormField control={form.control} name="conducteur2_clientId" render={({ field }) => (
                         <FormItem>
                           <FormLabel>Deuxième conducteur (Optionnel)</FormLabel>
-                           <Select 
-                                onValueChange={field.onChange} 
-                                value={field.value || '_none_'} 
-                                disabled={mode !== 'new'}
-                            >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Sélectionner un deuxième conducteur" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                               <SelectItem value="_none_">Aucun</SelectItem>
-                               {availableClients.filter(client => client.id !== selectedClientId).map(client => (
-                                <SelectItem key={client.id} value={client.id}>{client.nom} ({client.cin})</SelectItem>
-                               ))}
-                            </SelectContent>
+                           <Select onValueChange={field.onChange} value={field.value || '_none_'} disabled={mode !== 'new'}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Sélectionner un deuxième conducteur" /></SelectTrigger></FormControl>
+                            <SelectContent><SelectItem value="_none_">Aucun</SelectItem>{availableClients.filter(client => client.id !== selectedClientId).map(client => (<SelectItem key={client.id} value={client.id}>{client.nom} ({client.cin})</SelectItem>))}</SelectContent>
                           </Select>
                           <FormMessage />
                         </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="voitureId"
-                      render={({ field }) => (
+                      )} />
+                    <FormField control={form.control} name="voitureId" render={({ field }) => (
                         <FormItem>
                           <FormLabel>Voiture</FormLabel>
                           <Select onValueChange={field.onChange} value={field.value} disabled={mode !== 'new'}>
-                            <FormControl>
-                              <SelectTrigger><SelectValue placeholder="Sélectionner une voiture disponible" /></SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {availableCars.map(car => <SelectItem key={car.id} value={car.id}>{car.marque} {car.modele} ({car.immat})</SelectItem>)}
-                            </SelectContent>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Sélectionner une voiture" /></SelectTrigger></FormControl>
+                            <SelectContent>{availableCars.map(car => <SelectItem key={car.id} value={car.id}>{car.marque} {car.modele} ({car.immat})</SelectItem>)}</SelectContent>
                           </Select>
                           <FormMessage />
                         </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="dateRange"
-                      render={({ field }) => (
+                      )} />
+                    <FormField control={form.control} name="dateRange" render={({ field }) => (
                         <FormItem className="flex flex-col">
-                          <FormLabel>Période de location (prévue)</FormLabel>
+                          <FormLabel>Période de location</FormLabel>
                           <Popover>
                             <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant={"outline"}
-                                  disabled={mode === 'check-in'}
-                                  className={cn("w-full pl-3 text-left font-normal", !field.value?.from && "text-muted-foreground")}
-                                >
-                                  {field.value?.from ? (
-                                    field.value.to ? (
-                                      <>
-                                        {format(field.value.from, "dd LLL, y", { locale: fr })} -{" "}
-                                        {format(field.value.to, "dd LLL, y", { locale: fr })}
-                                      </>
-                                    ) : (
-                                      format(field.value.from, "dd LLL, y", { locale: fr })
-                                    )
-                                  ) : (
-                                    <span>Choisir une plage de dates</span>
-                                  )}
-                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                              </FormControl>
+                              <FormControl><Button variant={"outline"} disabled={mode === 'check-in'} className={cn("w-full pl-3 text-left font-normal", !field.value?.from && "text-muted-foreground")}>{field.value?.from ? (field.value.to ? (<>{format(field.value.from, "dd LLL, y", { locale: fr })} - {format(field.value.to, "dd LLL, y", { locale: fr })}</>) : (format(field.value.from, "dd LLL, y", { locale: fr }))) : (<span>Choisir une plage de dates</span>)}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                initialFocus
-                                mode="range"
-                                defaultMonth={field.value?.from}
-                                selected={{from: field.value?.from, to: field.value?.to}}
-                                onSelect={field.onChange}
-                                numberOfMonths={2}
-                                locale={fr}
-                                disabled={date => mode === 'new' ? date < new Date(new Date().setHours(0,0,0,0)) : (rental?.location?.dateDebut ? date < getSafeDate(rental.location.dateDebut)! : false)}
-                                captionLayout="dropdown-nav"
-                                fromYear={new Date().getFullYear()}
-                                toYear={new Date().getFullYear() + 5}
-                              />
-                            </PopoverContent>
+                            <PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={field.value?.from} selected={{from: field.value?.from, to: field.value?.to}} onSelect={field.onChange} numberOfMonths={2} locale={fr} disabled={date => mode === 'new' ? date < new Date(new Date().setHours(0,0,0,0)) : false} captionLayout="dropdown-nav" fromYear={new Date().getFullYear()} toYear={new Date().getFullYear() + 5} /></PopoverContent>
                           </Popover>
                           <FormMessage />
                         </FormItem>
-                      )}
-                    />
+                      )} />
                     <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                            control={form.control}
-                            name="lieuDepart"
-                            render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Lieu de départ</FormLabel>
-                                <FormControl>
-                                <Input placeholder="Agence" {...field} value={field.value ?? ''} readOnly={mode !== 'new'} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="lieuRetour"
-                            render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Lieu de retour</FormLabel>
-                                <FormControl>
-                                <Input placeholder="Agence" {...field} value={field.value ?? ''} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                            )}
-                        />
+                        <FormField control={form.control} name="lieuDepart" render={({ field }) => (<FormItem><FormLabel>Départ</FormLabel><FormControl><Input placeholder="Agence" {...field} value={field.value ?? ''} readOnly={mode !== 'new'} /></FormControl></FormItem>)} />
+                        <FormField control={form.control} name="lieuRetour" render={({ field }) => (<FormItem><FormLabel>Retour</FormLabel><FormControl><Input placeholder="Agence" {...field} value={field.value ?? ''} /></FormControl></FormItem>)} />
                     </div>
-                     <FormField
-                      control={form.control}
-                      name="caution"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Caution (MAD)</FormLabel>
-                          <FormControl>
-                            <Input type="number" placeholder="5000" {...field} value={field.value ?? ''} readOnly={mode !== 'new'} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                     <FormField control={form.control} name="caution" render={({ field }) => (<FormItem><FormLabel>Caution (MAD)</FormLabel><FormControl><Input type="number" placeholder="5000" {...field} value={field.value ?? ''} readOnly={mode !== 'new'} /></FormControl></FormItem>)} />
                 </AccordionContent>
             </AccordionItem>
-            
             <AccordionItem value="item-2">
-                <AccordionTrigger>Contrat de Livraison (Départ)</AccordionTrigger>
+                <AccordionTrigger>Livraison (Départ)</AccordionTrigger>
                 <AccordionContent className="space-y-4 px-1">
-                     <FormField
-                      control={form.control}
-                      name="kilometrageDepart"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Kilométrage de départ</FormLabel>
-                          <FormControl>
-                            <Input type="number" placeholder="64000" {...field} value={field.value ?? ''} readOnly />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                     <FormField
-                      control={form.control}
-                      name="carburantNiveauDepart"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Niveau de carburant: {Math.round((field.value || 0) * 100)}%</FormLabel>
-                           <FormControl>
-                             <Slider
-                                value={[field.value || 0]}
-                                onValueChange={(values) => field.onChange(values[0])}
-                                max={1}
-                                step={0.125}
-                                disabled={mode !== 'new'}
-                              />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <div>
-                        <FormLabel>Checklist des équipements</FormLabel>
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2">
-                             <FormField control={form.control} name="roueSecours" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={mode !== 'new'} /></FormControl><FormLabel className="font-normal">Roue de secours</FormLabel></FormItem>)} />
-                             <FormField control={form.control} name="posteRadio" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={mode !== 'new'} /></FormControl><FormLabel className="font-normal">Poste Radio</FormLabel></FormItem>)} />
-                             <FormField control={form.control} name="lavage" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={mode !== 'new'} /></FormControl><FormLabel className="font-normal">Voiture propre</FormLabel></FormItem>)} />
-                             <FormField control={form.control} name="cric" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={mode !== 'new'} /></FormControl><FormLabel className="font-normal">Cric et manivelle</FormLabel></FormItem>)} />
-                             <FormField control={form.control} name="giletTriangle" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={mode !== 'new'} /></FormControl><FormLabel className="font-normal">Gilet et triangle</FormLabel></FormItem>)} />
-                             <FormField control={form.control} name="doubleCles" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={mode !== 'new'} /></FormControl><FormLabel className="font-normal">Double des clés</FormLabel></FormItem>)} />
-                        </div>
-                    </div>
-
-                    <div>
-                        <FormField
-                            control={form.control}
-                            name="dommagesDepart"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Schéma des dommages (Départ)</FormLabel>
-                                    <FormDescription>Cliquez sur une zone pour spécifier le type de dommage.</FormDescription>
-                                    <FormControl>
-                                        <CarDamageDiagram 
-                                            damages={field.value || {}} 
-                                            onDamagesChange={field.onChange} 
-                                            readOnly={mode !== 'new'}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    </div>
-                    
-                     <FormField
-                      control={form.control}
-                      name="dommagesDepartNotes"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Autres dommages / Notes (Départ)</FormLabel>
-                          <FormControl>
-                            <Textarea placeholder="Décrivez tout autre dommage ou note pertinente ici..." {...field} value={field.value ?? ''} readOnly={mode !== 'new'} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormItem>
-                        <FormLabel>Photos du véhicule (Départ)</FormLabel>
-                        <div className="space-y-2">
-                            {departFields.map((item, index) => (
-                                <FormField
-                                    key={item.id}
-                                    control={control}
-                                    name={`photosDepart.${index}.url`}
-                                    render={({ field }) => (
-                                    <FormItem>
-                                        <div className="flex items-center gap-1">
-                                            <FormControl>
-                                            <Input
-                                                {...field}
-                                                placeholder="https://exemple.com/photo.jpg"
-                                                readOnly={mode !== 'new'}
-                                                className="h-9"
-                                            />
-                                            </FormControl>
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="icon"
-                                                title="Aperçu de l'image"
-                                                className="h-9 w-9 shrink-0"
-                                                disabled={!field.value}
-                                                onClick={() => field.value && window.open(field.value, '_blank', 'noopener,noreferrer')}
-                                            >
-                                                <ExternalLink className="h-4 w-4" />
-                                            </Button>
-                                            {mode === 'new' && (
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                title="Supprimer l'URL"
-                                                className="h-9 w-9 shrink-0 text-destructive"
-                                                onClick={() => removeDepart(index)}
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                            )}
-                                        </div>
-                                        <FormMessage />
-                                    </FormItem>
-                                    )}
-                                />
-                            ))}
-                            {mode === 'new' && (
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    className="w-full"
-                                    onClick={() => appendDepart({ url: '' })}
-                                >
-                                    <Plus className="mr-2 h-4 w-4" />
-                                    Ajouter une URL de photo
-                                </Button>
-                            )}
-                        </div>
-                        {mode !== 'new' && departFields.length === 0 && (
-                            <p className="text-sm text-muted-foreground pt-2">Aucune photo enregistrée pour le départ.</p>
-                        )}
-                    </FormItem>
+                     <FormField control={form.control} name="kilometrageDepart" render={({ field }) => (<FormItem><FormLabel>Kilométrage</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} readOnly /></FormControl></FormItem>)} />
+                     <FormField control={form.control} name="carburantNiveauDepart" render={({ field }) => (<FormItem><FormLabel>Niveau carburant: {Math.round((field.value || 0) * 100)}%</FormLabel><FormControl><Slider value={[field.value || 0]} onValueChange={(values) => field.onChange(values[0])} max={1} step={0.125} disabled={mode !== 'new'} /></FormControl></FormItem>)} />
+                    <div><FormLabel>Equipements</FormLabel><div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2"><FormField control={form.control} name="roueSecours" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={mode !== 'new'} /></FormControl><FormLabel className="font-normal">Roue de secours</FormLabel></FormItem>)} /><FormField control={form.control} name="posteRadio" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={mode !== 'new'} /></FormControl><FormLabel className="font-normal">Poste Radio</FormLabel></FormItem>)} /><FormField control={form.control} name="lavage" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={mode !== 'new'} /></FormControl><FormLabel className="font-normal">Voiture propre</FormLabel></FormItem>)} /><FormField control={form.control} name="cric" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={mode !== 'new'} /></FormControl><FormLabel className="font-normal">Cric et manivelle</FormLabel></FormItem>)} /><FormField control={form.control} name="giletTriangle" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={mode !== 'new'} /></FormControl><FormLabel className="font-normal">Gilet et triangle</FormLabel></FormItem>)} /><FormField control={form.control} name="doubleCles" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={mode !== 'new'} /></FormControl><FormLabel className="font-normal">Double des clés</FormLabel></FormItem>)} /></div></div>
+                    <div><FormField control={form.control} name="dommagesDepart" render={({ field }) => (<FormItem><FormLabel>Dommages (Départ)</FormLabel><FormControl><CarDamageDiagram damages={field.value || {}} onDamagesChange={field.onChange} readOnly={mode !== 'new'} /></FormControl></FormItem>)} /></div>
+                     <FormField control={form.control} name="dommagesDepartNotes" render={({ field }) => (<FormItem><FormLabel>Notes (Départ)</FormLabel><FormControl><Textarea placeholder="Notes..." {...field} value={field.value ?? ''} readOnly={mode !== 'new'} /></FormControl></FormItem>)} />
                 </AccordionContent>
             </AccordionItem>
-            
             {mode === 'check-in' && rental && (
               <AccordionItem value="item-3">
-                  <AccordionTrigger>Contrat de Réception (Retour)</AccordionTrigger>
+                  <AccordionTrigger>Réception (Retour)</AccordionTrigger>
                   <AccordionContent className="space-y-4 px-1">
-                      <p className="text-sm text-muted-foreground">Remplissez cette section lors du retour du véhicule.</p>
-                       <FormField
-                          control={form.control}
-                          name="dateRetour"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Date de retour effective</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="date"
-                                  value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd") : ""}
-                                  onChange={(e) => {
-                                    const dateString = e.target.value;
-                                    if (!dateString) {
-                                        field.onChange(null);
-                                    } else {
-                                        field.onChange(new Date(`${dateString}T00:00:00`));
-                                    }
-                                  }}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      <FormField
-                        control={form.control}
-                        name="kilometrageRetour"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Kilométrage de retour</FormLabel>
-                            <FormControl>
-                              <Input
-                                  type="number"
-                                  placeholder="65500"
-                                  {...field}
-                                  value={field.value ?? ''}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="carburantNiveauRetour"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Niveau de carburant au retour: {field.value ? Math.round(field.value * 100) : 0}%</FormLabel>
-                            <FormControl>
-                              <Slider
-                                  value={[field.value || 0]}
-                                  onValueChange={(values) => field.onChange(values[0])}
-                                  max={1}
-                                  step={0.125}
-                                />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                       <div>
-                        <FormLabel>Checklist des équipements (Retour)</FormLabel>
-                         <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2">
-                             <FormField control={form.control} name="roueSecoursRetour" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Roue de secours</FormLabel></FormItem>)} />
-                             <FormField control={form.control} name="posteRadioRetour" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Poste Radio</FormLabel></FormItem>)} />
-                             <FormField control={form.control} name="lavageRetour" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Voiture propre</FormLabel></FormItem>)} />
-                             <FormField control={form.control} name="cricRetour" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Cric et manivelle</FormLabel></FormItem>)} />
-                             <FormField control={form.control} name="giletTriangleRetour" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Gilet et triangle</FormLabel></FormItem>)} />
-                             <FormField control={form.control} name="doubleClesRetour" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Double des clés</FormLabel></FormItem>)} />
-                        </div>
-                    </div>
-                      <div>
-                          <FormField
-                              control={form.control}
-                              name="dommagesRetour"
-                              render={({ field }) => (
-                                  <FormItem>
-                                      <FormLabel>Schéma des dommages (Retour)</FormLabel>
-                                      <FormDescription>Marquez les nouveaux dommages constatés au retour.</FormDescription>
-                                      <FormControl>
-                                          <CarDamageDiagram 
-                                              damages={field.value || {}} 
-                                              onDamagesChange={field.onChange} 
-                                          />
-                                      </FormControl>
-                                      <FormMessage />
-                                  </FormItem>
-                              )}
-                          />
-                      </div>
-                      <FormField
-                        control={form.control}
-                        name="dommagesRetourNotes"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Notes sur les dommages (Retour)</FormLabel>
-                            <FormControl>
-                              <Textarea placeholder="Décrivez les nouveaux dommages ou frais supplémentaires..." {...field} value={field.value ?? ''} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    <FormItem>
-                        <FormLabel>Photos du véhicule (Retour)</FormLabel>
-                        <div className="space-y-2">
-                             {retourFields.map((item, index) => (
-                                <FormField
-                                    key={item.id}
-                                    control={control}
-                                    name={`photosRetour.${index}.url`}
-                                    render={({ field }) => (
-                                    <FormItem>
-                                        <div className="flex items-center gap-1">
-                                            <FormControl>
-                                            <Input
-                                                {...field}
-                                                placeholder="https://exemple.com/photo.jpg"
-                                                className="h-9"
-                                            />
-                                            </FormControl>
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="icon"
-                                                title="Aperçu de l'image"
-                                                className="h-9 w-9 shrink-0"
-                                                disabled={!field.value}
-                                                onClick={() => field.value && window.open(field.value, '_blank', 'noopener,noreferrer')}
-                                            >
-                                                <ExternalLink className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                title="Supprimer l'URL"
-                                                className="h-9 w-9 shrink-0 text-destructive"
-                                                onClick={() => removeRetour(index)}
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                        <FormMessage />
-                                    </FormItem>
-                                    )}
-                                />
-                            ))}
-                            <Button
-                                type="button"
-                                variant="outline"
-                                className="w-full"
-                                onClick={() => appendRetour({ url: '' })}
-                            >
-                                <Plus className="mr-2 h-4 w-4" />
-                                Ajouter une URL de photo
-                            </Button>
-                        </div>
-                    </FormItem>
+                      <FormField control={form.control} name="dateRetour" render={({ field }) => (<FormItem><FormLabel>Date de retour</FormLabel><FormControl><Input type="date" value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd") : ""} onChange={(e) => field.onChange(e.target.value ? new Date(`${e.target.value}T00:00:00`) : null)} /></FormControl></FormItem>)} />
+                      <FormField control={form.control} name="kilometrageRetour" render={({ field }) => (<FormItem><FormLabel>Kilométrage</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl></FormItem>)} />
+                      <FormField control={form.control} name="carburantNiveauRetour" render={({ field }) => (<FormItem><FormLabel>Niveau carburant: {field.value ? Math.round(field.value * 100) : 0}%</FormLabel><FormControl><Slider value={[field.value || 0]} onValueChange={(values) => field.onChange(values[0])} max={1} step={0.125} /></FormControl></FormItem>)} />
+                       <div><FormLabel>Equipements (Retour)</FormLabel><div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2"><FormField control={form.control} name="roueSecoursRetour" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Roue de secours</FormLabel></FormItem>)} /><FormField control={form.control} name="posteRadioRetour" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Poste Radio</FormLabel></FormItem>)} /><FormField control={form.control} name="lavageRetour" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Voiture propre</FormLabel></FormItem>)} /><FormField control={form.control} name="cricRetour" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Cric et manivelle</FormLabel></FormItem>)} /><FormField control={form.control} name="giletTriangleRetour" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Gilet et triangle</FormLabel></FormItem>)} /><FormField control={form.control} name="doubleClesRetour" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Double des clés</FormLabel></FormItem>)} /></div></div>
+                      <div><FormField control={form.control} name="dommagesRetour" render={({ field }) => (<FormItem><FormLabel>Dommages (Retour)</FormLabel><FormControl><CarDamageDiagram damages={field.value || {}} onDamagesChange={field.onChange} /></FormControl></FormItem>)} /></div>
+                      <FormField control={form.control} name="dommagesRetourNotes" render={({ field }) => (<FormItem><FormLabel>Notes (Retour)</FormLabel><FormControl><Textarea placeholder="Notes..." {...field} value={field.value ?? ''} /></FormControl></FormItem>)} />
                   </AccordionContent>
               </AccordionItem>
             )}
         </Accordion>
-        
-        <Card className="bg-muted/50">
-            <CardHeader>
-                <CardTitle className="text-lg">Résumé du contrat</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-                <div className="flex justify-between"><span>Prix par jour :</span> <span className="font-medium">{formatCurrency(displayPricePerDay, 'MAD')}</span></div>
-                <div className="flex justify-between"><span>Durée de la location :</span> <span className="font-medium">{rentalDaysForUI} jour(s)</span></div>
-                <div className="flex justify-between font-semibold"><span>Montant Total :</span> <span>{formatCurrency(prixTotalForUI, 'MAD')}</span></div>
-                 {mode !== 'new' && rental && (
-                    <>
-                        <div className="flex justify-between text-green-600"><span>Montant Payé :</span> <span className="font-medium">{formatCurrency(rental.location.montantPaye || 0, 'MAD')}</span></div>
-                        <div className="flex justify-between font-bold text-lg text-destructive"><span>Reste à Payer :</span> <span>{formatCurrency(prixTotalForUI - (rental.location.montantPaye || 0), 'MAD')}</span></div>
-                    </>
-                )}
-            </CardContent>
-        </Card>
-
-        <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isSubmitting}>
-          {isSubmitting ? "Enregistrement..." : buttonText[mode]}
-        </Button>
+        <Card className="bg-muted/50"><CardHeader><CardTitle className="text-lg">Résumé</CardTitle></CardHeader><CardContent className="space-y-2 text-sm"><div className="flex justify-between"><span>Prix par jour :</span> <span className="font-medium">{formatCurrency(displayPricePerDay, 'MAD')}</span></div><div className="flex justify-between"><span>Durée :</span> <span className="font-medium">{rentalDaysForUI} jour(s)</span></div><div className="flex justify-between font-semibold"><span>Montant Total :</span> <span>{formatCurrency(prixTotalForUI, 'MAD')}</span></div>{mode !== 'new' && rental && (<><div className="flex justify-between text-green-600"><span>Payé :</span> <span className="font-medium">{formatCurrency(rental.location.montantPaye || 0, 'MAD')}</span></div><div className="flex justify-between font-bold text-lg text-destructive"><span>Reste :</span> <span>{formatCurrency(prixTotalForUI - (rental.location.montantPaye || 0), 'MAD')}</span></div></>)}</CardContent></Card>
+        <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isSubmitting}>{isSubmitting ? "Enregistrement..." : buttonText[mode]}</Button>
       </form>
     </Form>
   );

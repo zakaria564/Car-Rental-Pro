@@ -4,7 +4,7 @@ import ArchiveTable from "@/components/archives/archive-table";
 import React from "react";
 import { useFirebase } from "@/firebase";
 import { collection, onSnapshot } from "firebase/firestore";
-import type { Rental, Payment } from "@/lib/definitions";
+import type { Rental, Payment, Client, Car } from "@/lib/definitions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
@@ -17,6 +17,8 @@ import { getSafeDate } from "@/lib/utils";
 export default function ArchivesPage() {
   const [archivedRentals, setArchivedRentals] = React.useState<Rental[]>([]);
   const [archivedPayments, setArchivedPayments] = React.useState<Payment[]>([]);
+  const [clients, setClients] = React.useState<Client[]>([]);
+  const [cars, setCars] = React.useState<Car[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const { firestore } = useFirebase();
@@ -24,9 +26,9 @@ export default function ArchivesPage() {
   React.useEffect(() => {
     if (!firestore) return;
     
-    const loadedStatus = { rentals: false, payments: false };
+    const loadedStatus = { rentals: false, payments: false, clients: false, cars: false };
     const checkAllLoaded = () => {
-        if (loadedStatus.rentals && loadedStatus.payments) {
+        if (loadedStatus.rentals && loadedStatus.payments && loadedStatus.clients && loadedStatus.cars) {
             setLoading(false);
         }
     };
@@ -84,11 +86,31 @@ export default function ArchivesPage() {
       }, serverError as Error);
       errorEmitter.emit('permission-error', permissionError);
     });
+
+    const unsubClients = onSnapshot(collection(firestore, "clients"), (snapshot) => {
+        const clientsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Client));
+        setClients(clientsData);
+        if (!loadedStatus.clients) {
+            loadedStatus.clients = true;
+            checkAllLoaded();
+        }
+    });
+
+    const unsubCars = onSnapshot(collection(firestore, "cars"), (snapshot) => {
+        const carsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Car));
+        setCars(carsData);
+        if (!loadedStatus.cars) {
+            loadedStatus.cars = true;
+            checkAllLoaded();
+        }
+    });
     
 
     return () => {
       unsubRentals();
       unsubPayments();
+      unsubClients();
+      unsubCars();
     };
   }, [firestore]);
 
@@ -114,7 +136,7 @@ export default function ArchivesPage() {
                 <AlertDescription>{error}</AlertDescription>
             </Alert>
           ) : (
-            <ArchiveTable rentals={archivedRentals} />
+            <ArchiveTable rentals={archivedRentals} clients={clients} cars={cars} />
           )}
         </TabsContent>
         <TabsContent value="payments">

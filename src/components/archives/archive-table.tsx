@@ -11,11 +11,8 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
-  GroupingState,
-  getGroupedRowModel,
-  getExpandedRowModel,
 } from "@tanstack/react-table";
-import { MoreHorizontal, Printer, FileText, Trash2, ChevronRight, ChevronDown } from "lucide-react";
+import { MoreHorizontal, Printer, FileText, Trash2, Pencil } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -38,24 +35,34 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import type { Rental } from "@/lib/definitions";
+import type { Rental, Client, Car } from "@/lib/definitions";
 import { cn, getSafeDate } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogDescription as DialogDesc, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RentalDetails } from "../rentals/rental-contract-views";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useFirebase } from "@/firebase";
 import { deleteDoc, doc } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import RentalForm from "../rentals/rental-form";
 
-export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
+type ArchiveTableProps = {
+  rentals: Rental[];
+  clients: Client[];
+  cars: Car[];
+};
+
+export default function ArchiveTable({ rentals, clients, cars }: ArchiveTableProps) {
   const { toast } = useToast();
   const { firestore } = useFirebase();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [grouping, setGrouping] = React.useState<GroupingState>([]);
+  
   const [isDetailsOpen, setIsDetailsOpen] = React.useState(false);
+  const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [selectedRental, setSelectedRental] = React.useState<Rental | null>(null);
   const [rentalToDelete, setRentalToDelete] = React.useState<Rental | null>(null);
 
@@ -100,7 +107,6 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
       return;
     }
 
-    // Collect all styles from the current document
     const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
       .map(tag => tag.outerHTML)
       .join('');
@@ -162,29 +168,8 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
       accessorFn: (row) => row.locataire.nomPrenom,
       header: () => <div className="text-[12px] font-bold text-foreground">Client</div>,
       cell: ({ row, getValue }) => {
-        if (row.getIsGrouped()) {
-            return (
-                <Button
-                    variant="ghost"
-                    onClick={() => row.toggleExpanded()}
-                    className="w-full text-left justify-start pl-2 hover:bg-muted/50"
-                >
-                    <span className="flex items-center gap-2 font-bold text-[12px]">
-                        {row.getIsExpanded() ? (
-                            <ChevronDown className="h-5 w-5" />
-                        ) : (
-                            <ChevronRight className="h-5 w-5" />
-                        )}
-                        {getValue() as string}
-                        <Badge variant="outline" className="ml-2 text-[12px]">
-                            {row.subRows.length}
-                        </Badge>
-                    </span>
-                </Button>
-            );
-        }
         return (
-          <div className={cn("pl-2 text-[12px] font-medium")}>
+          <div className="pl-2 text-[12px] font-medium">
             {getValue() as string}
           </div>
         );
@@ -194,50 +179,44 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
       accessorKey: "contractNumber",
       header: () => <div className="text-[12px] font-bold text-foreground">Contrat N°</div>,
        cell: ({ row }) => {
-        const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
-        return <span className={cn("font-mono text-[12px]", row.getIsGrouped() && "text-muted-foreground")}>{rental.contractNumber}</span>;
+        return <span className="font-mono text-[12px]">{row.original.contractNumber}</span>;
        },
     },
     {
       accessorKey: "vehicule.marque",
       header: () => <div className="text-[12px] font-bold text-foreground">Voiture</div>,
        cell: ({ row }) => {
-        const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
-        return <span className={cn("text-[12px]", row.getIsGrouped() && "text-muted-foreground")}>{rental.vehicule.marque}</span>;
+        return <span className="text-[12px]">{row.original.vehicule.marque}</span>;
        },
     },
     {
       accessorKey: "vehicule.immatriculation",
       header: () => <div className="text-[12px] font-bold text-foreground">Immatriculation</div>,
        cell: ({ row }) => {
-        const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
-        return <Badge variant="secondary" className={cn("font-mono text-[12px]", row.getIsGrouped() && "opacity-70")}>{rental.vehicule.immatriculation}</Badge>;
+        return <Badge variant="secondary" className="font-mono text-[12px]">{row.original.vehicule.immatriculation}</Badge>;
        },
     },
      {
       accessorKey: "location.dateDebut",
       header: () => <div className="text-[12px] font-bold text-foreground">Date départ</div>,
       cell: ({ row }) => {
-        const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
-        const date = getSafeDate(rental.location.dateDebut);
-        return <span className={cn("text-[12px]", row.getIsGrouped() && "text-muted-foreground")}>{date ? format(date, "dd/MM/yyyy", { locale: fr }) : "N/A"}</span>;
+        const date = getSafeDate(row.original.location.dateDebut);
+        return <span className="text-[12px]">{date ? format(date, "dd/MM/yyyy", { locale: fr }) : "N/A"}</span>;
       },
     },
     {
       accessorKey: "location.dateFin",
       header: () => <div className="text-[12px] font-bold text-foreground">Date retour</div>,
       cell: ({ row }) => {
-        const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
-        const date = getSafeDate(rental.location.dateFin);
-        return <span className={cn("text-[12px]", row.getIsGrouped() && "text-muted-foreground")}>{date ? format(date, "dd/MM/yyyy", { locale: fr }) : "N/A"}</span>;
+        const date = getSafeDate(row.original.location.dateFin);
+        return <span className="text-[12px]">{date ? format(date, "dd/MM/yyyy", { locale: fr }) : "N/A"}</span>;
       },
     },
     {
       accessorKey: "statut",
       header: () => <div className="text-[12px] font-bold text-foreground">Statut Final</div>,
       cell: ({ row }) => {
-        const rental = row.getIsGrouped() ? row.subRows[0]?.original : row.original;
-        const status = rental.statut;
+        const status = row.original.statut;
         return (
             <Badge
                 variant={status === "en_cours" ? "secondary" : "default"}
@@ -257,7 +236,6 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
       id: "actions",
       enableHiding: false,
       cell: ({ row }) => {
-        if (row.getIsGrouped()) return null;
         const rental = row.original;
         return (
           <DropdownMenu>
@@ -275,6 +253,13 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
               }} className="text-[12px]">
                 <FileText className="mr-2 h-4 w-4"/>
                 Voir les détails
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => {
+                setSelectedRental(rental);
+                setIsSheetOpen(true);
+              }} className="text-[12px]">
+                <Pencil className="mr-2 h-4 w-4"/>
+                Modifier
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
@@ -300,13 +285,9 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    onGroupingChange: setGrouping,
-    getGroupedRowModel: getGroupedRowModel(),
-    getExpandedRowModel: getExpandedRowModel(),
     state: {
       sorting,
       columnFilters,
-      grouping,
     },
     initialState: {
       pagination: {
@@ -352,7 +333,7 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
             <TableBody>
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id} className={cn(row.getIsGrouped() ? "bg-muted/30" : "hover:bg-muted/20")}>
+                  <TableRow key={row.id}>
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id} className="text-[12px]">{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                     ))}
@@ -393,6 +374,32 @@ export default function ArchiveTable({ rentals }: { rentals: Rental[] }) {
             </DialogContent>
         )}
       </Dialog>
+
+      <Sheet open={isSheetOpen} onOpenChange={(open) => {
+          setIsSheetOpen(open);
+          if (!open) setSelectedRental(null);
+      }}>
+        <SheetContent className="sm:max-w-[600px] flex flex-col">
+            <SheetHeader>
+              <SheetTitle>Modifier le contrat (Archive)</SheetTitle>
+              {selectedRental && (
+                <SheetDescription>
+                    {selectedRental.vehicule.marque} ({selectedRental.vehicule.immatriculation})
+                </SheetDescription>
+              )}
+            </SheetHeader>
+            <ScrollArea className="flex-grow pr-6">
+              <RentalForm 
+                key={selectedRental?.id || 'edit-archived'}
+                rental={selectedRental} 
+                clients={clients} 
+                cars={cars} 
+                rentals={[]}
+                mode="edit"
+                onFinished={() => setIsSheetOpen(false)} />
+            </ScrollArea>
+        </SheetContent>
+      </Sheet>
       
       <AlertDialog open={!!rentalToDelete} onOpenChange={(open) => !open && setRentalToDelete(null)}>
         {rentalToDelete && (
