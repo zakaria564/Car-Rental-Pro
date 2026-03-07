@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm, useFieldArray } from "react-hook-form";
@@ -468,10 +469,13 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
     try {
         if (mode === 'check-in' && rental) {
             const rentalRef = doc(firestore, 'rentals', rental.id);
-            const archivedRentalRef = doc(firestore, 'archived_rentals', rental.id);
             const carDocRef = doc(firestore, 'cars', rental.vehicule.carId);
             const receptionInspectionRef = doc(collection(firestore, 'inspections'));
             
+            // Search for potential duplicates or archives by contract number
+            const q = query(collection(firestore, 'archived_rentals'), where('contractNumber', '==', rental.contractNumber));
+            const qSnap = await getDocs(q);
+
             await runTransaction(firestore, async (transaction) => {
                 // READ FIRST
                 const rentalDoc = await transaction.get(rentalRef);
@@ -520,20 +524,33 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
                 const finalRentalDays = rentalDaysForUI;
                 const finalAmountToPay = finalRentalDays * rental.location.prixParJour;
                 
-                const finalUpdate = {
-                    receptionInspectionId: receptionInspectionId,
-                    location: {
-                        ...rental.location,
-                        dateFin: data.dateRetour,
-                        lieuRetour: data.lieuRetour,
-                        nbrJours: finalRentalDays,
-                        montantTotal: finalAmountToPay,
-                    },
-                    statut: 'terminee',
+                // Use flat keys update to ensure synchronization even if old structure exists
+                const updatePayload: any = {
+                    "receptionInspectionId": receptionInspectionId,
+                    "location.dateFin": data.dateRetour,
+                    "location.lieuRetour": data.lieuRetour || "Agence",
+                    "location.nbrJours": finalRentalDays,
+                    "location.montantTotal": finalAmountToPay,
+                    "statut": 'terminee',
                 };
 
-                transaction.update(rentalRef, finalUpdate);
-                transaction.set(archivedRentalRef, finalUpdate, { merge: true });
+                // Also update literal flat keys if they exist in the source document
+                const rData = rentalDoc.data() as any;
+                if (rData["location.dateFin"]) updatePayload["location.dateFin"] = data.dateRetour;
+                if (rData["location.montantTotal"]) updatePayload["location.montantTotal"] = finalAmountToPay;
+
+                transaction.update(rentalRef, updatePayload);
+                
+                // Sync Archives
+                if (!qSnap.empty) {
+                    qSnap.docs.forEach(archiveDoc => {
+                        transaction.update(archiveDoc.ref, updatePayload);
+                    });
+                } else {
+                    const fallbackArchivedRef = doc(firestore, 'archived_rentals', rental.id);
+                    transaction.set(fallbackArchivedRef, updatePayload, { merge: true });
+                }
+
                 transaction.update(carDocRef, { kilometrage: data.kilometrageRetour, disponibilite: 'disponible' });
             });
 
@@ -548,27 +565,39 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
             const finalRentalDays = dayDiff >= 1 ? dayDiff : 1;
             const finalAmountToPay = finalRentalDays * rental.location.prixParJour;
 
-            const updateDataNested = {
-                location: {
-                    ...rental.location,
-                    dateFin: dateRange.to,
-                    lieuRetour: lieuRetour || "Agence",
-                    nbrJours: finalRentalDays,
-                    montantTotal: finalAmountToPay,
-                }
+            // Use dot notation for Firestore update to ensure nested fields are updated
+            const updatePayload: any = {
+                "location.dateFin": dateRange.to,
+                "location.lieuRetour": lieuRetour || "Agence",
+                "location.nbrJours": finalRentalDays,
+                "location.montantTotal": finalAmountToPay,
             };
 
+            // Search for archives by contract number to ensure sync
             const q = query(collection(firestore, 'archived_rentals'), where('contractNumber', '==', rental.contractNumber));
             const qSnap = await getDocs(q);
-            const targetArchiveRef = !qSnap.empty ? qSnap.docs[0].ref : doc(firestore, 'archived_rentals', rental.id);
 
             await runTransaction(firestore, async (transaction) => {
                 // READ FIRST
-                await transaction.get(rentalRef);
-                
+                const rentalDoc = await transaction.get(rentalRef);
+                const archiveDocs = qSnap.docs;
+
                 // WRITES AFTER
-                transaction.update(rentalRef, updateDataNested);
-                transaction.set(targetArchiveRef, updateDataNested, { merge: true });
+                const rData = rentalDoc.data() as any;
+                // If ghost fields exist at root, update them too
+                if (rData["location.dateFin"]) updatePayload["location.dateFin"] = dateRange.to;
+                if (rData["location.montantTotal"]) updatePayload["location.montantTotal"] = finalAmountToPay;
+
+                transaction.update(rentalRef, updatePayload);
+                
+                if (archiveDocs.length > 0) {
+                    archiveDocs.forEach(archiveDoc => {
+                        transaction.update(archiveDoc.ref, updatePayload);
+                    });
+                } else {
+                    const targetArchiveRef = doc(firestore, 'archived_rentals', rental.id);
+                    transaction.set(targetArchiveRef, updatePayload, { merge: true });
+                }
             });
             
             toast({ title: "Contrat mis à jour", description: "Les modifications ont été synchronisées partout." });
