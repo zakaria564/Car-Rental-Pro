@@ -25,6 +25,20 @@ export const getSafeDate = (date: any): Date | null => {
 };
 
 /**
+ * Récupère une date de location de manière robuste, en gérant les champs imbriqués
+ * et les champs "à plat" (dotted keys) qui peuvent exister suite à des erreurs de synchro.
+ */
+export const getRentalDate = (rental: any, field: 'dateDebut' | 'dateFin'): Date | null => {
+    if (!rental || !rental.location) return null;
+    
+    // On vérifie d'abord le champ à plat (souvent le plus récent suite à un prolongement)
+    const flatKey = `location.${field}`;
+    const value = rental[flatKey] ?? rental.location[field];
+    
+    return getSafeDate(value);
+};
+
+/**
  * Calcule le montant total d'une location.
  * Priorise le montant total enregistré en base pour éviter les erreurs d'arrondi ou de calcul de jours.
  */
@@ -32,17 +46,16 @@ export const calculateTotalRentalAmount = (rental: any): number => {
     if (!rental || !rental.location) return 0;
 
     // 1. Vérifier si un montant total est déjà explicitement enregistré (priorité absolue)
-    // On vérifie à la fois la clé imbriquée et la clé "plate" (en cas de donnée polluée)
-    const montantTotal = rental.location.montantTotal ?? rental['location.montantTotal'];
+    const montantTotal = rental['location.montantTotal'] ?? rental.location.montantTotal;
     
     if (typeof montantTotal === 'number' && !isNaN(montantTotal) && montantTotal > 0) {
       return montantTotal;
     }
 
     // 2. Calculer basé sur les dates si le montant n'est pas enregistré
-    const from = getSafeDate(rental.location.dateDebut ?? rental['location.dateDebut']);
-    const to = getSafeDate(rental.location.dateFin ?? rental['location.dateFin']);
-    const pricePerDay = (rental.location.prixParJour ?? rental['location.prixParJour']) || 0;
+    const from = getRentalDate(rental, 'dateDebut');
+    const to = getRentalDate(rental, 'dateFin');
+    const pricePerDay = rental['location.prixParJour'] ?? rental.location.prixParJour ?? 0;
 
     if (from && to && pricePerDay > 0) {
         const daysDiff = differenceInCalendarDays(startOfDay(to), startOfDay(from));
@@ -52,7 +65,7 @@ export const calculateTotalRentalAmount = (rental: any): number => {
     }
 
     // 3. Repli sur le nombre de jours enregistré
-    const nbrJours = rental.location.nbrJours ?? rental['location.nbrJours'];
+    const nbrJours = rental['location.nbrJours'] ?? rental.location.nbrJours;
     if (nbrJours && pricePerDay > 0) {
       return nbrJours * pricePerDay;
     }

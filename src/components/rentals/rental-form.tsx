@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { CalendarIcon, Plus, Trash2, ExternalLink, CheckCircle, DollarSign } from "lucide-react";
 import { Calendar } from "../ui/calendar";
-import { cn, formatCurrency, getSafeDate, calculateTotalRentalAmount } from "@/lib/utils";
+import { cn, formatCurrency, getSafeDate, getRentalDate, calculateTotalRentalAmount } from "@/lib/utils";
 import { format, differenceInCalendarDays, startOfDay } from "date-fns";
 import { fr } from 'date-fns/locale';
 import React from "react";
@@ -282,7 +282,7 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
             clientId: rentalClient?.id ?? "",
             conducteur2_clientId: rentalConducteur2?.id ?? '_none_',
             voitureId: rental.vehicule.carId,
-            dateRange: { from: getSafeDate(rental.location.dateDebut)!, to: getSafeDate(rental.location.dateFin)! },
+            dateRange: { from: getRentalDate(rental, 'dateDebut')!, to: getRentalDate(rental, 'dateFin')! },
             lieuDepart: rental.location.lieuDepart || "Agence",
             lieuRetour: rental.location.lieuRetour || "Agence",
             caution: rental.location.depot,
@@ -378,7 +378,7 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
   }, [selectedCarId, cars]);
 
   const rentalDaysForUI = React.useMemo(() => {
-    const from = (mode === 'check-in' && rental) ? getSafeDate(rental.location.dateDebut) : dateRange?.from;
+    const from = (mode === 'check-in' && rental) ? getRentalDate(rental, 'dateDebut') : dateRange?.from;
     const to = (mode === 'check-in' && rental) ? dateRetour : dateRange?.to;
 
     if (from && to) {
@@ -475,6 +475,7 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
             await runTransaction(firestore, async (transaction) => {
                 // READ FIRST
                 const rentalDoc = await transaction.get(rentalRef);
+                const carDoc = await transaction.get(carDocRef);
                 if (!rentalDoc.exists()) throw new Error("Contrat de location introuvable.");
 
                 // WRITES AFTER
@@ -519,24 +520,20 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
                 const finalRentalDays = rentalDaysForUI;
                 const finalAmountToPay = finalRentalDays * rental.location.prixParJour;
                 
-                transaction.update(rentalRef, {
+                const finalUpdate = {
                     receptionInspectionId: receptionInspectionId,
-                    'location.dateFin': data.dateRetour,
-                    'location.lieuRetour': data.lieuRetour,
-                    'location.nbrJours': finalRentalDays,
-                    'location.montantTotal': finalAmountToPay,
+                    location: {
+                        ...rental.location,
+                        dateFin: data.dateRetour,
+                        lieuRetour: data.lieuRetour,
+                        nbrJours: finalRentalDays,
+                        montantTotal: finalAmountToPay,
+                    },
                     statut: 'terminee',
-                });
-                
-                transaction.set(archivedRentalRef, {
-                    receptionInspectionId: receptionInspectionId,
-                    'location.dateFin': data.dateRetour,
-                    'location.lieuRetour': data.lieuRetour,
-                    'location.nbrJours': finalRentalDays,
-                    'location.montantTotal': finalAmountToPay,
-                    statut: 'terminee',
-                }, { merge: true });
+                };
 
+                transaction.update(rentalRef, finalUpdate);
+                transaction.set(archivedRentalRef, finalUpdate, { merge: true });
                 transaction.update(carDocRef, { kilometrage: data.kilometrageRetour, disponibilite: 'disponible' });
             });
 
@@ -546,29 +543,32 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
         } else if (mode === 'edit' && rental) {
             const { dateRange, lieuRetour } = data;
             const rentalRef = doc(firestore, 'rentals', rental.id);
-            const archivedRentalRef = doc(firestore, 'archived_rentals', rental.id);
-
+            
             const dayDiff = differenceInCalendarDays(startOfDay(dateRange.to), startOfDay(dateRange.from));
             const finalRentalDays = dayDiff >= 1 ? dayDiff : 1;
             const finalAmountToPay = finalRentalDays * rental.location.prixParJour;
 
-            const updateData = {
-                'location.dateFin': dateRange.to,
-                'location.lieuRetour': lieuRetour || "Agence",
-                'location.nbrJours': finalRentalDays,
-                'location.montantTotal': finalAmountToPay,
+            const updateDataNested = {
+                location: {
+                    ...rental.location,
+                    dateFin: dateRange.to,
+                    lieuRetour: lieuRetour || "Agence",
+                    nbrJours: finalRentalDays,
+                    montantTotal: finalAmountToPay,
+                }
             };
 
-            // First, outside transaction, resolve which archived doc to update
             const q = query(collection(firestore, 'archived_rentals'), where('contractNumber', '==', rental.contractNumber));
             const qSnap = await getDocs(q);
-            const targetArchiveRef = !qSnap.empty ? qSnap.docs[0].ref : archivedRentalRef;
+            const targetArchiveRef = !qSnap.empty ? qSnap.docs[0].ref : doc(firestore, 'archived_rentals', rental.id);
 
-            // Use runTransaction to ensure sync between both collections
             await runTransaction(firestore, async (transaction) => {
-                // Perform writes (blind updates are fine here since we have refs)
-                transaction.update(rentalRef, updateData);
-                transaction.set(targetArchiveRef, updateData, { merge: true });
+                // READ FIRST
+                await transaction.get(rentalRef);
+                
+                // WRITES AFTER
+                transaction.update(rentalRef, updateDataNested);
+                transaction.set(targetArchiveRef, updateDataNested, { merge: true });
             });
             
             toast({ title: "Contrat mis à jour", description: "Les modifications ont été synchronisées partout." });

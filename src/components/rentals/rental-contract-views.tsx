@@ -6,7 +6,7 @@ import { fr } from 'date-fns/locale';
 import Image from 'next/image';
 import type { Rental, Damage, Inspection, DamageType, Payment } from "@/lib/definitions";
 import { damageTypes } from "@/lib/definitions";
-import { formatCurrency, cn, getSafeDate, calculateTotalRentalAmount } from "@/lib/utils";
+import { formatCurrency, cn, getSafeDate, getRentalDate, calculateTotalRentalAmount } from "@/lib/utils";
 import { doc, onSnapshot, collection, query, where } from "firebase/firestore";
 import { useFirebase } from "@/firebase";
 import { ScrollArea } from "../ui/scroll-area";
@@ -273,8 +273,8 @@ export function RentalDetails({ rental, isArchived = false }: { rental: Rental, 
         return () => unsubscribe();
     }, [isArchived, firestore, rental.id]);
 
-    const safeDebutDate = getSafeDate(rental.location.dateDebut);
-    const safeFinDate = getSafeDate(rental.location.dateFin);
+    const safeDebutDate = getRentalDate(rental, 'dateDebut');
+    const safeFinDate = getRentalDate(rental, 'dateFin');
 
     const totalAmount = calculateTotalRentalAmount(rental);
     const amountPaid = isArchived

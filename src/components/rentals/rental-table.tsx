@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import type { Rental, Client, Car as CarType } from "@/lib/definitions";
-import { cn, formatCurrency, getSafeDate } from "@/lib/utils";
+import { cn, formatCurrency, getSafeDate, getRentalDate, calculateTotalRentalAmount } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import RentalForm from "./rental-form";
 import { useToast } from "@/hooks/use-toast";
@@ -65,27 +65,6 @@ type RentalTableProps = {
   clients?: Client[];
   cars?: CarType[];
   isDashboard?: boolean;
-};
-
-const calculateTotal = (rental: Rental): number => {
-    const from = getSafeDate(rental.location.dateDebut);
-    const to = getSafeDate(rental.location.dateFin);
-    const pricePerDay = rental.location.prixParJour || 0;
-
-    if (from && to && pricePerDay > 0) {
-        if (startOfDay(from).getTime() === startOfDay(to).getTime()) {
-            return pricePerDay;
-        }
-        const daysDiff = differenceInCalendarDays(to, from) || 1;
-        return daysDiff * pricePerDay;
-    }
-    if (typeof rental.location.montantTotal === 'number' && !isNaN(rental.location.montantTotal) && rental.location.montantTotal > 0) {
-      return rental.location.montantTotal;
-    }
-    if (rental.location.nbrJours && pricePerDay > 0) {
-      return rental.location.nbrJours * pricePerDay;
-    }
-    return 0;
 };
 
 export default function RentalTable({ rentals, clients = [], cars = [], isDashboard = false }: RentalTableProps) {
@@ -203,24 +182,21 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
 
     const rentalDocRef = doc(firestore, 'rentals', rental.id);
     const paymentsQuery = query(collection(firestore, 'payments'), where("rentalId", "==", rental.id));
+    const carRef = doc(firestore, 'cars', rental.vehicule.carId);
     
     try {
         await runTransaction(firestore, async (transaction) => {
-            const carRef = doc(firestore, 'cars', rental.vehicule.carId);
-            
-            // First check if car document exists before trying to update it
+            // READS FIRST
             const carDoc = await transaction.get(carRef);
-
-            // Delete associated payments
             const paymentsSnapshot = await getDocs(paymentsQuery);
+
+            // WRITES AFTER
             paymentsSnapshot.forEach(paymentDoc => {
                 transaction.delete(paymentDoc.ref);
             });
     
-            // Delete the rental document
             transaction.delete(rentalDocRef);
     
-            // If the car exists, update its availability
             if (carDoc.exists()) {
                 transaction.update(carRef, { disponibilite: 'disponible' });
             }
@@ -283,18 +259,18 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       },
     },
     {
-      accessorKey: "location.dateDebut",
+      id: "dateDebut",
       header: isDashboard ? "Départ" : "Date départ",
       cell: ({ row }) => {
-        const date = getSafeDate(row.original.location.dateDebut);
+        const date = getRentalDate(row.original, 'dateDebut');
         return <span className="text-[12px]">{date ? format(date, isDashboard ? "dd/MM/yy" : "dd/MM/yyyy", { locale: fr }) : "N/A"}</span>;
       },
     },
     {
-      accessorKey: "location.dateFin",
+      id: "dateFin",
       header: isDashboard ? "Retour" : "Date de retour",
       cell: ({ row }) => {
-          const date = getSafeDate(row.original.location.dateFin);
+          const date = getRentalDate(row.original, 'dateFin');
           if (!date) return <span className="text-[12px]">Date invalide</span>;
           
           const isReturnToday = isToday(date);
@@ -340,9 +316,9 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       header: "Paiement",
       cell: ({ row }) => {
         const rental = row.original;
-        const total = calculateTotal(rental);
+        const total = calculateTotalRentalAmount(rental);
         const paid = rental.location.montantPaye || 0;
-        const remaining = total - paid;
+        const remaining = Math.max(0, total - paid);
         
         const badgeClass = cn("text-[11px] w-[80px] flex justify-center");
 
@@ -414,7 +390,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       enableHiding: false,
       cell: ({ row }) => {
         const rental = row.original;
-        const total = calculateTotal(rental);
+        const total = calculateTotalRentalAmount(rental);
         const paid = rental.location.montantPaye || 0;
         const remaining = total - paid;
 

@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import type { Rental, Client, Car } from "@/lib/definitions";
-import { cn, getSafeDate } from "@/lib/utils";
+import { cn, getSafeDate, getRentalDate } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RentalDetails } from "../rentals/rental-contract-views";
@@ -197,18 +197,18 @@ export default function ArchiveTable({ rentals, clients, cars }: ArchiveTablePro
        },
     },
      {
-      accessorKey: "location.dateDebut",
+      id: "dateDebut",
       header: () => <div className="text-[12px] font-bold text-foreground">Date départ</div>,
       cell: ({ row }) => {
-        const date = getSafeDate(row.original.location.dateDebut);
+        const date = getRentalDate(row.original, 'dateDebut');
         return <span className="text-[12px]">{date ? format(date, "dd/MM/yyyy", { locale: fr }) : "N/A"}</span>;
       },
     },
     {
-      accessorKey: "location.dateFin",
+      id: "dateFin",
       header: () => <div className="text-[12px] font-bold text-foreground">Date retour</div>,
       cell: ({ row }) => {
-        const date = getSafeDate(row.original.location.dateFin);
+        const date = getRentalDate(row.original, 'dateFin');
         return <span className="text-[12px]">{date ? format(date, "dd/MM/yyyy", { locale: fr }) : "N/A"}</span>;
       },
     },
