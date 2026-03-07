@@ -382,10 +382,14 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
     const to = (mode === 'check-in' && rental) ? dateRetour : dateRange?.to;
 
     if (from && to) {
-        if (startOfDay(from).getTime() === startOfDay(to).getTime()) {
+        // Force calculation on dates only
+        const fromStart = startOfDay(from);
+        const toStart = startOfDay(to);
+        
+        if (fromStart.getTime() === toStart.getTime()) {
             return 1;
         }
-        const daysDiff = differenceInCalendarDays(to, from);
+        const daysDiff = differenceInCalendarDays(toStart, fromStart);
         return daysDiff > 0 ? daysDiff : 1;
     }
     return 0;
@@ -471,17 +475,15 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
             const carDocRef = doc(firestore, 'cars', rental.vehicule.carId);
             const receptionInspectionRef = doc(collection(firestore, 'inspections'));
             
-            // Recherche des archives AVANT la transaction (Les lectures indépendantes hors transaction sont autorisées avant)
+            // Search archives BEFORE transaction
             const q = query(collection(firestore, 'archived_rentals'), where('contractNumber', '==', rental.contractNumber));
             const qSnap = await getDocs(q);
 
             await runTransaction(firestore, async (transaction) => {
-                // LECTURES Firestore (transaction.get)
                 const rentalDoc = await transaction.get(rentalRef);
                 const carDoc = await transaction.get(carDocRef);
                 if (!rentalDoc.exists()) throw new Error("Contrat de location introuvable.");
 
-                // ÉCRITURES Firestore (set, update, delete)
                 const receptionInspectionId = receptionInspectionRef.id;
                 const photoUrls = data.photosRetour ? data.photosRetour.map((item: { url: string }) => item.url.trim()).filter((url: string) => url) : [];
                 const inspectionPayload: Omit<Inspection, 'id' | 'damages'> = {
@@ -523,7 +525,6 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
                 const finalRentalDays = rentalDaysForUI;
                 const finalAmountToPay = finalRentalDays * rental.location.prixParJour;
                 
-                // Payload de mise à jour structuré
                 const updatePayload: any = {
                     "receptionInspectionId": receptionInspectionId,
                     "location.dateFin": data.dateRetour,
@@ -535,7 +536,6 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
 
                 transaction.update(rentalRef, updatePayload);
                 
-                // Synchronisation des Archives
                 if (!qSnap.empty) {
                     qSnap.docs.forEach(archiveDoc => {
                         transaction.update(archiveDoc.ref, updatePayload);
@@ -566,16 +566,13 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
                 "location.montantTotal": finalAmountToPay,
             };
 
-            // Recherche des archives AVANT la transaction
             const q = query(collection(firestore, 'archived_rentals'), where('contractNumber', '==', rental.contractNumber));
             const qSnap = await getDocs(q);
 
             await runTransaction(firestore, async (transaction) => {
-                // LECTURES
                 const rentalDoc = await transaction.get(rentalRef);
                 if (!rentalDoc.exists()) throw new Error("Contrat de location introuvable.");
 
-                // ÉCRITURES
                 transaction.update(rentalRef, updatePayload);
                 
                 if (!qSnap.empty) {
@@ -810,18 +807,102 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
                     <div><FormLabel>Equipements</FormLabel><div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2"><FormField control={form.control} name="roueSecours" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={mode !== 'new'} /></FormControl><FormLabel className="font-normal">Roue de secours</FormLabel></FormItem>)} /><FormField control={form.control} name="posteRadio" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={mode !== 'new'} /></FormControl><FormLabel className="font-normal">Poste Radio</FormLabel></FormItem>)} /><FormField control={form.control} name="lavage" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={mode !== 'new'} /></FormControl><FormLabel className="font-normal">Voiture propre</FormLabel></FormItem>)} /><FormField control={form.control} name="cric" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={mode !== 'new'} /></FormControl><FormLabel className="font-normal">Cric et manivelle</FormLabel></FormItem>)} /><FormField control={form.control} name="giletTriangle" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={mode !== 'new'} /></FormControl><FormLabel className="font-normal">Gilet et triangle</FormLabel></FormItem>)} /><FormField control={form.control} name="doubleCles" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={mode !== 'new'} /></FormControl><FormLabel className="font-normal">Double des clés</FormLabel></FormItem>)} /></div></div>
                     <div><FormField control={form.control} name="dommagesDepart" render={({ field }) => (<FormItem><FormLabel>Dommages (Départ)</FormLabel><FormControl><CarDamageDiagram damages={field.value || {}} onDamagesChange={field.onChange} readOnly={mode !== 'new'} /></FormControl></FormItem>)} /></div>
                      <FormField control={form.control} name="dommagesDepartNotes" render={({ field }) => (<FormItem><FormLabel>Notes (Départ)</FormLabel><FormControl><Textarea placeholder="Notes..." {...field} value={field.value ?? ''} readOnly={mode !== 'new'} /></FormControl></FormItem>)} />
+                     
+                     <div className="space-y-3">
+                        <FormLabel>Photos du départ (URL)</FormLabel>
+                        {departFields.map((item, index) => (
+                            <FormField
+                                key={item.id}
+                                control={control}
+                                name={`photosDepart.${index}.url`}
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <div className="flex items-center gap-2">
+                                            <FormControl>
+                                                <Input {...field} placeholder="URL de la photo" readOnly={mode !== 'new'} />
+                                            </FormControl>
+                                            {mode === 'new' && (
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="text-destructive"
+                                                    onClick={() => removeDepart(index)}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            )}
+                                        </div>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        ))}
+                        {mode === 'new' && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="w-full border-dashed"
+                                onClick={() => appendDepart({ url: '' })}
+                            >
+                                <Plus className="mr-2 h-4 w-4" />
+                                Ajouter une photo
+                            </Button>
+                        )}
+                    </div>
                 </AccordionContent>
             </AccordionItem>
             {mode === 'check-in' && rental && (
               <AccordionItem value="item-3">
                   <AccordionTrigger>Réception (Retour)</AccordionTrigger>
                   <AccordionContent className="space-y-4 px-1">
-                      <FormField control={form.control} name="dateRetour" render={({ field }) => (<FormItem><FormLabel>Date de retour</FormLabel><FormControl><Input type="date" value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd") : ""} onChange={(e) => field.onChange(e.target.value ? new Date(`${e.target.value}T00:00:00`) : null)} /></FormControl></FormItem>)} />
+                      <FormField control={form.control} name="dateRetour" render={({ field }) => (<FormItem><FormLabel>Date de retour</FormLabel><FormControl><Input type="date" value={field.value instanceof Date && !isNaN(field.value.getTime()) ? format(field.value, "yyyy-MM-dd") : ""} onChange={(e) => field.onChange(e.target.value ? new Date(`${e.target.value}T00:00:00`) : null)} /></FormControl></FormItem>)} />
                       <FormField control={form.control} name="kilometrageRetour" render={({ field }) => (<FormItem><FormLabel>Kilométrage</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl></FormItem>)} />
                       <FormField control={form.control} name="carburantNiveauRetour" render={({ field }) => (<FormItem><FormLabel>Niveau carburant: {field.value ? Math.round(field.value * 100) : 0}%</FormLabel><FormControl><Slider value={[field.value || 0]} onValueChange={(values) => field.onChange(values[0])} max={1} step={0.125} /></FormControl></FormItem>)} />
                        <div><FormLabel>Equipements (Retour)</FormLabel><div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2"><FormField control={form.control} name="roueSecoursRetour" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Roue de secours</FormLabel></FormItem>)} /><FormField control={form.control} name="posteRadioRetour" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Poste Radio</FormLabel></FormItem>)} /><FormField control={form.control} name="lavageRetour" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Voiture propre</FormLabel></FormItem>)} /><FormField control={form.control} name="cricRetour" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Cric et manivelle</FormLabel></FormItem>)} /><FormField control={form.control} name="giletTriangleRetour" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Gilet et triangle</FormLabel></FormItem>)} /><FormField control={form.control} name="doubleClesRetour" render={({ field }) => (<FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Double des clés</FormLabel></FormItem>)} /></div></div>
                       <div><FormField control={form.control} name="dommagesRetour" render={({ field }) => (<FormItem><FormLabel>Dommages (Retour)</FormLabel><FormControl><CarDamageDiagram damages={field.value || {}} onDamagesChange={field.onChange} /></FormControl></FormItem>)} /></div>
                       <FormField control={form.control} name="dommagesRetourNotes" render={({ field }) => (<FormItem><FormLabel>Notes (Retour)</FormLabel><FormControl><Textarea placeholder="Notes..." {...field} value={field.value ?? ''} /></FormControl></FormItem>)} />
+                      
+                      <div className="space-y-3">
+                        <FormLabel>Photos du retour (URL)</FormLabel>
+                        {retourFields.map((item, index) => (
+                            <FormField
+                                key={item.id}
+                                control={control}
+                                name={`photosRetour.${index}.url`}
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <div className="flex items-center gap-2">
+                                            <FormControl>
+                                                <Input {...field} placeholder="URL de la photo" />
+                                            </FormControl>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="text-destructive"
+                                                onClick={() => removeRetour(index)}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        ))}
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="w-full border-dashed"
+                            onClick={() => appendRetour({ url: '' })}
+                        >
+                            <Plus className="mr-2 h-4 w-4" />
+                            Ajouter une photo
+                        </Button>
+                    </div>
                   </AccordionContent>
               </AccordionItem>
             )}
