@@ -105,9 +105,9 @@ export const Invoice: React.FC<InvoiceProps> = ({ rental, payments, totalAmount 
                         </div>
                          <div className="flex justify-between">
                             <span>Total payé :</span>
-                            <span className="font-medium text-green-600">{formatCurrency(totalPaid, 'MAD')}</span>
+                            <span className="font-medium text-green-700">{formatCurrency(totalPaid, 'MAD')}</span>
                         </div>
-                        <div className={cn("flex justify-between text-lg font-semibold py-2 border-t", balance > 0.01 ? "text-destructive" : "text-green-600")}>
+                        <div className={cn("flex justify-between text-lg font-semibold py-2 border-t", balance > 0.01 ? "text-red-600" : "text-gray-500")}>
                             <span>Solde à payer :</span>
                             <span>{formatCurrency(balance, 'MAD')}</span>
                         </div>
