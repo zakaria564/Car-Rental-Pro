@@ -517,17 +517,6 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
                 const finalRentalDays = rentalDaysForUI;
                 const finalAmountToPay = finalRentalDays * rental.location.prixParJour;
                 
-                const updatePayloadNested = {
-                    receptionInspectionId: receptionInspectionId,
-                    location: {
-                        dateFin: data.dateRetour,
-                        lieuRetour: data.lieuRetour,
-                        nbrJours: finalRentalDays,
-                        montantTotal: finalAmountToPay,
-                    },
-                    statut: 'terminee' as const,
-                };
-
                 transaction.update(rentalRef, {
                     receptionInspectionId: receptionInspectionId,
                     'location.dateFin': data.dateRetour,
@@ -537,7 +526,15 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
                     statut: 'terminee',
                 });
                 
-                transaction.set(archivedRentalRef, updatePayloadNested, { merge: true });
+                transaction.set(archivedRentalRef, {
+                    receptionInspectionId: receptionInspectionId,
+                    'location.dateFin': data.dateRetour,
+                    'location.lieuRetour': data.lieuRetour,
+                    'location.nbrJours': finalRentalDays,
+                    'location.montantTotal': finalAmountToPay,
+                    statut: 'terminee',
+                }, { merge: true });
+
                 transaction.update(carDocRef, { kilometrage: data.kilometrageRetour, disponibilite: 'disponible' });
             });
 
@@ -548,27 +545,41 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
             const { dateRange, lieuRetour } = data;
             const rentalRef = doc(firestore, 'rentals', rental.id);
             const archivedRentalRef = doc(firestore, 'archived_rentals', rental.id);
-            const batch = writeBatch(firestore);
 
             const dayDiff = differenceInCalendarDays(startOfDay(dateRange.to), startOfDay(dateRange.from));
             const finalRentalDays = dayDiff >= 1 ? dayDiff : 1;
             const finalAmountToPay = finalRentalDays * rental.location.prixParJour;
 
-            // We use setDoc with merge for both to be safe in case one is missing
-            const updatePayload = {
-                location: {
-                    dateFin: dateRange.to,
-                    lieuRetour: lieuRetour,
-                    nbrJours: finalRentalDays,
-                    montantTotal: finalAmountToPay,
-                }
+            const updateData = {
+                'location.dateFin': dateRange.to,
+                'location.lieuRetour': lieuRetour || "Agence",
+                'location.nbrJours': finalRentalDays,
+                'location.montantTotal': finalAmountToPay,
             };
 
-            batch.set(rentalRef, updatePayload, { merge: true });
-            batch.set(archivedRentalRef, updatePayload, { merge: true });
+            // Use runTransaction to ensure sync between both collections
+            await runTransaction(firestore, async (transaction) => {
+                // Update active rental
+                transaction.update(rentalRef, updateData);
+                
+                // Update archived rental fallback mechanism
+                const archivedSnap = await transaction.get(archivedRentalRef);
+                if (archivedSnap.exists()) {
+                    transaction.update(archivedRentalRef, updateData);
+                } else {
+                    // Safety check by contract number if ID mismatch (legacy)
+                    const q = query(collection(firestore, 'archived_rentals'), where('contractNumber', '==', rental.contractNumber));
+                    const qSnap = await getDocs(q);
+                    if (!qSnap.empty) {
+                        transaction.update(qSnap.docs[0].ref, updateData);
+                    } else {
+                        // If not even in archives, create a copy there
+                        transaction.set(archivedRentalRef, updateData, { merge: true });
+                    }
+                }
+            });
             
-            await batch.commit();
-            toast({ title: "Contrat mis à jour", description: "Les modifications ont été enregistrées dans les archives et les contrats actifs." });
+            toast({ title: "Contrat mis à jour", description: "Les modifications ont été synchronisées partout." });
             
             const updatedRental: Rental = {
                 ...rental,
