@@ -24,10 +24,25 @@ export const getSafeDate = (date: any): Date | null => {
     return parsedDate;
 };
 
-export const calculateTotalRentalAmount = (rental: Rental): number => {
-    const from = getSafeDate(rental.location.dateDebut);
-    const to = getSafeDate(rental.location.dateFin);
-    const pricePerDay = rental.location.prixParJour || 0;
+/**
+ * Calcule le montant total d'une location.
+ * Priorise le montant total enregistré en base pour éviter les erreurs d'arrondi ou de calcul de jours.
+ */
+export const calculateTotalRentalAmount = (rental: any): number => {
+    if (!rental || !rental.location) return 0;
+
+    // 1. Vérifier si un montant total est déjà explicitement enregistré (priorité absolue)
+    // On vérifie à la fois la clé imbriquée et la clé "plate" (en cas de donnée polluée)
+    const montantTotal = rental.location.montantTotal ?? rental['location.montantTotal'];
+    
+    if (typeof montantTotal === 'number' && !isNaN(montantTotal) && montantTotal > 0) {
+      return montantTotal;
+    }
+
+    // 2. Calculer basé sur les dates si le montant n'est pas enregistré
+    const from = getSafeDate(rental.location.dateDebut ?? rental['location.dateDebut']);
+    const to = getSafeDate(rental.location.dateFin ?? rental['location.dateFin']);
+    const pricePerDay = (rental.location.prixParJour ?? rental['location.prixParJour']) || 0;
 
     if (from && to && pricePerDay > 0) {
         const daysDiff = differenceInCalendarDays(startOfDay(to), startOfDay(from));
@@ -36,11 +51,10 @@ export const calculateTotalRentalAmount = (rental: Rental): number => {
         return rentalDays * pricePerDay;
     }
 
-    if (typeof rental.location.montantTotal === 'number' && !isNaN(rental.location.montantTotal) && rental.location.montantTotal > 0) {
-      return rental.location.montantTotal;
-    }
-    if (rental.location.nbrJours && pricePerDay > 0) {
-      return rental.location.nbrJours * pricePerDay;
+    // 3. Repli sur le nombre de jours enregistré
+    const nbrJours = rental.location.nbrJours ?? rental['location.nbrJours'];
+    if (nbrJours && pricePerDay > 0) {
+      return nbrJours * pricePerDay;
     }
     
     return 0;

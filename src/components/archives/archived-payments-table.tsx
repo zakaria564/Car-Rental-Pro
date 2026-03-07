@@ -38,7 +38,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Payment, Rental } from "@/lib/definitions";
-import { formatCurrency, cn } from "@/lib/utils";
+import { formatCurrency, cn, getSafeDate, calculateTotalRentalAmount } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useFirebase } from "@/firebase";
@@ -48,36 +48,6 @@ import { FirestorePermissionError } from "@/firebase/errors";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Invoice } from "../payments/invoice";
 import { Badge } from "../ui/badge";
-
-
-const getSafeDate = (date: any): Date | null => {
-    if (!date) return null;
-    if (date.toDate) return date.toDate();
-    if (date instanceof Date) return date;
-    const d = new Date(date);
-    return isNaN(d.getTime()) ? null : d;
-};
-
-const calculateTotal = (rental: Rental): number => {
-    const from = getSafeDate(rental.location.dateDebut);
-    const to = getSafeDate(rental.location.dateFin);
-    const pricePerDay = rental.location.prixParJour || 0;
-
-    if (from && to && pricePerDay > 0) {
-        if (startOfDay(from).getTime() === startOfDay(to).getTime()) {
-            return pricePerDay;
-        }
-        const daysDiff = differenceInCalendarDays(to, from) || 1;
-        return daysDiff * pricePerDay;
-    }
-    if (typeof rental.location.montantTotal === 'number' && !isNaN(rental.location.montantTotal) && rental.location.montantTotal > 0) {
-      return rental.location.montantTotal;
-    }
-    if (rental.location.nbrJours && pricePerDay > 0) {
-      return rental.location.nbrJours * pricePerDay;
-    }
-    return 0;
-};
 
 
 const StatementDialog = ({ rental, payments, onPrintClick }: {
@@ -105,7 +75,7 @@ const StatementDialog = ({ rental, payments, onPrintClick }: {
           <TableBody>
             {payments.length > 0 ? payments.map(p => (
               <TableRow key={p.id}>
-                <TableCell className="text-[12px]">{p.paymentDate?.toDate ? format(p.paymentDate.toDate(), "dd/MM/yyyy HH:mm", { locale: fr }) : 'N/A'}</TableCell>
+                <TableCell className="text-[12px]">{getSafeDate(p.paymentDate) ? format(getSafeDate(p.paymentDate)!, "dd/MM/yyyy HH:mm", { locale: fr }) : 'N/A'}</TableCell>
                 <TableCell className="text-[12px]">{p.paymentMethod}</TableCell>
                 <TableCell className="text-right text-[12px]">{formatCurrency(p.amount, 'MAD')}</TableCell>
               </TableRow>
@@ -283,7 +253,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
       header: () => <div className="text-right text-[12px] font-bold text-foreground">Montant Total</div>,
       cell: ({ row }) => {
         if (row.getIsGrouped()) return null;
-        const total = calculateTotal(row.original);
+        const total = calculateTotalRentalAmount(row.original);
         return (
             <div className="text-right font-medium text-[12px]">
             {formatCurrency(total || 0, 'MAD')}
@@ -296,7 +266,7 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
       header: () => <div className="text-right text-[12px] font-bold text-foreground">Montant Payé</div>,
       cell: ({ row }) => {
           if (row.getIsGrouped()) return null;
-          const relatedPayments = payments.filter(p => p.contractNumber === row.original.contractNumber);
+          const relatedPayments = payments.filter(p => p.rentalId === row.original.id);
           const totalPaid = relatedPayments.reduce((acc, p) => acc + p.amount, 0);
           return (
             <div className="text-right font-medium text-green-600 text-[12px]">
@@ -310,10 +280,10 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
       header: () => <div className="text-right text-[12px] font-bold text-foreground">Reste</div>,
       cell: ({ row }) => {
         if (row.getIsGrouped()) return null;
-        const total = calculateTotal(row.original);
-        const relatedPayments = payments.filter(p => p.contractNumber === row.original.contractNumber);
+        const total = calculateTotalRentalAmount(row.original);
+        const relatedPayments = payments.filter(p => p.rentalId === row.original.id);
         const totalPaid = relatedPayments.reduce((acc, p) => acc + p.amount, 0);
-        const reste = total - totalPaid;
+        const reste = Math.max(0, total - totalPaid);
         return (
             <div className={cn("text-right font-bold text-[12px]", reste > 0.01 ? "text-destructive" : "text-muted-foreground")}>
                 {formatCurrency(reste, 'MAD')}
@@ -326,8 +296,8 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
       header: () => <div className="text-[12px] font-bold text-foreground">Statut Paiement</div>,
       cell: ({ row }) => {
           if (row.getIsGrouped()) return null;
-          const total = calculateTotal(row.original);
-          const relatedPayments = payments.filter(p => p.contractNumber === row.original.contractNumber);
+          const total = calculateTotalRentalAmount(row.original);
+          const relatedPayments = payments.filter(p => p.rentalId === row.original.id);
           const totalPaid = relatedPayments.reduce((acc, p) => acc + p.amount, 0);
         
           if (!total || total === 0) {
@@ -478,13 +448,13 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
                 <div className="hidden">
                     <Invoice 
                         rental={statementRental} 
-                        payments={payments.filter(p => p.contractNumber === statementRental.contractNumber)}
-                        totalAmount={calculateTotal(statementRental)}
+                        payments={payments.filter(p => p.rentalId === statementRental.id)}
+                        totalAmount={calculateTotalRentalAmount(statementRental)}
                     />
                 </div>
                 <StatementDialog 
                     rental={statementRental} 
-                    payments={payments.filter(p => p.contractNumber === statementRental.contractNumber)}
+                    payments={payments.filter(p => p.rentalId === statementRental.id)}
                     onPrintClick={handlePrintInvoice}
                 />
             </>

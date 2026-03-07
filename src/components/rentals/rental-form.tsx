@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { CalendarIcon, Plus, Trash2, ExternalLink, CheckCircle, DollarSign } from "lucide-react";
 import { Calendar } from "../ui/calendar";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency, getSafeDate, calculateTotalRentalAmount } from "@/lib/utils";
 import { format, differenceInCalendarDays, startOfDay } from "date-fns";
 import { fr } from 'date-fns/locale';
 import React from "react";
@@ -96,14 +96,6 @@ const timestampToDate = (timestamp: any): Date | null => {
         return d;
     }
     return null;
-}
-
-function getSafeDate(date: any): Date | undefined {
-    if (!date) return undefined;
-    if (date instanceof Date) return date;
-    if (date.toDate && typeof date.toDate === 'function') return date.toDate();
-    const parsed = new Date(date);
-    return isNaN(parsed.getTime()) ? undefined : parsed;
 }
 
 type RentalFormProps = {
@@ -552,18 +544,31 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
 
                 const finalRentalDays = rentalDaysForUI;
                 const finalAmountToPay = finalRentalDays * rental.location.prixParJour;
-                const updatePayload = {
+                
+                // Nest the update payload for setDoc merge to be clean
+                const updatePayloadNested = {
+                    receptionInspectionId: receptionInspectionId,
+                    location: {
+                        dateFin: data.dateRetour,
+                        lieuRetour: data.lieuRetour,
+                        nbrJours: finalRentalDays,
+                        montantTotal: finalAmountToPay,
+                    },
+                    statut: 'terminee' as const,
+                };
+
+                // For updateDoc, flat keys with dots work fine
+                transaction.update(rentalRef, {
                     receptionInspectionId: receptionInspectionId,
                     'location.dateFin': data.dateRetour,
                     'location.lieuRetour': data.lieuRetour,
                     'location.nbrJours': finalRentalDays,
                     'location.montantTotal': finalAmountToPay,
-                    statut: 'terminee' as const,
-                };
-
-                transaction.update(rentalRef, updatePayload);
-                // Use set merge for archives to be more robust
-                transaction.set(archivedRentalRef, updatePayload, { merge: true });
+                    statut: 'terminee',
+                });
+                
+                // For setDoc merge, use nested object to avoid "location.montantTotal" root keys
+                transaction.set(archivedRentalRef, updatePayloadNested, { merge: true });
                 transaction.update(carDocRef, { kilometrage: data.kilometrageRetour, disponibilite: 'disponible' });
             });
 
@@ -584,15 +589,23 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
 
             const finalAmountToPay = finalRentalDays * rental.location.prixParJour;
 
-            const updatePayload = {
+            // Flat keys for update
+            batch.update(rentalRef, {
                 'location.dateFin': dateRange.to,
                 'location.lieuRetour': lieuRetour,
                 'location.nbrJours': finalRentalDays,
                 'location.montantTotal': finalAmountToPay,
-            };
-
-            batch.update(rentalRef, updatePayload);
-            batch.set(archivedRentalRef, updatePayload, { merge: true });
+            });
+            
+            // Nested object for set merge
+            batch.set(archivedRentalRef, {
+                location: {
+                    dateFin: dateRange.to,
+                    lieuRetour: lieuRetour,
+                    nbrJours: finalRentalDays,
+                    montantTotal: finalAmountToPay
+                }
+            }, { merge: true });
             
             await batch.commit();
             

@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -7,7 +6,7 @@ import { fr } from 'date-fns/locale';
 import Image from 'next/image';
 import type { Rental, Damage, Inspection, DamageType, Payment } from "@/lib/definitions";
 import { damageTypes } from "@/lib/definitions";
-import { formatCurrency, cn } from "@/lib/utils";
+import { formatCurrency, cn, getSafeDate, calculateTotalRentalAmount } from "@/lib/utils";
 import { doc, onSnapshot, collection, query, where } from "firebase/firestore";
 import { useFirebase } from "@/firebase";
 import { ScrollArea } from "../ui/scroll-area";
@@ -17,36 +16,6 @@ import { Logo } from "../logo";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
 import { Gavel } from 'lucide-react';
 import { Button } from '../ui/button';
-
-
-const getSafeDate = (date: any): Date | null => {
-    if (!date) return null;
-    if (date instanceof Date && !isNaN(date.getTime())) return date;
-    if (date.toDate && typeof date.toDate === 'function') return date.toDate();
-    const parsed = new Date(date);
-    return isNaN(parsed.getTime()) ? null : parsed;
-};
-
-const calculateTotal = (rental: Rental): number => {
-    const from = getSafeDate(rental.location.dateDebut);
-    const to = getSafeDate(rental.location.dateFin);
-    const pricePerDay = rental.location.prixParJour || 0;
-
-    if (from && to && pricePerDay > 0) {
-        if (startOfDay(from).getTime() === startOfDay(to).getTime()) {
-            return pricePerDay;
-        }
-        const daysDiff = differenceInCalendarDays(to, from) || 1;
-        return daysDiff * pricePerDay;
-    }
-    if (typeof rental.location.montantTotal === 'number' && !isNaN(rental.location.montantTotal) && rental.location.montantTotal > 0) {
-      return rental.location.montantTotal;
-    }
-    if (rental.location.nbrJours && pricePerDay > 0) {
-      return rental.location.nbrJours * pricePerDay;
-    }
-    return 0;
-};
 
 
 export const ReadOnlyCheckbox = ({ checked }: { checked: boolean | undefined }) => (
@@ -307,11 +276,11 @@ export function RentalDetails({ rental, isArchived = false }: { rental: Rental, 
     const safeDebutDate = getSafeDate(rental.location.dateDebut);
     const safeFinDate = getSafeDate(rental.location.dateFin);
 
-    const totalAmount = calculateTotal(rental);
+    const totalAmount = calculateTotalRentalAmount(rental);
     const amountPaid = isArchived
         ? archivedPayments.reduce((acc, payment) => acc + payment.amount, 0)
         : rental.location.montantPaye || 0;
-    const amountRemaining = totalAmount - amountPaid;
+    const amountRemaining = Math.max(0, totalAmount - amountPaid);
 
     const rentalDuration = () => {
         if (safeDebutDate && safeFinDate) {
