@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useForm, useFieldArray } from "react-hook-form";
@@ -744,6 +743,9 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
       );
   }
 
+  const amountPaid = rental?.location?.montantPaye || 0;
+  const reste = prixTotalForUI - amountPaid;
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-6 mt-4">
@@ -824,7 +826,23 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
               </AccordionItem>
             )}
         </Accordion>
-        <Card className="bg-muted/50"><CardHeader><CardTitle className="text-lg">Résumé</CardTitle></CardHeader><CardContent className="space-y-2 text-sm"><div className="flex justify-between"><span>Prix par jour :</span> <span className="font-medium">{formatCurrency(displayPricePerDay, 'MAD')}</span></div><div className="flex justify-between"><span>Durée :</span> <span className="font-medium">{rentalDaysForUI} jour(s)</span></div><div className="flex justify-between font-semibold"><span>Montant Total :</span> <span>{formatCurrency(prixTotalForUI, 'MAD')}</span></div>{mode !== 'new' && rental && (<><div className="flex justify-between text-green-600"><span>Payé :</span> <span className="font-medium">{formatCurrency(rental.location.montantPaye || 0, 'MAD')}</span></div><div className="flex justify-between font-bold text-lg text-destructive"><span>Reste :</span> <span>{formatCurrency(prixTotalForUI - (rental.location.montantPaye || 0), 'MAD')}</span></div></>)}</CardContent></Card>
+        <Card className="bg-muted/50">
+          <CardHeader><CardTitle className="text-lg">Résumé</CardTitle></CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="flex justify-between"><span>Prix par jour :</span> <span className="font-medium">{formatCurrency(displayPricePerDay, 'MAD')}</span></div>
+            <div className="flex justify-between"><span>Durée :</span> <span className="font-medium">{rentalDaysForUI} jour(s)</span></div>
+            <div className="flex justify-between font-semibold"><span>Montant Total :</span> <span>{formatCurrency(prixTotalForUI, 'MAD')}</span></div>
+            {mode !== 'new' && rental && (
+              <>
+                <div className="flex justify-between text-green-600"><span>Payé :</span> <span className="font-medium">{formatCurrency(amountPaid, 'MAD')}</span></div>
+                <div className="flex justify-between font-bold text-lg text-destructive">
+                  <span>Reste :</span>
+                  <span>{formatCurrency(Math.max(0, reste), 'MAD')}</span>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
         <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isSubmitting}>{isSubmitting ? "Enregistrement..." : buttonText[mode]}</Button>
       </form>
     </Form>
