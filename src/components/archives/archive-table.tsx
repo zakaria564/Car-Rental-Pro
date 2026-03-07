@@ -12,7 +12,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { MoreHorizontal, Printer, FileText, Trash2, Pencil } from "lucide-react";
+import { MoreHorizontal, Printer, FileText, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -45,9 +45,6 @@ import { useFirebase } from "@/firebase";
 import { deleteDoc, doc } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import RentalForm from "../rentals/rental-form";
 
 type ArchiveTableProps = {
   rentals: Rental[];
@@ -62,7 +59,6 @@ export default function ArchiveTable({ rentals, clients, cars }: ArchiveTablePro
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   
   const [isDetailsOpen, setIsDetailsOpen] = React.useState(false);
-  const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [selectedRental, setSelectedRental] = React.useState<Rental | null>(null);
   const [rentalToDelete, setRentalToDelete] = React.useState<Rental | null>(null);
 
@@ -254,13 +250,6 @@ export default function ArchiveTable({ rentals, clients, cars }: ArchiveTablePro
                 <FileText className="mr-2 h-4 w-4"/>
                 Voir les détails
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => {
-                setSelectedRental(rental);
-                setIsSheetOpen(true);
-              }} className="text-[12px]">
-                <Pencil className="mr-2 h-4 w-4"/>
-                Modifier
-              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                 className="text-destructive focus:text-destructive focus:bg-destructive/10 text-[12px]"
@@ -374,32 +363,6 @@ export default function ArchiveTable({ rentals, clients, cars }: ArchiveTablePro
             </DialogContent>
         )}
       </Dialog>
-
-      <Sheet open={isSheetOpen} onOpenChange={(open) => {
-          setIsSheetOpen(open);
-          if (!open) setSelectedRental(null);
-      }}>
-        <SheetContent className="sm:max-w-[600px] flex flex-col">
-            <SheetHeader>
-              <SheetTitle>Modifier le contrat (Archive)</SheetTitle>
-              {selectedRental && (
-                <SheetDescription>
-                    {selectedRental.vehicule.marque} ({selectedRental.vehicule.immatriculation})
-                </SheetDescription>
-              )}
-            </SheetHeader>
-            <ScrollArea className="flex-grow pr-6">
-              <RentalForm 
-                key={selectedRental?.id || 'edit-archived'}
-                rental={selectedRental} 
-                clients={clients} 
-                cars={cars} 
-                rentals={[]}
-                mode="edit"
-                onFinished={() => setIsSheetOpen(false)} />
-            </ScrollArea>
-        </SheetContent>
-      </Sheet>
       
       <AlertDialog open={!!rentalToDelete} onOpenChange={(open) => !open && setRentalToDelete(null)}>
         {rentalToDelete && (
