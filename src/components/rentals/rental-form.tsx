@@ -310,7 +310,7 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
             dommagesRetourNotes: receptionData?.dommagesNotes || "",
             dommagesRetour: receptionData?.damages || (mode === 'check-in' ? livraisonData?.damages : {}) || {},
             photosRetour: (receptionData?.photos || []).map((p: string) => ({url: p})),
-            dateRetour: receptionData?.dateHeure ? getSafeDate(receptionData.dateHeure) : new Date(),
+            dateRetour: receptionData?.dateHeure ? getSafeDate(receptionData.dateHeure) : (getRentalDate(rental, 'dateFin') || new Date()),
         };
         
         setInitialValues(defaults);
@@ -386,11 +386,16 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
         const fromStart = startOfDay(from);
         const toStart = startOfDay(to);
         
-        if (fromStart.getTime() === toStart.getTime()) {
-            return 1;
-        }
         const daysDiff = differenceInCalendarDays(toStart, fromStart);
-        return daysDiff > 0 ? daysDiff : 1;
+        const actualDays = daysDiff > 0 ? daysDiff : 1;
+
+        // In check-in mode, we should not charge less than the original planned duration
+        if (mode === 'check-in' && rental) {
+            const originalDays = rental.location.nbrJours || 0;
+            return Math.max(actualDays, originalDays);
+        }
+
+        return actualDays;
     }
     return 0;
   }, [dateRange, dateRetour, mode, rental]);
@@ -398,10 +403,15 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
   const prixTotalForUI = React.useMemo(() => {
     const pricePerDay = rental ? rental.location.prixParJour : selectedCarForUI?.prixParJour;
     if (pricePerDay) {
-        return rentalDaysForUI * pricePerDay;
+        const calculated = rentalDaysForUI * pricePerDay;
+        // Ensure total doesn't drop below already paid or contracted amount in check-in
+        if (mode === 'check-in' && rental) {
+            return Math.max(calculated, rental.location.montantTotal || 0);
+        }
+        return calculated;
     }
     return 0;
-  }, [selectedCarForUI, rentalDaysForUI, rental]);
+  }, [selectedCarForUI, rentalDaysForUI, rental, mode]);
 
   const onError = (errors: any) => {
     if (Object.keys(errors).length > 0) {
@@ -523,7 +533,7 @@ export default function RentalForm({ rental, clients, cars, rentals, onFinished,
                 }
 
                 const finalRentalDays = rentalDaysForUI;
-                const finalAmountToPay = finalRentalDays * rental.location.prixParJour;
+                const finalAmountToPay = Math.max(finalRentalDays * rental.location.prixParJour, rental.location.montantTotal || 0);
                 
                 const updatePayload: any = {
                     "receptionInspectionId": receptionInspectionId,
