@@ -54,47 +54,45 @@ export function DashboardNav() {
         const carsData = snapshot.docs.map(doc => doc.data() as CarType);
         const today = new Date();
 
-        // 1. Calcul des alertes entretien
-        const maintAlerts = carsData.filter(car => {
-            if (car.maintenanceSchedule) {
-                const km = car.kilometrage;
-                const s = car.maintenanceSchedule;
-                if ((s.prochainVidangeKm && km >= s.prochainVidangeKm) ||
-                    (s.prochainFiltreGasoilKm && km >= s.prochainFiltreGasoilKm) ||
-                    (s.prochainesPlaquettesFreinKm && km >= s.prochainesPlaquettesFreinKm) ||
-                    (s.prochaineCourroieDistributionKm && km >= s.prochaineCourroieDistributionKm)) {
-                    return true;
-                }
-            }
-            return false;
-        }).length;
-        setMaintAlertCount(maintAlerts);
-
-        // 2. Calcul des alertes documents
-        let expired = 0;
-        let soon = 0;
+        let totalMaint = 0;
+        let totalExpired = 0;
+        let totalSoon = 0;
 
         carsData.forEach(car => {
-            let isCarExpired = false;
-            let isCarSoon = false;
+            const { kilometrage, maintenanceSchedule } = car;
 
+            // 1. Calcul des alertes entretien individuelles (Cumulatif)
+            if (maintenanceSchedule) {
+                const checkMaint = (nextKm: number | undefined, soonThreshold: number) => {
+                    if (typeof nextKm !== 'number' || nextKm <= 0) return;
+                    const diff = nextKm - kilometrage;
+                    if (diff <= 0 || diff <= soonThreshold) {
+                        totalMaint++;
+                    }
+                };
+
+                checkMaint(maintenanceSchedule.prochainVidangeKm, 1000);
+                checkMaint(maintenanceSchedule.prochainFiltreGasoilKm, 2000);
+                checkMaint(maintenanceSchedule.prochainesPlaquettesFreinKm, 2000);
+                checkMaint(maintenanceSchedule.prochaineCourroieDistributionKm, 5000);
+            }
+
+            // 2. Calcul des alertes documents individuelles (Cumulatif)
             const checkDoc = (date: any) => {
                 const d = getSafeDate(date);
                 if (!d) return;
                 const diff = differenceInCalendarDays(d, today);
-                if (diff < 0) isCarExpired = true;
-                else if (diff <= 7) isCarSoon = true;
+                if (diff < 0) totalExpired++;
+                else if (diff <= 7) totalSoon++;
             };
 
             checkDoc(car.dateExpirationAssurance);
             checkDoc(car.dateProchaineVisiteTechnique);
-
-            if (isCarExpired) expired++;
-            else if (isCarSoon) soon++;
         });
 
-        setExpiredDocCount(expired);
-        setSoonDocCount(soon);
+        setMaintAlertCount(totalMaint);
+        setExpiredDocCount(totalExpired);
+        setSoonDocCount(totalSoon);
     });
 
     return () => {
@@ -123,15 +121,18 @@ export function DashboardNav() {
           {item.label === 'Voitures' && (
              <div className="ml-auto flex gap-1">
                 {maintAlertCount > 0 && (
-                    <Badge title="Entretiens à faire" className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-500 text-white hover:bg-blue-600 border-none p-0 text-[10px]">
+                    <Badge 
+                        title={`${maintAlertCount} alerte(s) d'entretien`} 
+                        className="flex h-5 min-w-5 px-1 shrink-0 items-center justify-center rounded-full bg-blue-500 text-white hover:bg-blue-600 border-none p-0 text-[10px]"
+                    >
                         {maintAlertCount}
                     </Badge>
                 )}
                 {(expiredDocCount > 0 || soonDocCount > 0) && (
                     <Badge 
-                        title={expiredDocCount > 0 ? "Documents expirés" : "Documents expirant bientôt"} 
+                        title={`${expiredDocCount + soonDocCount} alerte(s) de documents`} 
                         className={cn(
-                            "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-none p-0 text-[10px] text-white",
+                            "flex h-5 min-w-5 px-1 shrink-0 items-center justify-center rounded-full border-none p-0 text-[10px] text-white",
                             expiredDocCount > 0 ? "bg-destructive hover:bg-destructive" : "bg-amber-500 hover:bg-amber-600"
                         )}
                     >
