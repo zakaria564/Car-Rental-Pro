@@ -24,7 +24,7 @@ const getFirebaseApp = (): FirebaseApp => {
     }
     
     if (!firebaseConfig.storageBucket || firebaseConfig.storageBucket.includes("YOUR_STORAGE_BUCKET") || firebaseConfig.storageBucket === "") {
-        console.warn("Le bucket Firebase Storage n'est pas configuré. Le mode manuel (URL) sera activé par défaut.");
+        console.warn("Le bucket Firebase Storage n'est pas configuré. Le mode manuel (URL) sera disponible par défaut.");
     }
 
     return initializeApp(firebaseConfig);
