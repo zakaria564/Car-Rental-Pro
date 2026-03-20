@@ -11,7 +11,6 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
-import * as VisuallyHidden from '@radix-ui/react-visually-hidden';
 
 interface ImageUploadProps {
   value: string | string[];
@@ -94,11 +93,12 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
   const handleUpload = async (file: File) => {
     const bucket = (app as any)?.options?.storageBucket;
     
+    // Vérification immédiate de la configuration
     if (!storage || !bucket || bucket.includes("YOUR_STORAGE_BUCKET") || bucket === "") {
       setShowUrlInput(true);
       toast({
         title: 'Mode Manuel Activé',
-        description: 'Le stockage Cloud n\'est pas encore activé. Utilisez des liens directs.',
+        description: 'Le stockage automatique n\'est pas activé. Veuillez utiliser des liens directs.',
       });
       return;
     }
@@ -110,17 +110,17 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
     const storageRef = ref(storage, `${folder}/${fileName}`);
     const uploadTask = uploadBytesResumable(storageRef, file);
 
-    // Timeout pour éviter de rester bloqué sur "en cours" si Firebase ne répond pas
+    // Timeout court pour basculer en manuel si ça bloque
     const timeout = setTimeout(() => {
         uploadTask.cancel();
         setUploading(false);
         setShowUrlInput(true);
         toast({
             variant: 'destructive',
-            title: 'Délai dépassé',
-            description: 'Le serveur ne répond pas. Passage en mode manuel.'
+            title: 'Serveur indisponible',
+            description: 'Le stockage n\'a pas répondu. Passage en mode manuel (URL).'
         });
-    }, 10000);
+    }, 5000);
 
     uploadTask.on(
       'state_changed',
@@ -130,13 +130,13 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
       },
       (error) => {
         clearTimeout(timeout);
-        console.warn('Upload error handled:', error.code);
         setUploading(false);
         setShowUrlInput(true);
+        // On ne loggue pas l'erreur dans la console pour l'utilisateur final
         toast({ 
           variant: 'destructive', 
-          title: 'Serveur Indisponible', 
-          description: 'Passage automatique en mode manuel (URL).' 
+          title: 'Erreur de connexion', 
+          description: 'Passage en mode manuel pour continuer.' 
         });
       },
       async () => {
@@ -150,7 +150,7 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
             }
             setUploading(false);
             setProgress(0);
-            toast({ title: 'Succès', description: 'Image enregistrée avec succès.' });
+            toast({ title: 'Succès', description: 'Image enregistrée.' });
         } catch (err) {
             setUploading(false);
             setShowUrlInput(true);
@@ -198,7 +198,7 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
                 <div className="w-full space-y-1">
                     <Progress value={progress} className="h-2 w-full bg-primary/10" />
                     <div className="flex justify-between text-[10px] font-black text-primary uppercase tracking-tighter">
-                        <span>Chargement</span>
+                        <span>Envoi</span>
                         <span>{Math.round(progress)}%</span>
                     </div>
                 </div>
@@ -206,7 +206,7 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
             ) : (
               <div className="text-center space-y-3 opacity-30 group-hover:opacity-50 transition-opacity">
                 <ImageIcon className="h-20 w-20 mx-auto" strokeWidth={1} />
-                <p className="text-xs font-black uppercase tracking-widest">Aucun fichier</p>
+                <p className="text-xs font-black uppercase tracking-widest">Cadre Photo</p>
               </div>
             )}
           </div>
@@ -272,7 +272,7 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
       <div className="pt-2 border-t border-dashed mt-4">
         <button type="button" onClick={() => setShowUrlInput(!showUrlInput)} className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-all flex items-center gap-2 mx-auto py-2">
           <LinkIcon className="h-3 w-3" />
-          {showUrlInput ? "Masquer la saisie manuelle" : "Gérer le lien manuellement (URL)"}
+          {showUrlInput ? "Masquer la gestion manuelle" : "Gérer les liens manuellement (URL)"}
         </button>
 
         {showUrlInput && (
@@ -293,12 +293,12 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
                   <Button type="button" variant="outline" size="sm" className="w-full h-10 text-[10px] font-black uppercase rounded-xl border-dashed" onClick={() => onChange([...urls, ""])}>+ Ajouter un autre lien</Button>
                 </>
               ) : (
-                <Input placeholder="Coller l'adresse de l'image ici..." value={typeof value === 'string' ? value : ''} onChange={(e) => onChange(e.target.value)} className="h-11 text-xs font-mono rounded-xl bg-card border-2" />
+                <Input placeholder="Coller le lien de l'image ici..." value={typeof value === 'string' ? value : ''} onChange={(e) => onChange(e.target.value)} className="h-11 text-xs font-mono rounded-xl bg-card border-2" />
               )}
               <div className="flex items-start gap-2 p-2 bg-amber-500/5 rounded-lg border border-amber-500/10">
                 <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
                 <p className="text-[10px] text-amber-600 leading-tight">
-                  <strong>Note:</strong> Utilisez ce champ si le stockage automatique n'est pas activé dans votre console Firebase ou si vous avez déjà un lien externe.
+                  <strong>Note :</strong> Utilisez ce champ si le stockage automatique n'est pas activé ou si vous avez un lien externe (Imgur, etc).
                 </p>
               </div>
             </div>
@@ -308,16 +308,16 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
 
       <Dialog open={isCameraOpen} onOpenChange={(open) => !open && closeCamera()}>
         <DialogContent className="sm:max-w-2xl p-0 overflow-hidden bg-zinc-950 border-none rounded-none sm:rounded-[2rem] shadow-2xl">
-          <VisuallyHidden.Root>
-            <DialogTitle>Appareil photo</DialogTitle>
-          </VisuallyHidden.Root>
+          <DialogHeader className="sr-only">
+            <DialogTitle>Appareil photo HD</DialogTitle>
+          </DialogHeader>
           <div className="relative aspect-video bg-black flex items-center justify-center min-h-[450px]">
             {hasCameraPermission === false ? (
               <div className="text-center text-white p-10 space-y-6">
                 <div className="bg-red-500/20 p-6 rounded-full w-24 h-24 mx-auto flex items-center justify-center animate-pulse"><AlertCircle className="h-12 w-12 text-red-500" /></div>
                 <div className="space-y-2">
                     <p className="font-black uppercase tracking-widest text-lg">Accès caméra refusé</p>
-                    <p className="text-sm text-zinc-400">Veuillez autoriser l'accès à la caméra dans les réglages de votre navigateur.</p>
+                    <p className="text-sm text-zinc-400">Veuillez autoriser la caméra dans vos réglages.</p>
                 </div>
                 <Button variant="outline" onClick={openCamera} className="text-white border-white/20 rounded-full px-8 h-12 font-bold">Réessayer</Button>
               </div>
