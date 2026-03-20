@@ -23,7 +23,7 @@ const getFirebaseApp = (): FirebaseApp => {
         console.warn("Clé API Firebase manquante. Vérifiez vos variables d'environnement.");
     }
     
-    if (!firebaseConfig.storageBucket || firebaseConfig.storageBucket.includes("YOUR_STORAGE_BUCKET")) {
+    if (!firebaseConfig.storageBucket || firebaseConfig.storageBucket.includes("YOUR_STORAGE_BUCKET") || firebaseConfig.storageBucket === "") {
         console.warn("Le bucket Firebase Storage n'est pas configuré. Le mode manuel (URL) sera activé par défaut.");
     }
 
@@ -42,9 +42,9 @@ export function getFirebaseServices() {
   if (typeof window !== 'undefined') {
     enableIndexedDbPersistence(firestore)
       .catch((err) => {
-        if (err.code == 'failed-precondition') {
+        if (err.code === 'failed-precondition') {
           console.warn("La persistance Firestore a échoué : plusieurs onglets ouverts.");
-        } else if (err.code == 'unimplemented') {
+        } else if (err.code === 'unimplemented') {
           console.warn("Le navigateur ne supporte pas la persistance Firestore.");
         }
       });

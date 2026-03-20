@@ -133,16 +133,15 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
         setUploading(false);
         
         if (error.code === 'storage/canceled') {
-          // L'annulation est déjà gérée par le timeout au-dessus
           return;
         }
 
         setShowUrlInput(true);
-        console.error('Upload Error:', error.code);
+        console.warn('Upload Error:', error.code);
         toast({ 
           variant: 'destructive', 
-          title: 'Erreur Storage', 
-          description: 'Le service de stockage n\'est pas accessible. Utilisez le mode manuel.' 
+          title: 'Une erreur est survenue', 
+          description: 'Le stockage automatique n\'est pas disponible. Utilisez le mode manuel.' 
         });
       },
       async () => {
@@ -210,11 +209,22 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
                 </div>
               </div>
             ) : (
-              <div className="text-center space-y-3 opacity-30 group-hover:opacity-50 transition-opacity">
-                <div className="bg-muted p-6 rounded-full inline-block mb-2">
-                    <ImageIcon className="h-12 w-12 mx-auto" strokeWidth={1} />
+              <div className="text-center space-y-4 px-6 opacity-30 group-hover:opacity-60 transition-all duration-500">
+                <div className="relative mx-auto w-32 h-20">
+                  <svg viewBox="0 0 100 60" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full text-muted-foreground">
+                    <path d="M5 15V5H15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    <path d="M85 15V5H75" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    <path d="M5 45V55H15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    <path d="M85 45V55H75" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    <rect x="25" y="20" width="50" height="20" rx="4" stroke="currentColor" strokeWidth="1.5" strokeDasharray="4 2"/>
+                    <circle cx="50" cy="30" r="12" stroke="currentColor" strokeWidth="1"/>
+                    <circle cx="50" cy="30" r="2" fill="currentColor"/>
+                  </svg>
                 </div>
-                <p className="text-xs font-black uppercase tracking-[0.2em]">Studio Photo Pro</p>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em]">Capture Studio Pro</p>
+                  <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Optimisé pour Car Rental Pro</p>
+                </div>
               </div>
             )}
           </div>
@@ -307,9 +317,9 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
               )}
               <div className="flex items-start gap-3 p-3 bg-amber-500/5 rounded-2xl border border-amber-500/10">
                 <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" />
-                <p className="text-[10px] text-amber-700/80 leading-relaxed font-medium">
-                  <strong>NOTE TECHNIQUE :</strong> Utilisez ce champ si le stockage automatique n'est pas activé ou si le réseau est trop lent.
-                </p>
+                <div className="text-[10px] text-amber-700/80 leading-relaxed font-medium">
+                  <p><strong>NOTE TECHNIQUE :</strong> Utilisez ce champ si le stockage automatique n'est pas activé ou si le réseau est trop lent.</p>
+                </div>
               </div>
             </div>
           </div>
