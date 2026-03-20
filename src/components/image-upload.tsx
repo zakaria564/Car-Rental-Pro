@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Image as ImageIcon, X, Loader2, CheckCircle2, Upload, Scan, AlertTriangle, Link as LinkIcon, Plus } from 'lucide-react';
+import { Camera, Image as ImageIcon, X, Loader2, CheckCircle2, Upload, Scan, AlertCircle, Link as LinkIcon, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useFirebase } from '@/firebase';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
@@ -21,18 +21,16 @@ interface ImageUploadProps {
 }
 
 export function ImageUpload({ value, onChange, folder, multiple = false, label }: ImageUploadProps) {
-  const { storage, app, auth } = useFirebase();
+  const { storage, app } = useFirebase();
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [showUrlInput, setShowUrlInput] = useState(false);
-  const [isStuck, setIsStuck] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const uploadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const urls = Array.isArray(value) ? value : (value ? [value] : []);
 
@@ -42,7 +40,6 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
         const stream = videoRef.current.srcObject as MediaStream;
         stream.getTracks().forEach(track => track.stop());
       }
-      if (uploadTimeoutRef.current) clearTimeout(uploadTimeoutRef.current);
     };
   }, []);
 
@@ -53,8 +50,8 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
           facingMode: 'environment',
-          width: { min: 1280, ideal: 1920 }, 
-          height: { min: 720, ideal: 1080 } 
+          width: { ideal: 1920 }, 
+          height: { ideal: 1080 } 
         } 
       });
       setHasCameraPermission(true);
@@ -62,13 +59,8 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
         videoRef.current.srcObject = stream;
       }
     } catch (error) {
-      console.error('Camera access error:', error);
+      console.error('Camera error:', error);
       setHasCameraPermission(false);
-      toast({
-        variant: 'destructive',
-        title: 'Accès caméra refusé',
-        description: 'Veuillez autoriser l\'accès dans les paramètres de votre navigateur.',
-      });
     }
   };
 
@@ -82,118 +74,70 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
 
   const capturePhoto = () => {
     if (!videoRef.current) return;
-    const video = videoRef.current;
     const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    canvas.width = videoRef.current.videoWidth;
+    canvas.height = videoRef.current.videoHeight;
     const ctx = canvas.getContext('2d');
     if (ctx) {
-      ctx.drawImage(video, 0, 0);
+      ctx.drawImage(videoRef.current, 0, 0);
       canvas.toBlob((blob) => {
         if (blob) {
           const file = new File([blob], `capture_${Date.now()}.jpg`, { type: 'image/jpeg' });
           handleUpload(file);
           closeCamera();
         }
-      }, 'image/jpeg', 0.90);
+      }, 'image/jpeg', 0.9);
     }
   };
 
   const handleUpload = async (file: File) => {
-    // Vérification de sécurité pour éviter les blocages
     const bucket = (app as any)?.options?.storageBucket;
     
-    // Si le bucket est manquant ou non configuré (valeur par défaut), on passe en manuel immédiatement
+    // Si le bucket n'est pas configuré, on bascule en manuel immédiatement
     if (!storage || !bucket || bucket.includes("YOUR_STORAGE_BUCKET")) {
       setShowUrlInput(true);
       toast({
-        variant: 'destructive',
-        title: 'Configuration requise',
-        description: 'Le stockage Firebase n\'est pas actif. Utilisez le mode manuel.',
+        title: 'Mode URL activé',
+        description: 'Le stockage Firebase n\'est pas encore configuré. Vous pouvez coller un lien direct.',
       });
       return;
     }
 
     setUploading(true);
     setProgress(0);
-    setIsStuck(false);
 
-    // Timeout de sécurité : si rien ne bouge après 4s, on débloque l'UI
-    if (uploadTimeoutRef.current) clearTimeout(uploadTimeoutRef.current);
-    uploadTimeoutRef.current = setTimeout(() => {
-      if (progress === 0) {
-        setIsStuck(true);
+    const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+    const storageRef = ref(storage, `${folder}/${fileName}`);
+    const uploadTask = uploadBytesResumable(storageRef, file);
+
+    uploadTask.on(
+      'state_changed',
+      (snapshot) => {
+        const p = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        setProgress(p);
+      },
+      (error) => {
+        console.error('Upload error:', error);
         setUploading(false);
         setShowUrlInput(true);
-        toast({
-            variant: 'destructive',
-            title: 'Serveur indisponible',
-            description: 'Passage automatique en mode manuel (URL).',
+        toast({ 
+          variant: 'destructive', 
+          title: 'Erreur d\'envoi', 
+          description: 'Passage en mode URL manuelle.' 
         });
-      }
-    }, 4000);
-
-    try {
-      const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
-      const storageRef = ref(storage, `${folder}/${fileName}`);
-      const uploadTask = uploadBytesResumable(storageRef, file);
-
-      uploadTask.on(
-        'state_changed',
-        (snapshot) => {
-          const p = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          setProgress(p);
-          if (p > 0) {
-            setIsStuck(false);
-            if (uploadTimeoutRef.current) clearTimeout(uploadTimeoutRef.current);
-          }
-        },
-        (error) => {
-          console.error('Upload error:', error);
-          setUploading(false);
-          setIsStuck(false);
-          if (uploadTimeoutRef.current) clearTimeout(uploadTimeoutRef.current);
-          setShowUrlInput(true);
-          toast({ 
-            variant: 'destructive', 
-            title: 'Erreur d\'envoi', 
-            description: 'Vérifiez vos permissions Storage dans Firebase.' 
-          });
-        },
-        async () => {
-          if (uploadTimeoutRef.current) clearTimeout(uploadTimeoutRef.current);
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          if (multiple) {
-            onChange([...urls, downloadURL]);
-          } else {
-            onChange(downloadURL);
-          }
-          setUploading(false);
-          setProgress(0);
-          setIsStuck(false);
-          toast({
-            title: 'Succès',
-            description: 'Image enregistrée sur le serveur.',
-          });
+      },
+      async () => {
+        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+        if (multiple) {
+          onChange([...urls, downloadURL]);
+        } else {
+          onChange(downloadURL);
         }
-      );
-    } catch (err) {
-      console.error("Upload fail:", err);
-      setUploading(false);
-      setShowUrlInput(true);
-    }
-  };
-
-  const onFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      if (!multiple) {
-        handleUpload(files[0]);
-      } else {
-        Array.from(files).forEach(file => handleUpload(file));
+        setUploading(false);
+        setProgress(0);
+        toast({ title: 'Succès', description: 'Image enregistrée.' });
       }
-    }
-    if (e.target) e.target.value = '';
+    );
   };
 
   const removeImage = (urlToRemove: string) => {
@@ -204,285 +148,169 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
     }
   };
 
-  const renderSinglePreview = () => {
-    const url = urls[0];
-    const hasImage = url && url.startsWith('http');
-
-    return (
-      <div className="space-y-4">
-        <div className="relative group w-full aspect-video sm:aspect-[16/9] rounded-2xl overflow-hidden border-2 border-dashed border-muted-foreground/20 bg-muted/10 shadow-sm transition-all hover:border-primary/30">
-          {hasImage ? (
-            <>
-              <Image src={url} alt="Aperçu" fill className="object-contain" unoptimized />
-              <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => removeImage(url)}
-                  className="rounded-full shadow-lg h-10 w-10 p-0"
-                >
-                  <X className="h-5 w-5" />
-                </Button>
-              </div>
-              <div className="absolute bottom-3 right-3">
-                 <div className="bg-white rounded-full p-1 shadow-md">
-                    <CheckCircle2 className="h-5 w-5 text-green-500" />
-                 </div>
-              </div>
-            </>
-          ) : uploading ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/50 backdrop-blur-sm">
-                <Loader2 className="h-10 w-10 animate-spin text-primary mb-3" />
-                <div className="w-32">
-                    <Progress value={progress} className="h-2" />
-                </div>
-                <span className="text-xs mt-2 font-black text-primary">{Math.round(progress)}%</span>
-            </div>
-          ) : (
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground/40 p-6">
-              <ImageIcon className="h-16 w-16 mb-2 opacity-20" />
-              <p className="text-xs font-medium italic">Aucune image sélectionnée</p>
-            </div>
-          )}
-        </div>
-
-        {!hasImage && !uploading && (
-          <div className="grid grid-cols-2 gap-3">
-            <Button 
-              type="button" 
-              variant="outline" 
-              className="h-12 flex items-center justify-center gap-2 border-2 rounded-xl bg-card hover:bg-primary/5 hover:border-primary/50 transition-all"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Upload className="h-4 w-4 text-primary" />
-              <span className="text-xs font-bold uppercase tracking-tight">Galerie</span>
-            </Button>
-            <Button 
-              type="button" 
-              variant="outline" 
-              className="h-12 flex items-center justify-center gap-2 border-2 rounded-xl bg-card hover:bg-primary/5 hover:border-primary/50 transition-all"
-              onClick={openCamera}
-            >
-              <Camera className="h-4 w-4 text-primary" />
-              <span className="text-xs font-bold uppercase tracking-tight">Caméra</span>
-            </Button>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const renderMultiplePreview = () => {
-    return (
-      <div className="space-y-4">
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-          {urls.map((url, index) => (
-            url && url.startsWith('http') && (
-              <div key={index} className="relative group aspect-square rounded-xl overflow-hidden border-2 border-muted shadow-sm bg-card transition-all hover:scale-105">
-                <Image src={url} alt="Aperçu" fill className="object-cover" unoptimized />
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <button
-                    type="button"
-                    onClick={() => removeImage(url)}
-                    className="p-1.5 bg-destructive text-white rounded-full shadow-xl hover:bg-destructive/90"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              </div>
-            )
-          ))}
-
-          {!uploading && (
-            <button 
-              type="button" 
-              className="aspect-square flex flex-col items-center justify-center gap-1 border-2 border-dashed rounded-xl bg-muted/20 hover:bg-primary/5 hover:border-primary/50 transition-all group"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Plus className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-colors" />
-              <span className="text-[10px] font-bold uppercase text-muted-foreground group-hover:text-primary">Ajouter</span>
-            </button>
-          )}
-
-          {uploading && (
-            <div className="aspect-square flex flex-col items-center justify-center border-2 border-primary/30 rounded-xl bg-primary/5">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              <span className="text-[10px] mt-1 font-bold text-primary">{Math.round(progress)}%</span>
-            </div>
-          )}
-        </div>
-
-        {!uploading && (
-           <Button 
-            type="button" 
-            variant="ghost" 
-            size="sm" 
-            className="w-full h-8 text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
-            onClick={openCamera}
-          >
-            <Camera className="h-3.5 w-3.5 mr-2" />
-            Prendre une photo
-          </Button>
-        )}
-      </div>
-    );
-  };
-
   return (
     <div className="space-y-4">
-      {label && <label className="text-xs font-black uppercase tracking-widest text-muted-foreground/70 mb-2 block">{label}</label>}
+      {label && <label className="text-sm font-bold text-foreground mb-2 block">{label}</label>}
       
-      {multiple ? renderMultiplePreview() : renderSinglePreview()}
+      {/* SINGLE UPLOAD FRAME */}
+      {!multiple && (
+        <div className="space-y-4">
+          <div className={cn(
+            "relative group w-full aspect-[16/9] rounded-2xl overflow-hidden border-2 border-dashed transition-all bg-muted/30 flex items-center justify-center",
+            urls[0] ? "border-primary/20" : "border-muted-foreground/20 hover:border-primary/40"
+          )}>
+            {urls[0] && urls[0].startsWith('http') ? (
+              <>
+                <Image src={urls[0]} alt="Preview" fill className="object-contain" unoptimized />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <Button type="button" variant="destructive" size="icon" onClick={() => removeImage(urls[0])} className="h-10 w-10 rounded-full shadow-xl">
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
+                <div className="absolute bottom-3 right-3 bg-background rounded-full p-1 shadow-lg border border-primary/20">
+                  <CheckCircle2 className="h-5 w-5 text-green-500" />
+                </div>
+              </>
+            ) : uploading ? (
+              <div className="flex flex-col items-center gap-3 w-full px-10">
+                <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                <Progress value={progress} className="h-2 w-full" />
+                <span className="text-xs font-black text-primary">{Math.round(progress)}%</span>
+              </div>
+            ) : (
+              <div className="text-center space-y-2 opacity-40">
+                <ImageIcon className="h-16 w-16 mx-auto" strokeWidth={1} />
+                <p className="text-xs font-medium italic">Aucun fichier sélectionné</p>
+              </div>
+            )}
+          </div>
 
-      <input 
-        type="file" 
-        className="hidden" 
-        ref={fileInputRef} 
-        accept="image/*" 
-        multiple={multiple}
-        onChange={onFileSelect} 
-      />
+          {!uploading && !urls[0] && (
+            <div className="grid grid-cols-2 gap-3">
+              <Button type="button" variant="outline" className="h-12 border-2 rounded-xl bg-card hover:bg-primary/5 transition-all gap-2" onClick={() => fileInputRef.current?.click()}>
+                <Upload className="h-4 w-4 text-primary" />
+                <span className="text-xs font-black uppercase tracking-tight">Galerie</span>
+              </Button>
+              <Button type="button" variant="outline" className="h-12 border-2 rounded-xl bg-card hover:bg-primary/5 transition-all gap-2" onClick={openCamera}>
+                <Camera className="h-4 w-4 text-primary" />
+                <span className="text-xs font-black uppercase tracking-tight">Caméra</span>
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
 
+      {/* MULTIPLE UPLOAD GRID */}
+      {multiple && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+            {urls.map((url, i) => (
+              url && (
+                <div key={i} className="relative aspect-square rounded-xl overflow-hidden border bg-muted shadow-sm group">
+                  <Image src={url} alt="Doc" fill className="object-cover" unoptimized />
+                  <button type="button" onClick={() => removeImage(url)} className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white">
+                    <X className="h-6 w-6" />
+                  </button>
+                </div>
+              )
+            ))}
+            {!uploading && (
+              <button type="button" onClick={() => fileInputRef.current?.click()} className="aspect-square rounded-xl border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-1 hover:bg-primary/5 hover:border-primary/50 transition-all text-muted-foreground hover:text-primary">
+                <Plus className="h-6 w-6" />
+                <span className="text-[10px] font-black uppercase">Ajouter</span>
+              </button>
+            )}
+            {uploading && (
+              <div className="aspect-square rounded-xl border border-primary/20 bg-primary/5 flex flex-col items-center justify-center gap-1">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <span className="text-[10px] font-bold text-primary">{Math.round(progress)}%</span>
+              </div>
+            )}
+          </div>
+          {!uploading && (
+            <Button type="button" variant="ghost" size="sm" className="w-full text-[10px] font-black uppercase tracking-widest text-muted-foreground" onClick={openCamera}>
+              <Camera className="h-3.5 w-3.5 mr-2" /> Prendre une photo
+            </Button>
+          )}
+        </div>
+      )}
+
+      <input type="file" className="hidden" ref={fileInputRef} accept="image/*" multiple={multiple} onChange={(e) => {
+        const files = e.target.files;
+        if (files && files.length > 0) {
+          if (multiple) Array.from(files).forEach(f => handleUpload(f));
+          else handleUpload(files[0]);
+        }
+        e.target.value = '';
+      }} />
+
+      {/* MANUAL URL INPUT TOGGLE */}
       <div className="pt-2">
-        <button 
-          type="button" 
-          className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors flex items-center gap-2"
-          onClick={() => setShowUrlInput(!showUrlInput)}
-        >
+        <button type="button" onClick={() => setShowUrlInput(!showUrlInput)} className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-all flex items-center gap-2">
           <LinkIcon className="h-3 w-3" />
           {showUrlInput ? "Masquer la saisie manuelle" : "Gérer le lien manuellement"}
         </button>
 
         {showUrlInput && (
-          <div className="mt-3 space-y-3 p-4 bg-muted/30 rounded-xl border-2 border-dashed border-muted transition-all animate-in fade-in slide-in-from-top-2">
-            {multiple ? (
-              <div className="space-y-3">
-                {urls.map((url, i) => (
-                  <div key={i} className="flex gap-2">
-                    <Input 
-                      placeholder="Lien de l'image (https://...)" 
-                      value={url} 
-                      onChange={(e) => {
+          <div className="mt-3 p-4 bg-muted/20 rounded-xl border border-dashed border-muted transition-all">
+            <div className="space-y-3">
+              {multiple ? (
+                <>
+                  {urls.map((url, i) => (
+                    <div key={i} className="flex gap-2">
+                      <Input placeholder="Lien direct (https://...)" value={url} onChange={(e) => {
                         const newUrls = [...urls];
                         newUrls[i] = e.target.value;
                         onChange(newUrls.filter(u => u !== ''));
-                      }}
-                      className="h-9 text-xs font-mono bg-background"
-                    />
-                    <Button type="button" variant="ghost" size="icon" onClick={() => removeImage(url)} className="h-9 w-9 text-destructive">
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-                <Button 
-                  type="button" 
-                  variant="secondary" 
-                  size="sm" 
-                  className="w-full text-[10px] font-black uppercase h-8"
-                  onClick={() => onChange([...urls, ""])}
-                >
-                  Ajouter un autre lien
-                </Button>
-              </div>
-            ) : (
-              <Input 
-                placeholder="Lien de l'image (https://...)" 
-                value={typeof value === 'string' ? value : ''} 
-                onChange={(e) => onChange(e.target.value)}
-                className="h-9 text-xs font-mono bg-background"
-              />
-            )}
-            <p className="text-[9px] text-muted-foreground italic">
-              * Utilisez ce champ si votre stockage Firebase n'est pas encore activé.
-            </p>
+                      }} className="h-9 text-xs font-mono" />
+                      <Button type="button" variant="ghost" size="icon" onClick={() => removeImage(url)} className="h-9 w-9 text-destructive"><X className="h-4 w-4" /></Button>
+                    </div>
+                  ))}
+                  <Button type="button" variant="secondary" size="sm" className="w-full h-8 text-[10px] font-black uppercase" onClick={() => onChange([...urls, ""])}>+ Autre lien</Button>
+                </>
+              ) : (
+                <Input placeholder="Lien direct (https://...)" value={typeof value === 'string' ? value : ''} onChange={(e) => onChange(e.target.value)} className="h-9 text-xs font-mono" />
+              )}
+              <p className="text-[9px] text-muted-foreground italic flex items-center gap-1.5">
+                <AlertCircle className="h-3 w-3" />
+                Utilisez ce champ si l'envoi automatique est indisponible.
+              </p>
+            </div>
           </div>
         )}
       </div>
 
+      {/* CAMERA DIALOG */}
       <Dialog open={isCameraOpen} onOpenChange={(open) => !open && closeCamera()}>
-        <DialogContent className="sm:max-w-xl p-0 overflow-hidden bg-zinc-950 border-none rounded-none sm:rounded-2xl shadow-2xl">
-          <DialogHeader className="p-4 bg-white/5 text-white backdrop-blur-2xl absolute top-0 left-0 w-full z-20 border-b border-white/10 flex flex-row items-center justify-between">
-            <DialogTitle className="text-white font-black uppercase tracking-widest text-sm flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-              PRO CAPTURE HD
-            </DialogTitle>
-            <div className="flex items-center gap-2">
-               <span className="text-[10px] font-bold text-zinc-400 bg-white/10 px-2 py-0.5 rounded-full uppercase">1080p actif</span>
-            </div>
-          </DialogHeader>
-          
-          <div className="relative aspect-[3/4] sm:aspect-video bg-black flex items-center justify-center min-h-[450px]">
-            <video 
-              ref={videoRef} 
-              autoPlay 
-              playsInline 
-              muted 
-              className={cn("w-full h-full object-cover", !hasCameraPermission && "hidden")} 
-            />
-            
-            <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-               <div className="w-[85%] h-[80%] border-2 border-white/20 rounded-2xl relative">
-                  <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-primary rounded-tl-xl" />
-                  <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-primary rounded-tr-xl" />
-                  <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-primary rounded-bl-xl" />
-                  <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-primary rounded-br-xl" />
-                  
-                  <div className="absolute inset-0 flex items-center justify-center opacity-10">
-                    <Scan className="h-32 w-32 text-white" strokeWidth={0.5} />
+        <DialogContent className="sm:max-w-2xl p-0 overflow-hidden bg-zinc-950 border-none rounded-none sm:rounded-3xl shadow-2xl">
+          <div className="relative aspect-video bg-black flex items-center justify-center min-h-[450px]">
+            {hasCameraPermission === false ? (
+              <div className="text-center text-white p-10 space-y-4">
+                <div className="bg-red-500/20 p-5 rounded-full w-20 h-20 mx-auto flex items-center justify-center"><AlertCircle className="h-10 w-10 text-red-500" /></div>
+                <p className="font-bold">Accès caméra refusé</p>
+                <Button variant="outline" onClick={openCamera} className="text-white border-white/20">Réessayer</Button>
+              </div>
+            ) : (
+              <>
+                <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                  <div className="w-[85%] h-[80%] border-2 border-white/20 rounded-2xl relative">
+                    <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-primary rounded-tl-xl" />
+                    <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-primary rounded-tr-xl" />
+                    <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-primary rounded-bl-xl" />
+                    <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-primary rounded-br-xl" />
+                    <div className="absolute inset-0 flex items-center justify-center opacity-10"><Scan className="h-32 w-32 text-white" /></div>
                   </div>
-               </div>
-            </div>
-
-            {hasCameraPermission === false && (
-              <div className="p-8 text-center text-white space-y-6 z-30">
-                <div className="bg-destructive/20 p-5 rounded-full w-20 h-20 mx-auto flex items-center justify-center border border-destructive/50">
-                  <AlertTriangle className="h-10 w-10 text-destructive" />
                 </div>
-                <div className="space-y-2">
-                  <p className="text-lg font-bold">Caméra indisponible</p>
-                  <p className="text-sm text-zinc-400">L'accès est bloqué ou le matériel n'est pas reconnu.</p>
-                </div>
-                <Button variant="outline" size="sm" onClick={openCamera} className="text-white border-white/20 bg-white/5 hover:bg-white/10">
-                  Réessayer
-                </Button>
-              </div>
-            )}
-            
-            {hasCameraPermission === null && (
-              <div className="flex flex-col items-center gap-4 z-30">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                <p className="text-zinc-400 text-xs font-black uppercase tracking-widest">Initialisation...</p>
-              </div>
+              </>
             )}
           </div>
-
-          <div className="p-8 flex justify-center items-center gap-12 bg-gradient-to-t from-black via-black/90 to-transparent relative z-30">
-            <Button 
-              type="button" 
-              variant="outline" 
-              size="icon" 
-              onClick={closeCamera}
-              className="h-14 w-14 rounded-full border-white/10 bg-white/5 text-white hover:bg-white/20 transition-all"
-            >
-              <X className="h-6 w-6" />
-            </Button>
-            
-            <div className="relative group">
-              <div className="absolute -inset-4 bg-primary/30 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
-              <button 
-                type="button" 
-                onClick={capturePhoto} 
-                disabled={!hasCameraPermission}
-                className="h-24 w-24 rounded-full border-[6px] border-white/40 bg-transparent flex items-center justify-center transition-all active:scale-90 disabled:opacity-50"
-              >
-                <div className="w-16 h-16 bg-white rounded-full shadow-2xl flex items-center justify-center">
-                   <div className="w-14 h-14 rounded-full border-2 border-black/5" />
-                </div>
-              </button>
-            </div>
-
-            <div className="w-14 h-14" />
+          <div className="p-8 flex justify-center items-center gap-10 bg-zinc-950">
+            <Button type="button" variant="outline" size="icon" onClick={closeCamera} className="h-14 w-14 rounded-full border-white/10 bg-white/5 text-white hover:bg-white/20"><X className="h-6 w-6" /></Button>
+            <button type="button" onClick={capturePhoto} disabled={!hasCameraPermission} className="h-24 w-24 rounded-full border-[6px] border-white/40 flex items-center justify-center transition-all active:scale-90 disabled:opacity-50">
+              <div className="w-16 h-16 bg-white rounded-full shadow-2xl" />
+            </button>
+            <div className="w-14" />
           </div>
         </DialogContent>
       </Dialog>
