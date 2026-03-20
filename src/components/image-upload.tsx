@@ -21,7 +21,7 @@ interface ImageUploadProps {
 }
 
 export function ImageUpload({ value, onChange, folder, multiple = false, label }: ImageUploadProps) {
-  const { storage, app } = useFirebase();
+  const { storage, app, auth } = useFirebase();
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -100,14 +100,23 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
   };
 
   const handleUpload = async (file: File) => {
-    // Check if storage is actually configured
     const bucket = (app as any)?.options?.storageBucket;
-    if (!storage || !bucket) {
-      console.error("Firebase Storage not properly configured. Missing storageBucket.");
+    
+    if (!auth?.currentUser) {
+        toast({
+            variant: 'destructive',
+            title: 'Session expirée',
+            description: 'Veuillez vous reconnecter pour envoyer des photos.',
+        });
+        return;
+    }
+
+    if (!storage || !bucket || bucket.includes("YOUR_STORAGE_BUCKET")) {
+      console.error("Firebase Storage not properly configured.");
       toast({
         variant: 'destructive',
         title: 'Stockage non configuré',
-        description: 'Le service de stockage Firebase n\'est pas activé. Basculement en mode URL manuelle.',
+        description: 'Le service de stockage Firebase n\'est pas activé. Basculement en mode URL.',
       });
       setShowUrlInput(true);
       return;
@@ -117,10 +126,12 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
     setProgress(0);
     setIsStuck(false);
 
-    // Safety timeout: if progress stays 0 for 5 seconds, show a recovery button
+    if (uploadTimeoutRef.current) clearTimeout(uploadTimeoutRef.current);
     uploadTimeoutRef.current = setTimeout(() => {
-      setIsStuck(true);
-    }, 5000);
+      if (progress === 0) {
+        setIsStuck(true);
+      }
+    }, 4000);
 
     try {
       const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
@@ -132,19 +143,20 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
         (snapshot) => {
           const p = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
           setProgress(p);
-          if (p > 0 && uploadTimeoutRef.current) {
-            clearTimeout(uploadTimeoutRef.current);
+          if (p > 0) {
             setIsStuck(false);
+            if (uploadTimeoutRef.current) clearTimeout(uploadTimeoutRef.current);
           }
         },
         (error) => {
           console.error('Upload task failed:', error);
           setUploading(false);
+          setIsStuck(false);
           if (uploadTimeoutRef.current) clearTimeout(uploadTimeoutRef.current);
           toast({ 
             variant: 'destructive', 
             title: 'Échec de l\'envoi', 
-            description: 'Erreur réseau ou de configuration. Utilisez le mode URL.' 
+            description: 'Erreur de permission ou réseau. Utilisez le mode URL.' 
           });
           setShowUrlInput(true);
         },
@@ -168,6 +180,7 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
     } catch (err) {
       console.error("Upload initialization failed:", err);
       setUploading(false);
+      setIsStuck(false);
       if (uploadTimeoutRef.current) clearTimeout(uploadTimeoutRef.current);
       setShowUrlInput(true);
     }
@@ -271,7 +284,7 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
             {isStuck ? (
               <div className="flex flex-col items-center gap-2 p-2 text-center">
                 <AlertTriangle className="h-6 w-6 text-amber-500 animate-pulse" />
-                <span className="text-[8px] font-bold uppercase leading-tight">Problème ?</span>
+                <span className="text-[10px] font-bold uppercase leading-tight text-amber-600">Une erreur ?</span>
                 <Button variant="ghost" size="sm" onClick={cancelUpload} className="h-6 text-[8px] px-1 bg-amber-100 hover:bg-amber-200">
                   MODE MANUEL
                 </Button>
