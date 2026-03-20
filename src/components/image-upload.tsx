@@ -132,7 +132,6 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
         clearTimeout(timeout);
         setUploading(false);
         setShowUrlInput(true);
-        // On ne loggue pas l'erreur dans la console pour l'utilisateur final
         toast({ 
           variant: 'destructive', 
           title: 'Erreur de connexion', 
