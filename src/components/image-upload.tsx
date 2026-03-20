@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Image as ImageIcon, X, Loader2, AlertCircle, RefreshCw, Link as LinkIcon, CheckCircle2, Upload } from 'lucide-react';
+import { Camera, Image as ImageIcon, X, Loader2, AlertCircle, RefreshCw, Link as LinkIcon, CheckCircle2, Upload, Scan } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useFirebase } from '@/firebase';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
@@ -34,7 +34,6 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
 
   const urls = Array.isArray(value) ? value : (value ? [value] : []);
 
-  // Nettoyage de la caméra à la fermeture
   useEffect(() => {
     return () => {
       if (videoRef.current?.srcObject) {
@@ -44,16 +43,15 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
     };
   }, []);
 
-  // --- Logique Caméra ---
   const openCamera = async () => {
     setIsCameraOpen(true);
     setHasCameraPermission(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
-          facingMode: 'environment', // Caméra arrière par défaut sur mobile
-          width: { ideal: 1920 }, 
-          height: { ideal: 1080 } 
+          facingMode: 'environment',
+          width: { min: 1280, ideal: 1920 }, 
+          height: { min: 720, ideal: 1080 } 
         } 
       });
       setHasCameraPermission(true);
@@ -66,7 +64,7 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
       toast({
         variant: 'destructive',
         title: 'Accès caméra refusé',
-        description: 'Veuillez autoriser l\'accès dans les paramètres de votre navigateur.',
+        description: 'Veuillez autoriser l\'accès dans les paramètres de votre navigateur pour une capture HD.',
       });
     }
   };
@@ -94,13 +92,11 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
           handleUpload(file);
           closeCamera();
         }
-      }, 'image/jpeg', 0.9);
+      }, 'image/jpeg', 0.95);
     }
   };
 
-  // --- Logique Téléchargement ---
   const handleUpload = async (file: File) => {
-    // Si storage n'est pas prêt, on bascule en mode URL manuelle pour ne pas bloquer
     if (!storage) {
       toast({
         variant: 'destructive',
@@ -187,7 +183,6 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
     <div className="space-y-4">
       {label && <label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">{label}</label>}
       
-      {/* Aperçu des images existantes */}
       <div className="flex flex-wrap gap-4">
         {urls.map((url, index) => (
           <div key={index} className="relative group w-28 h-28 rounded-xl overflow-hidden border-2 border-muted shadow-lg bg-card transition-all hover:scale-105">
@@ -207,7 +202,6 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
           </div>
         ))}
 
-        {/* Boutons d'action principaux */}
         {(multiple || urls.length === 0) && !uploading && (
           <div className="flex gap-3">
             <Button 
@@ -230,7 +224,7 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
               <div className="p-2 rounded-full bg-primary/10 text-primary group-hover:scale-110 transition-transform">
                 <Camera className="h-6 w-6" />
               </div>
-              <span className="text-[10px] font-black uppercase tracking-tighter">Appareil</span>
+              <span className="text-[10px] font-black uppercase tracking-tighter">Appareil HD</span>
             </Button>
             <input 
               type="file" 
@@ -243,7 +237,6 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
           </div>
         )}
 
-        {/* État de chargement */}
         {uploading && (
           <div className="w-28 h-28 flex flex-col items-center justify-center border-2 border-primary/30 rounded-xl bg-primary/5 animate-pulse">
             <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
@@ -255,7 +248,6 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
         )}
       </div>
 
-      {/* Saisie manuelle d'URL (Sécurité) */}
       <div className="space-y-3 pt-2">
         <button 
           type="button" 
@@ -263,7 +255,7 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
           onClick={() => setShowUrlInput(!showUrlInput)}
         >
           <LinkIcon className="h-3 w-3" />
-          {showUrlInput ? "Masquer les liens" : "Gérer les liens directs"}
+          {showUrlInput ? "Masquer l'URL" : "Gérer l'URL manuellement"}
         </button>
 
         {showUrlInput && (
@@ -273,7 +265,7 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
                 {urls.map((url, i) => (
                   <div key={i} className="flex gap-2">
                     <Input 
-                      placeholder="Lien de l'image..." 
+                      placeholder="https://..." 
                       value={url} 
                       onChange={(e) => handleManualUrlChange(e.target.value, i)}
                       className="h-9 text-xs font-mono bg-background"
@@ -301,18 +293,20 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
                 className="h-9 text-xs font-mono bg-background"
               />
             )}
-            <p className="text-[10px] text-muted-foreground italic leading-tight">
-              Si le chargement automatique échoue, vous pouvez coller ici le lien direct de vos images.
-            </p>
           </div>
         )}
       </div>
 
-      {/* Interface Caméra Fullscreen-like */}
       <Dialog open={isCameraOpen} onOpenChange={(open) => !open && closeCamera()}>
         <DialogContent className="sm:max-w-xl p-0 overflow-hidden bg-zinc-950 border-none rounded-none sm:rounded-2xl shadow-2xl">
-          <DialogHeader className="p-4 bg-white/5 text-white backdrop-blur-2xl absolute top-0 left-0 w-full z-20 border-b border-white/10">
-            <DialogTitle className="text-white text-center font-black uppercase tracking-widest text-sm">Mode Capture</DialogTitle>
+          <DialogHeader className="p-4 bg-white/5 text-white backdrop-blur-2xl absolute top-0 left-0 w-full z-20 border-b border-white/10 flex flex-row items-center justify-between">
+            <DialogTitle className="text-white font-black uppercase tracking-widest text-sm flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+              Capture HD
+            </DialogTitle>
+            <div className="flex items-center gap-2">
+               <span className="text-[10px] font-bold text-zinc-400 bg-white/10 px-2 py-0.5 rounded-full uppercase">1080p actif</span>
+            </div>
           </DialogHeader>
           
           <div className="relative aspect-[3/4] sm:aspect-video bg-black flex items-center justify-center min-h-[450px]">
@@ -324,13 +318,16 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
               className={cn("w-full h-full object-cover", !hasCameraPermission && "hidden")} 
             />
             
-            {/* Overlay de focus */}
-            <div className="absolute inset-0 border-[40px] border-black/20 pointer-events-none">
-               <div className="w-full h-full border border-white/30 rounded-lg relative">
-                  <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-white" />
-                  <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-white" />
-                  <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-white" />
-                  <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-white" />
+            <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+               <div className="w-[85%] h-[80%] border-2 border-white/20 rounded-2xl relative">
+                  <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-primary rounded-tl-xl" />
+                  <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-primary rounded-tr-xl" />
+                  <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-primary rounded-bl-xl" />
+                  <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-primary rounded-br-xl" />
+                  
+                  <div className="absolute inset-0 flex items-center justify-center opacity-10">
+                    <Scan className="h-32 w-32 text-white" strokeWidth={0.5} />
+                  </div>
                </div>
             </div>
 
@@ -352,12 +349,11 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
             {hasCameraPermission === null && (
               <div className="flex flex-col items-center gap-4 z-30">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                <p className="text-zinc-400 text-xs font-black uppercase tracking-widest">Initialisation...</p>
+                <p className="text-zinc-400 text-xs font-black uppercase tracking-widest">Optimisation du flux...</p>
               </div>
             )}
           </div>
 
-          {/* Contrôles de capture */}
           <div className="p-8 flex justify-center items-center gap-12 bg-gradient-to-t from-black via-black/90 to-transparent relative z-30">
             <Button 
               type="button" 
@@ -383,7 +379,7 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
               </button>
             </div>
 
-            <div className="w-14 h-14" /> {/* Spacer pour l'équilibre visuel */}
+            <div className="w-14 h-14" />
           </div>
         </DialogContent>
       </Dialog>

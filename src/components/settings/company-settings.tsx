@@ -13,11 +13,11 @@ import { Button } from '@/components/ui/button';
 import { doc, setDoc } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import Image from 'next/image';
+import { ImageUpload } from '../image-upload';
 
 const companySettingsSchema = z.object({
   companyName: z.string().min(2, "Le nom de l'agence est requis."),
-  logoUrl: z.string().url("Veuillez entrer une URL valide.").or(z.literal('')).optional(),
+  logoUrl: z.string().or(z.literal('')).optional(),
 });
 
 type CompanySettingsValues = z.infer<typeof companySettingsSchema>;
@@ -74,7 +74,7 @@ export function CompanySettings() {
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
               control={form.control}
               name="companyName"
@@ -88,20 +88,27 @@ export function CompanySettings() {
                 </FormItem>
               )}
             />
+            
             <FormField
               control={form.control}
               name="logoUrl"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>URL du logo</FormLabel>
+                  <FormLabel>Logo de l'agence</FormLabel>
                   <FormControl>
-                    <Input type="text" placeholder="https://exemple.com/logo.png" {...field} value={field.value ?? ''} />
+                    <ImageUpload 
+                      value={field.value || ''} 
+                      onChange={field.onChange} 
+                      folder="settings" 
+                      label=""
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <Button type="submit" disabled={isSubmitting}>
+
+            <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
               {isSubmitting ? 'Enregistrement...' : 'Enregistrer les informations'}
             </Button>
           </form>
