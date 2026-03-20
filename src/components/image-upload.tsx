@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Image as ImageIcon, X, Loader2, Plus, AlertCircle, Link as LinkIcon, Upload, CheckCircle2 } from 'lucide-react';
+import { Camera, Image as ImageIcon, X, Loader2, Plus, AlertCircle, Link as LinkIcon, Upload, CheckCircle2, Trash2, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useFirebase } from '@/firebase';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
@@ -28,7 +28,6 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [showUrlInput, setShowUrlInput] = useState(false);
-  const [lastSource, setLastSource] = useState<'gallery' | 'camera' | null>(null);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -86,18 +85,22 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
       canvas.toBlob((blob) => {
         if (blob) {
           const file = new File([blob], `capture_${Date.now()}.jpg`, { type: 'image/jpeg' });
-          handleUpload(file, 'camera');
+          handleUpload(file);
           closeCamera();
         }
       }, 'image/jpeg', 0.9);
     }
   };
 
-  const handleUpload = async (file: File, source: 'gallery' | 'camera') => {
+  const handleUpload = async (file: File) => {
     const bucket = (app as any)?.options?.storageBucket;
     
     if (!storage || !bucket || bucket.includes("YOUR_STORAGE_BUCKET") || bucket === "") {
       setShowUrlInput(true);
+      toast({
+        title: "Mode Manuel",
+        description: "Configuration Storage manquante. Passage en mode URL."
+      });
       return;
     }
 
@@ -112,12 +115,7 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
         uploadTask.cancel();
         setUploading(false);
         setShowUrlInput(true);
-        toast({
-            variant: 'destructive',
-            title: 'Serveur indisponible',
-            description: 'Passage automatique en mode manuel (URL).'
-        });
-    }, 4000);
+    }, 5000);
 
     uploadTask.on(
       'state_changed',
@@ -136,7 +134,6 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
         clearTimeout(timeout);
         try {
             const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-            setLastSource(source);
             if (multiple) {
               onChange([...urls, downloadURL]);
             } else {
@@ -157,7 +154,6 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
       onChange(urls.filter(url => url !== urlToRemove));
     } else {
       onChange('');
-      setLastSource(null);
     }
   };
 
@@ -166,100 +162,82 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
       {label && <label className="text-sm font-bold text-foreground mb-2 block uppercase tracking-wider">{label}</label>}
       
       {!multiple && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* ZONE GALERIE */}
-          <div className="space-y-2">
-            <span className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Option 1 : Galerie</span>
-            <div 
-              onClick={() => !uploading && fileInputRef.current?.click()}
-              className={cn(
-                "relative group w-full aspect-video rounded-xl overflow-hidden border-2 border-dashed transition-all bg-muted/20 flex items-center justify-center shadow-inner cursor-pointer",
-                (urls[0] && lastSource === 'gallery') ? "border-primary/20 bg-card" : "border-muted-foreground/10 hover:border-primary/30"
-              )}
-            >
-              {(urls[0] && lastSource === 'gallery') ? (
-                <>
-                  <Image src={urls[0]} alt="Preview Galerie" fill className="object-contain" unoptimized />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <Button type="button" variant="destructive" size="icon" onClick={(e) => { e.stopPropagation(); removeImage(urls[0]); }} className="h-8 w-8 rounded-full">
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </>
-              ) : uploading ? (
-                <div className="flex flex-col items-center gap-2 px-4 w-full">
-                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                  <Progress value={progress} className="h-1 w-full" />
+        <div className="relative group w-full aspect-[16/9] rounded-2xl overflow-hidden border-2 border-dashed transition-all bg-muted/20 flex items-center justify-center shadow-inner border-muted-foreground/20 hover:border-primary/40">
+          {urls[0] ? (
+            <>
+              <Image src={urls[0]} alt="Preview" fill className="object-contain" unoptimized />
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                <Button type="button" variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()} className="rounded-full gap-2">
+                  <Pencil className="h-4 w-4" /> Modifier
+                </Button>
+                <Button type="button" variant="destructive" size="icon" onClick={() => removeImage(urls[0])} className="h-9 w-9 rounded-full">
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+              <div className="absolute bottom-3 right-3">
+                <div className="bg-green-500 text-white p-1 rounded-full shadow-lg">
+                  <CheckCircle2 className="h-4 w-4" />
                 </div>
-              ) : (
-                <div className="flex flex-col items-center gap-2 text-muted-foreground opacity-40">
-                  <Upload className="h-8 w-8" />
-                  <span className="text-[9px] font-bold uppercase">Choisir fichier</span>
-                </div>
-              )}
+              </div>
+            </>
+          ) : uploading ? (
+            <div className="flex flex-col items-center gap-3 px-8 w-full">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <div className="w-full space-y-1">
+                <Progress value={progress} className="h-1.5 w-full" />
+                <p className="text-[10px] font-bold text-center text-primary uppercase tracking-widest">{Math.round(progress)}%</p>
+              </div>
             </div>
-          </div>
-
-          {/* ZONE CAMÉRA */}
-          <div className="space-y-2">
-            <span className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Option 2 : Appareil Photo</span>
-            <div 
-              onClick={() => !uploading && openCamera()}
-              className={cn(
-                "relative group w-full aspect-video rounded-xl overflow-hidden border-2 border-dashed transition-all bg-muted/20 flex items-center justify-center shadow-inner cursor-pointer",
-                (urls[0] && lastSource === 'camera') ? "border-primary/20 bg-card" : "border-muted-foreground/10 hover:border-primary/30"
-              )}
-            >
-              {(urls[0] && lastSource === 'camera') ? (
-                <>
-                  <Image src={urls[0]} alt="Preview Caméra" fill className="object-contain" unoptimized />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <Button type="button" variant="destructive" size="icon" onClick={(e) => { e.stopPropagation(); removeImage(urls[0]); }} className="h-8 w-8 rounded-full">
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <div className="flex flex-col items-center gap-2 text-muted-foreground opacity-40">
-                  <Camera className="h-8 w-8" />
-                  <span className="text-[9px] font-bold uppercase">Prendre photo</span>
+          ) : (
+            <div className="flex flex-col items-center gap-4">
+              <div className="p-4 bg-background rounded-full shadow-sm border group-hover:scale-110 transition-transform">
+                <ImageIcon className="h-8 w-8 text-muted-foreground opacity-40" />
+              </div>
+              <div className="flex flex-col items-center gap-1">
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="text-xs font-bold uppercase rounded-lg">Galerie</Button>
+                  <Button type="button" variant="outline" size="sm" onClick={openCamera} className="text-xs font-bold uppercase rounded-lg">Caméra</Button>
                 </div>
-              )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 
       {multiple && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-            {urls.map((url, i) => (
-              url && (
-                <div key={i} className="relative aspect-square rounded-xl overflow-hidden border bg-muted group shadow-sm">
-                  <Image src={url} alt="Document" fill className="object-cover" unoptimized />
-                  <button type="button" onClick={() => removeImage(url)} className="absolute top-1 right-1 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              )
-            ))}
-            {!uploading && (
-              <button type="button" onClick={() => fileInputRef.current?.click()} className="aspect-square rounded-xl border-2 border-dashed border-muted-foreground/20 flex flex-col items-center justify-center gap-1 hover:bg-primary/5 hover:border-primary/40 transition-all text-muted-foreground hover:text-primary">
-                <Plus className="h-6 w-6" />
-                <span className="text-[9px] font-bold uppercase">Ajouter</span>
-              </button>
-            )}
-            {uploading && (
-              <div className="aspect-square rounded-xl border border-primary/20 bg-primary/5 flex flex-col items-center justify-center gap-1">
-                <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                <span className="text-[9px] font-bold text-primary">{Math.round(progress)}%</span>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          {urls.map((url, i) => (
+            url && (
+              <div key={i} className="relative aspect-square rounded-xl overflow-hidden border bg-muted group shadow-sm ring-1 ring-black/5">
+                <Image src={url} alt="Document" fill className="object-cover" unoptimized />
+                <button type="button" onClick={() => removeImage(url)} className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </div>
-            )}
-          </div>
+            )
+          ))}
           {!uploading && (
-            <Button type="button" variant="secondary" className="w-full h-10 rounded-xl text-[10px] font-bold uppercase tracking-widest gap-2" onClick={openCamera}>
-              <Camera className="h-4 w-4" /> Prendre une photo HD
-            </Button>
+            <div className="flex flex-col gap-2">
+              <button 
+                type="button" 
+                onClick={() => fileInputRef.current?.click()} 
+                className="aspect-square rounded-xl border-2 border-dashed border-muted-foreground/20 flex flex-col items-center justify-center gap-2 hover:bg-primary/5 hover:border-primary/40 transition-all text-muted-foreground hover:text-primary bg-muted/10 group"
+              >
+                <div className="p-2 bg-background rounded-full shadow-sm border group-hover:scale-110 transition-transform">
+                  <Plus className="h-5 w-5" />
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-tighter">Galerie</span>
+              </button>
+              <Button type="button" variant="secondary" size="sm" className="h-8 rounded-lg text-[9px] font-bold uppercase tracking-widest gap-1.5" onClick={openCamera}>
+                <Camera className="h-3.5 w-3.5" /> Caméra
+              </Button>
+            </div>
+          )}
+          {uploading && (
+            <div className="aspect-square rounded-xl border-2 border-primary/20 bg-primary/5 flex flex-col items-center justify-center gap-2">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <span className="text-[10px] font-black text-primary">{Math.round(progress)}%</span>
+            </div>
           )}
         </div>
       )}
@@ -267,43 +245,41 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
       <input type="file" className="hidden" ref={fileInputRef} accept="image/*" multiple={multiple} onChange={(e) => {
         const files = e.target.files;
         if (files && files.length > 0) {
-          if (multiple) Array.from(files).forEach(f => handleUpload(f, 'gallery'));
-          else handleUpload(files[0], 'gallery');
+          if (multiple) Array.from(files).forEach(f => handleUpload(f));
+          else handleUpload(files[0]);
         }
         e.target.value = '';
       }} />
 
-      {/* Mode Manuel (URL) discret */}
-      <div className="pt-2 border-t border-dashed mt-2">
-        <button type="button" onClick={() => setShowUrlInput(!showUrlInput)} className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground hover:text-primary transition-all flex items-center gap-2 mx-auto py-2">
+      {/* Bouton Mode Manuel discret */}
+      <div className="pt-2">
+        <button type="button" onClick={() => setShowUrlInput(!showUrlInput)} className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground hover:text-primary transition-all flex items-center gap-2 py-1">
           <LinkIcon className="h-3 w-3" />
-          {showUrlInput ? "Masquer l'URL" : "Mode Manuel (URL)"}
+          {showUrlInput ? "Masquer le mode URL" : "Problème ? Mode Manuel (URL)"}
         </button>
 
         {showUrlInput && (
-          <div className="mt-2 p-4 bg-muted/10 rounded-xl border border-dashed transition-all">
-            <div className="space-y-3">
-              {multiple ? (
-                <>
-                  {urls.map((url, i) => (
-                    <div key={i} className="flex gap-2">
-                      <Input placeholder="Lien direct (https://...)" value={url} onChange={(e) => {
-                        const newUrls = [...urls];
-                        newUrls[i] = e.target.value;
-                        onChange(newUrls.filter(u => u !== ''));
-                      }} className="h-10 text-xs rounded-lg bg-card" />
-                      <button type="button" onClick={() => removeImage(url)} className="h-10 w-10 flex items-center justify-center text-destructive bg-destructive/5 hover:bg-destructive/10 rounded-lg"><X className="h-4 w-4" /></button>
-                    </div>
-                  ))}
-                  <Button type="button" variant="outline" size="sm" className="w-full h-10 text-[9px] font-bold uppercase rounded-lg border-dashed" onClick={() => onChange([...urls, ""])}>+ Ajouter une autre URL</Button>
-                </>
-              ) : (
-                <Input placeholder="Coller le lien de l'image ici..." value={typeof value === 'string' ? value : ''} onChange={(e) => { onChange(e.target.value); setLastSource('gallery'); }} className="h-12 text-xs rounded-lg bg-card border-primary/10" />
-              )}
-              <div className="flex items-start gap-2 p-2 bg-amber-500/5 rounded-lg border border-amber-500/10">
-                <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
-                <p className="text-[9px] text-amber-700/80 font-medium">Note : Utilisez ce champ si le stockage automatique n'est pas prêt.</p>
-              </div>
+          <div className="mt-2 p-4 bg-muted/10 rounded-xl border border-dashed transition-all space-y-3">
+            {multiple ? (
+              <>
+                {urls.map((url, i) => (
+                  <div key={i} className="flex gap-2">
+                    <Input placeholder="Lien direct (https://...)" value={url} onChange={(e) => {
+                      const newUrls = [...urls];
+                      newUrls[i] = e.target.value;
+                      onChange(newUrls.filter(u => u !== ''));
+                    }} className="h-10 text-xs rounded-lg bg-card" />
+                    <button type="button" onClick={() => removeImage(url)} className="h-10 w-10 flex items-center justify-center text-destructive bg-destructive/5 hover:bg-destructive/10 rounded-lg"><X className="h-4 w-4" /></button>
+                  </div>
+                ))}
+                <Button type="button" variant="outline" size="sm" className="w-full h-10 text-[9px] font-bold uppercase rounded-lg border-dashed" onClick={() => onChange([...urls, ""])}>+ Ajouter une autre URL</Button>
+              </>
+            ) : (
+              <Input placeholder="Coller le lien de l'image ici..." value={typeof value === 'string' ? value : ''} onChange={(e) => onChange(e.target.value)} className="h-12 text-xs rounded-lg bg-card border-primary/10" />
+            )}
+            <div className="flex items-start gap-2 p-2 bg-amber-500/5 rounded-lg border border-amber-500/10">
+              <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
+              <p className="text-[9px] text-amber-700/80 font-medium leading-tight">Note : Le stockage automatique n'est pas prêt. Veuillez coller un lien direct vers une image.</p>
             </div>
           </div>
         )}
@@ -322,20 +298,32 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
                 <Button variant="outline" onClick={openCamera} className="text-white border-white/20 rounded-full h-12 font-bold uppercase text-xs">Réessayer</Button>
               </div>
             ) : (
-              <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+              <>
+                <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                <div className="absolute inset-0 border-2 border-white/20 rounded-xl m-8 pointer-events-none">
+                    <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-primary rounded-tl-lg" />
+                    <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-primary rounded-tr-lg" />
+                    <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-primary rounded-bl-lg" />
+                    <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-primary rounded-br-lg" />
+                </div>
+                <div className="absolute top-4 left-4 bg-primary/80 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-2">
+                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                    <span className="text-[10px] font-black text-white uppercase tracking-widest">Flux Pro HD</span>
+                </div>
+              </>
             )}
           </div>
-          <div className="p-8 flex justify-between items-center bg-zinc-900">
-            <Button type="button" variant="outline" size="icon" onClick={closeCamera} className="h-12 w-12 rounded-full border-white/10 bg-white/5 text-white">
+          <div className="p-8 flex justify-between items-center bg-zinc-900/50 backdrop-blur-xl">
+            <Button type="button" variant="outline" size="icon" onClick={closeCamera} className="h-12 w-12 rounded-full border-white/10 bg-white/5 text-white hover:bg-white/10 transition-colors">
                 <X className="h-6 w-6" />
             </Button>
             <button 
                 type="button" 
                 onClick={capturePhoto} 
                 disabled={!hasCameraPermission} 
-                className="h-20 w-20 rounded-full border-4 border-white flex items-center justify-center active:scale-95 transition-transform"
+                className="h-20 w-20 rounded-full border-4 border-white flex items-center justify-center active:scale-95 transition-transform shadow-2xl disabled:opacity-50"
             >
-              <div className="w-16 h-16 bg-white rounded-full shadow-lg" />
+              <div className="w-16 h-16 bg-white rounded-full shadow-inner" />
             </button>
             <div className="w-12 h-12" />
           </div>
