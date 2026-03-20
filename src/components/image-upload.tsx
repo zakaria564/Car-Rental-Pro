@@ -100,14 +100,16 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
   };
 
   const handleUpload = async (file: File) => {
+    // Vérification de sécurité pour éviter les blocages
     const bucket = (app as any)?.options?.storageBucket;
     
     if (!auth?.currentUser) {
         toast({
             variant: 'destructive',
-            title: 'Session expirée',
-            description: 'Veuillez vous reconnecter pour envoyer des photos.',
+            title: 'Action requise',
+            description: 'Veuillez vous assurer d\'être bien connecté pour envoyer des photos.',
         });
+        setShowUrlInput(true);
         return;
     }
 
@@ -116,8 +118,8 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
       setShowUrlInput(true);
       toast({
         variant: 'destructive',
-        title: 'Stockage désactivé',
-        description: 'Veuillez utiliser le mode manuel (URL).',
+        title: 'Stockage non configuré',
+        description: 'Le service de stockage n\'est pas actif. Utilisez le mode manuel (URL).',
       });
       return;
     }
@@ -126,13 +128,20 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
     setProgress(0);
     setIsStuck(false);
 
-    // Timeout de sécurité si l'upload ne démarre jamais (souvent problème de règles Firebase)
+    // Timeout de sécurité réduit pour plus de réactivité
     if (uploadTimeoutRef.current) clearTimeout(uploadTimeoutRef.current);
     uploadTimeoutRef.current = setTimeout(() => {
       if (progress === 0) {
         setIsStuck(true);
+        setUploading(false);
+        setShowUrlInput(true);
+        toast({
+            variant: 'destructive',
+            title: 'Blocage détecté',
+            description: 'Le serveur ne répond pas. Passage en mode manuel.',
+        });
       }
-    }, 5000);
+    }, 4000);
 
     try {
       const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
@@ -157,7 +166,7 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
           toast({ 
             variant: 'destructive', 
             title: 'Erreur d\'envoi', 
-            description: 'Problème de connexion. Utilisez le mode manuel.' 
+            description: 'Le service de stockage Firebase est peut-être désactivé.' 
           });
           setShowUrlInput(true);
         },
@@ -173,8 +182,8 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
           setProgress(0);
           setIsStuck(false);
           toast({
-            title: 'Image enregistrée',
-            description: 'La photo a été ajoutée avec succès.',
+            title: 'Succès',
+            description: 'Image enregistrée avec succès.',
           });
         }
       );
@@ -190,7 +199,12 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
   const onFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      Array.from(files).forEach(file => handleUpload(file));
+      // Pour éviter les conflits, on traite le premier fichier si non-multiple
+      if (!multiple) {
+        handleUpload(files[0]);
+      } else {
+        Array.from(files).forEach(file => handleUpload(file));
+      }
     }
     if (e.target) e.target.value = '';
   };
@@ -203,20 +217,12 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
     }
   };
 
-  const cancelUpload = () => {
-    setUploading(false);
-    setIsStuck(false);
-    if (uploadTimeoutRef.current) clearTimeout(uploadTimeoutRef.current);
-    setShowUrlInput(true);
-  };
-
   const renderSinglePreview = () => {
     const url = urls[0];
     const hasImage = url && url.startsWith('http');
 
     return (
       <div className="space-y-4">
-        {/* Cadre de prévisualisation principal */}
         <div className="relative group w-full aspect-video sm:aspect-[16/9] rounded-2xl overflow-hidden border-2 border-dashed border-muted-foreground/20 bg-muted/10 shadow-sm transition-all hover:border-primary/30">
           {hasImage ? (
             <>
@@ -240,23 +246,11 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
             </>
           ) : uploading ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/50 backdrop-blur-sm">
-               {isStuck ? (
-                  <div className="text-center p-4">
-                    <AlertTriangle className="h-8 w-8 text-amber-500 mx-auto mb-2 animate-pulse" />
-                    <p className="text-xs font-bold text-amber-600 mb-2 uppercase">Blocage détecté</p>
-                    <Button variant="outline" size="sm" onClick={cancelUpload} className="h-7 text-[10px] bg-amber-50 border-amber-200">
-                      MODE MANUEL
-                    </Button>
-                  </div>
-               ) : (
-                  <>
-                    <Loader2 className="h-10 w-10 animate-spin text-primary mb-3" />
-                    <div className="w-32">
-                      <Progress value={progress} className="h-2" />
-                    </div>
-                    <span className="text-xs mt-2 font-black text-primary">{Math.round(progress)}%</span>
-                  </>
-               )}
+                <Loader2 className="h-10 w-10 animate-spin text-primary mb-3" />
+                <div className="w-32">
+                    <Progress value={progress} className="h-2" />
+                </div>
+                <span className="text-xs mt-2 font-black text-primary">{Math.round(progress)}%</span>
             </div>
           ) : (
             <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground/40 p-6">
@@ -266,7 +260,6 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
           )}
         </div>
 
-        {/* Boutons d'action clairs */}
         {!hasImage && !uploading && (
           <div className="grid grid-cols-2 gap-3">
             <Button 
@@ -364,7 +357,6 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
         onChange={onFileSelect} 
       />
 
-      {/* Gestion de l'URL Manuelle */}
       <div className="pt-2">
         <button 
           type="button" 
