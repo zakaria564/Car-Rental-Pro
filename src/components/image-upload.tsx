@@ -103,23 +103,13 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
     // Vérification de sécurité pour éviter les blocages
     const bucket = (app as any)?.options?.storageBucket;
     
-    if (!auth?.currentUser) {
-        toast({
-            variant: 'destructive',
-            title: 'Action requise',
-            description: 'Veuillez vous assurer d\'être bien connecté pour envoyer des photos.',
-        });
-        setShowUrlInput(true);
-        return;
-    }
-
+    // Si le bucket est manquant ou non configuré (valeur par défaut), on passe en manuel immédiatement
     if (!storage || !bucket || bucket.includes("YOUR_STORAGE_BUCKET")) {
-      setUploading(false);
       setShowUrlInput(true);
       toast({
         variant: 'destructive',
-        title: 'Stockage non configuré',
-        description: 'Le service de stockage n\'est pas actif. Utilisez le mode manuel (URL).',
+        title: 'Configuration requise',
+        description: 'Le stockage Firebase n\'est pas actif. Utilisez le mode manuel.',
       });
       return;
     }
@@ -128,7 +118,7 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
     setProgress(0);
     setIsStuck(false);
 
-    // Timeout de sécurité réduit pour plus de réactivité
+    // Timeout de sécurité : si rien ne bouge après 4s, on débloque l'UI
     if (uploadTimeoutRef.current) clearTimeout(uploadTimeoutRef.current);
     uploadTimeoutRef.current = setTimeout(() => {
       if (progress === 0) {
@@ -137,8 +127,8 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
         setShowUrlInput(true);
         toast({
             variant: 'destructive',
-            title: 'Blocage détecté',
-            description: 'Le serveur ne répond pas. Passage en mode manuel.',
+            title: 'Serveur indisponible',
+            description: 'Passage automatique en mode manuel (URL).',
         });
       }
     }, 4000);
@@ -159,16 +149,16 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
           }
         },
         (error) => {
-          console.error('Upload task failed:', error);
+          console.error('Upload error:', error);
           setUploading(false);
           setIsStuck(false);
           if (uploadTimeoutRef.current) clearTimeout(uploadTimeoutRef.current);
+          setShowUrlInput(true);
           toast({ 
             variant: 'destructive', 
             title: 'Erreur d\'envoi', 
-            description: 'Le service de stockage Firebase est peut-être désactivé.' 
+            description: 'Vérifiez vos permissions Storage dans Firebase.' 
           });
-          setShowUrlInput(true);
         },
         async () => {
           if (uploadTimeoutRef.current) clearTimeout(uploadTimeoutRef.current);
@@ -183,15 +173,13 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
           setIsStuck(false);
           toast({
             title: 'Succès',
-            description: 'Image enregistrée avec succès.',
+            description: 'Image enregistrée sur le serveur.',
           });
         }
       );
     } catch (err) {
-      console.error("Upload initialization failed:", err);
+      console.error("Upload fail:", err);
       setUploading(false);
-      setIsStuck(false);
-      if (uploadTimeoutRef.current) clearTimeout(uploadTimeoutRef.current);
       setShowUrlInput(true);
     }
   };
@@ -199,7 +187,6 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
   const onFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      // Pour éviter les conflits, on traite le premier fichier si non-multiple
       if (!multiple) {
         handleUpload(files[0]);
       } else {
@@ -226,7 +213,7 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
         <div className="relative group w-full aspect-video sm:aspect-[16/9] rounded-2xl overflow-hidden border-2 border-dashed border-muted-foreground/20 bg-muted/10 shadow-sm transition-all hover:border-primary/30">
           {hasImage ? (
             <>
-              <Image src={url} alt="Prévisualisation" fill className="object-contain" unoptimized />
+              <Image src={url} alt="Aperçu" fill className="object-contain" unoptimized />
               <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                 <Button
                   type="button"
@@ -364,7 +351,7 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
           onClick={() => setShowUrlInput(!showUrlInput)}
         >
           <LinkIcon className="h-3 w-3" />
-          {showUrlInput ? "Masquer la gestion URL" : "Gérer l'URL manuellement"}
+          {showUrlInput ? "Masquer la saisie manuelle" : "Gérer le lien manuellement"}
         </button>
 
         {showUrlInput && (
@@ -407,7 +394,7 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
               />
             )}
             <p className="text-[9px] text-muted-foreground italic">
-              * Utilisez ce champ si le téléchargement automatique est indisponible.
+              * Utilisez ce champ si votre stockage Firebase n'est pas encore activé.
             </p>
           </div>
         )}
