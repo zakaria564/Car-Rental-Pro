@@ -1,8 +1,7 @@
-
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Image as ImageIcon, X, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Camera, Image as ImageIcon, X, Loader2, AlertCircle, RefreshCw, Link as LinkIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useFirebase } from '@/firebase';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
@@ -11,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { Input } from '@/components/ui/input';
 
 interface ImageUploadProps {
   value: string | string[];
@@ -27,6 +27,7 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
   const [progress, setProgress] = useState(0);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  const [showUrlInput, setShowUrlInput] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -85,61 +86,60 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
   // --- Upload Logic ---
   const handleUpload = async (file: File) => {
     if (!storage) {
-      console.error("Firebase Storage non initialisé. Vérifiez vos variables d'environnement.");
       toast({
         variant: 'destructive',
-        title: 'Erreur de configuration',
-        description: 'Le service de stockage n\'est pas prêt. Contactez l\'administrateur.',
+        title: 'Service non prêt',
+        description: 'Firebase Storage n\'est pas activé. Utilisez le champ URL manuel.',
       });
+      setShowUrlInput(true);
       return;
     }
 
-    // Validation basique de fichier
-    if (file.size > 10 * 1024 * 1024) { // 10MB limit
-      toast({ variant: 'destructive', title: 'Fichier trop volumineux', description: 'La taille maximum est de 10 Mo.' });
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ variant: 'destructive', title: 'Fichier trop volumineux', description: 'Maximum 10 Mo.' });
       return;
     }
 
     setUploading(true);
     setProgress(0);
 
-    const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
-    const storageRef = ref(storage, `${folder}/${fileName}`);
-    const uploadTask = uploadBytesResumable(storageRef, file);
+    try {
+      const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+      const storageRef = ref(storage, `${folder}/${fileName}`);
+      const uploadTask = uploadBytesResumable(storageRef, file);
 
-    uploadTask.on(
-      'state_changed',
-      (snapshot) => {
-        const p = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        setProgress(p);
-      },
-      (error) => {
-        console.error('Upload task error:', error);
-        setUploading(false);
-        setProgress(0);
-        toast({ 
-          variant: 'destructive', 
-          title: 'Erreur de téléchargement', 
-          description: 'Vérifiez votre connexion ou les permissions de stockage.' 
-        });
-      },
-      async () => {
-        try {
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          const p = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          setProgress(p);
+        },
+        (error) => {
+          console.error('Upload error:', error);
+          setUploading(false);
+          toast({ 
+            variant: 'destructive', 
+            title: 'Échec de l\'envoi', 
+            description: 'Vérifiez si Firebase Storage est bien activé dans votre console.' 
+          });
+          setShowUrlInput(true);
+        },
+        async () => {
           const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
           if (multiple) {
             onChange([...urls, downloadURL]);
           } else {
             onChange(downloadURL);
           }
-        } catch (err) {
-          console.error("Error getting download URL:", err);
-          toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de récupérer le lien de l\'image.' });
-        } finally {
           setUploading(false);
           setProgress(0);
         }
-      }
-    );
+      );
+    } catch (err) {
+      console.error("Upload init error:", err);
+      setUploading(false);
+      setShowUrlInput(true);
+    }
   };
 
   const onFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -147,7 +147,6 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
     if (files && files.length > 0) {
       Array.from(files).forEach(file => handleUpload(file));
     }
-    // Reset input to allow re-selecting the same file
     if (e.target) e.target.value = '';
   };
 
@@ -156,6 +155,16 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
       onChange(urls.filter(url => url !== urlToRemove));
     } else {
       onChange('');
+    }
+  };
+
+  const handleManualUrlChange = (newUrl: string, index?: number) => {
+    if (multiple && typeof index === 'number') {
+      const newUrls = [...urls];
+      newUrls[index] = newUrl;
+      onChange(newUrls.filter(u => u !== ''));
+    } else {
+      onChange(newUrl);
     }
   };
 
@@ -223,7 +232,56 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
         )}
       </div>
 
-      {/* Camera Dialog */}
+      <div className="space-y-2">
+        <Button 
+          type="button" 
+          variant="ghost" 
+          size="sm" 
+          className="text-xs text-muted-foreground h-7 px-2 hover:text-primary"
+          onClick={() => setShowUrlInput(!showUrlInput)}
+        >
+          <LinkIcon className="h-3 w-3 mr-1.5" />
+          {showUrlInput ? "Masquer le champ URL" : "Ajouter/Modifier via URL"}
+        </Button>
+
+        {showUrlInput && (
+          <div className="space-y-2 p-3 bg-muted/30 rounded-md border border-dashed">
+            {multiple ? (
+              <div className="space-y-2">
+                {urls.map((url, i) => (
+                  <Input 
+                    key={i} 
+                    placeholder="Lien de l'image..." 
+                    value={url} 
+                    onChange={(e) => handleManualUrlChange(e.target.value, i)}
+                    className="h-8 text-xs font-mono"
+                  />
+                ))}
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full h-8 text-[10px] uppercase"
+                  onClick={() => onChange([...urls, ""])}
+                >
+                  Ajouter un autre lien
+                </Button>
+              </div>
+            ) : (
+              <Input 
+                placeholder="Lien de l'image (https://...)" 
+                value={typeof value === 'string' ? value : ''} 
+                onChange={(e) => handleManualUrlChange(e.target.value)}
+                className="h-8 text-xs font-mono"
+              />
+            )}
+            <p className="text-[10px] text-muted-foreground italic">
+              Utile si le chargement direct échoue ou pour utiliser une image externe.
+            </p>
+          </div>
+        )}
+      </div>
+
       <Dialog open={isCameraOpen} onOpenChange={(open) => !open && closeCamera()}>
         <DialogContent className="sm:max-w-md p-0 overflow-hidden bg-zinc-950 border-none">
           <DialogHeader className="p-4 bg-white/5 text-white backdrop-blur-xl absolute top-0 left-0 w-full z-10 border-b border-white/10">
@@ -285,7 +343,7 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
               </Button>
             </div>
 
-            <div className="w-12 h-12" /> {/* Spacer pour l'équilibre visuel */}
+            <div className="w-12 h-12" />
           </div>
         </DialogContent>
       </Dialog>
