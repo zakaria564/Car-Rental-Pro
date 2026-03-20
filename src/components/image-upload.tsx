@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Image as ImageIcon, X, Loader2, CheckCircle2, Upload, Scan, AlertCircle, Link as LinkIcon, Plus, Maximize2 } from 'lucide-react';
+import { Camera, Image as ImageIcon, X, Loader2, CheckCircle2, Upload, Scan, AlertCircle, Link as LinkIcon, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useFirebase } from '@/firebase';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
@@ -95,7 +95,6 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
   const handleUpload = async (file: File) => {
     const bucket = (app as any)?.options?.storageBucket;
     
-    // Vérification de la configuration Storage
     if (!storage || !bucket || bucket.includes("YOUR_STORAGE_BUCKET") || bucket === "") {
       setShowUrlInput(true);
       toast({
@@ -112,7 +111,6 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
     const storageRef = ref(storage, `${folder}/${fileName}`);
     const uploadTask = uploadBytesResumable(storageRef, file);
 
-    // Protection contre les blocages serveur (8 secondes max)
     const timeout = setTimeout(() => {
         uploadTask.cancel();
         setUploading(false);
@@ -120,7 +118,7 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
         toast({
             variant: 'destructive',
             title: 'Serveur Indisponible',
-            description: 'Le téléchargement automatique est lent. Passage en mode manuel.'
+            description: 'Le transfert est trop lent. Passage en mode manuel (URL).'
         });
     }, 8000);
 
@@ -130,15 +128,21 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
         const p = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
         setProgress(p);
       },
-      (error) => {
+      (error: any) => {
         clearTimeout(timeout);
         setUploading(false);
+        
+        if (error.code === 'storage/canceled') {
+          // L'annulation est déjà gérée par le timeout au-dessus
+          return;
+        }
+
         setShowUrlInput(true);
         console.error('Upload Error:', error.code);
         toast({ 
           variant: 'destructive', 
           title: 'Erreur Storage', 
-          description: 'Vérifiez que le service Storage est activé dans votre console.' 
+          description: 'Le service de stockage n\'est pas accessible. Utilisez le mode manuel.' 
         });
       },
       async () => {
@@ -293,7 +297,7 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
                         newUrls[i] = e.target.value;
                         onChange(newUrls.filter(u => u !== ''));
                       }} className="h-12 text-xs font-mono rounded-2xl bg-card border-primary/10" />
-                      <Button type="button" variant="ghost" size="icon" onClick={() => removeImage(url)} className="h-12 w-12 text-destructive hover:bg-destructive/5"><X className="h-5 w-5" /></Button>
+                      <button type="button" onClick={() => removeImage(url)} className="h-12 w-12 flex items-center justify-center text-destructive bg-destructive/5 hover:bg-destructive/10 rounded-xl"><X className="h-5 w-5" /></button>
                     </div>
                   ))}
                   <Button type="button" variant="outline" size="sm" className="w-full h-12 text-[10px] font-black uppercase rounded-2xl border-dashed bg-card" onClick={() => onChange([...urls, ""])}>+ Ajouter un autre lien</Button>
@@ -304,7 +308,7 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
               <div className="flex items-start gap-3 p-3 bg-amber-500/5 rounded-2xl border border-amber-500/10">
                 <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" />
                 <p className="text-[10px] text-amber-700/80 leading-relaxed font-medium">
-                  <strong>NOTE TECHNIQUE :</strong> Utilisez ce champ si le service de stockage automatique n'est pas encore activé dans votre console Firebase ou si le réseau est trop lent.
+                  <strong>NOTE TECHNIQUE :</strong> Utilisez ce champ si le stockage automatique n'est pas activé ou si le réseau est trop lent.
                 </p>
               </div>
             </div>
