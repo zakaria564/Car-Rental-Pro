@@ -29,6 +29,7 @@ import { carBrands, type CarBrand, maintenanceInterventionTypes } from "@/lib/ca
 import { getSafeDate } from "@/lib/utils";
 import { Plus, Trash2 } from "lucide-react";
 import { Textarea } from "../ui/textarea";
+import { ImageUpload } from "../image-upload";
 
 const carFormSchema = z.object({
   id: z.string().optional(),
@@ -48,7 +49,7 @@ const carFormSchema = z.object({
   transmission: z.enum(['Manuelle', 'Automatique']),
   prixParJour: z.coerce.number().min(1, "Le prix doit être supérieur à 0."),
   etat: z.enum(["new", "good", "fair", "poor"]),
-  photoURL: z.string().url("Veuillez entrer une URL valide.").optional().or(z.literal('')),
+  photoURL: z.string().optional().or(z.literal('')),
   dateExpirationAssurance: z.coerce.date().optional().nullable(),
   dateProchaineVisiteTechnique: z.coerce.date().optional().nullable(),
   anneeVignette: z.coerce.number().optional().nullable(),
@@ -153,7 +154,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     const carPayload = {
       ...cleanedData,
       createdAt: car?.createdAt || serverTimestamp(),
-      photoURL: cleanedData.photoURL || `https://picsum.photos/seed/${carId}/600/400`,
+      photoURL: cleanedData.photoURL || "",
       disponibilite: car?.disponibilite || 'disponible',
     };
 
@@ -188,11 +189,28 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-4 pb-10">
         <Accordion type="multiple" defaultValue={['item-1', 'item-2', 'item-3']} className="w-full">
             <AccordionItem value="item-1">
                 <AccordionTrigger>Informations Générales</AccordionTrigger>
                 <AccordionContent className="pt-4 space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="photoURL"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Photo du véhicule</FormLabel>
+                          <FormControl>
+                            <ImageUpload 
+                              value={field.value || ''} 
+                              onChange={field.onChange} 
+                              folder="cars" 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     <FormField
                       control={form.control}
                       name="marque"
@@ -251,7 +269,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                           <FormControl>
                             <Input
                               type="date"
-                              value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd") : ""}
+                              value={field.value instanceof Date && !isNaN(field.value.getTime()) ? format(field.value, "yyyy-MM-dd") : ""}
                               onChange={(e) => {
                                 const dateString = e.target.value;
                                 if (!dateString) {
@@ -465,22 +483,6 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                         </FormItem>
                     )}
                     />
-                    <FormField
-                        control={form.control}
-                        name="photoURL"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Photo (URL)</FormLabel>
-                                <FormControl>
-                                    <Input type="text" placeholder="https://exemple.com/image.png" {...field} value={field.value ?? ''} />
-                                </FormControl>
-                                <FormDescription>
-                                    Collez l'URL de l'image ici. Si le champ est laissé vide, une image par défaut sera utilisée.
-                                </FormDescription>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
                 </AccordionContent>
             </AccordionItem>
              <AccordionItem value="item-2">
@@ -495,7 +497,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                               <FormControl>
                                 <Input
                                   type="date"
-                                  value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd") : ""}
+                                  value={field.value instanceof Date && !isNaN(field.value.getTime()) ? format(field.value, "yyyy-MM-dd") : ""}
                                   onChange={(e) => {
                                     const dateString = e.target.value;
                                     if (!dateString) {
@@ -519,7 +521,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                   <FormControl>
                                     <Input
                                       type="date"
-                                      value={field.value instanceof Date && !isNaN(field.value) ? format(field.value, "yyyy-MM-dd") : ""}
+                                      value={field.value instanceof Date && !isNaN(field.value.getTime()) ? format(field.value, "yyyy-MM-dd") : ""}
                                       onChange={(e) => {
                                         const dateString = e.target.value;
                                         if (!dateString) {

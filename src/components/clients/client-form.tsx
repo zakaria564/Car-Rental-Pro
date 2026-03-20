@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm, useFieldArray } from "react-hook-form";
@@ -23,9 +24,9 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { format } from "date-fns";
 import React from "react";
-import Image from "next/image";
-import { Plus, Trash2, User, CreditCard, Mail, Phone, MapPin, FileText } from "lucide-react";
+import { User, CreditCard, Mail, Phone, MapPin, FileText } from "lucide-react";
 import { Separator } from "../ui/separator";
+import { ImageUpload } from "../image-upload";
 
 
 const clientFormSchema = z.object({
@@ -36,8 +37,8 @@ const clientFormSchema = z.object({
   permisDateDelivrance: z.coerce.date().optional().nullable(),
   telephone: z.string().min(10, "Le numéro de téléphone semble incorrect."),
   adresse: z.string().min(10, "L'adresse est trop courte."),
-  photoCIN: z.string().url("Veuillez entrer une URL valide.").or(z.literal('')).optional(),
-  otherPhotos: z.array(z.object({ url: z.string().url("URL invalide.").or(z.literal('')) })).optional(),
+  photoCIN: z.string().optional().or(z.literal('')),
+  otherPhotos: z.array(z.string()).optional(),
 });
 
 type ClientFormValues = z.infer<typeof clientFormSchema>;
@@ -58,7 +59,7 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
     ...client,
     permisDateDelivrance: getSafeDate(client.permisDateDelivrance),
     photoCIN: client.photoCIN || "",
-    otherPhotos: client.otherPhotos ? client.otherPhotos.map(url => ({ url })) : [],
+    otherPhotos: client.otherPhotos || [],
     email: client.email || "",
   } : {
     nom: "",
@@ -77,12 +78,6 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
     defaultValues,
     mode: "onChange",
   });
-  
-  const { control } = form;
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: "otherPhotos"
-  });
 
   const onSubmit = async (data: ClientFormValues) => {
     if (!firestore) {
@@ -97,14 +92,11 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
         const isNewClient = !client;
         const clientRef = doc(firestore, 'clients', clientId);
 
-        const { otherPhotos, ...clientData } = data;
-        const photoUrls = otherPhotos ? otherPhotos.map(p => p.url).filter(Boolean) : [];
-
         const clientPayload = {
-          ...clientData,
+          ...data,
           createdAt: client?.createdAt || serverTimestamp(),
-          otherPhotos: photoUrls,
           photoCIN: data.photoCIN || '',
+          otherPhotos: data.otherPhotos || [],
           permisDateDelivrance: data.permisDateDelivrance ?? null,
           permisNo: data.permisNo ?? null,
           email: data.email || null,
@@ -137,13 +129,10 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
     }
   };
 
-  const watchPhotoCIN = form.watch("photoCIN");
-
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mt-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mt-4 pb-10">
         
-        {/* Section 1: Identité & Contact */}
         <div className="space-y-4">
           <div className="flex items-center gap-2 text-primary font-semibold">
             <User className="h-4 w-4" />
@@ -200,7 +189,6 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
 
         <Separator />
 
-        {/* Section 2: Permis de conduire */}
         <div className="space-y-4 p-4 border rounded-lg bg-muted/20">
           <div className="flex items-center gap-2 text-primary font-semibold">
             <FileText className="h-4 w-4" />
@@ -243,7 +231,6 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
           </div>
         </div>
 
-        {/* Section 3: Contact & Adresse */}
         <div className="space-y-4">
           <div className="flex items-center gap-2 text-primary font-semibold">
             <Phone className="h-4 w-4" />
@@ -281,7 +268,6 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
 
         <Separator />
 
-        {/* Section 4: Documents (Photos) */}
         <div className="space-y-4">
           <div className="flex items-center gap-2 text-primary font-semibold">
             <CreditCard className="h-4 w-4" />
@@ -293,66 +279,37 @@ export default function ClientForm({ client, onFinished }: { client: Client | nu
             name="photoCIN"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Photo de la CIN (URL)</FormLabel>
+                <FormLabel>Photo de la CIN (Recto/Verso)</FormLabel>
                 <FormControl>
-                  <Input type="text" placeholder="https://..." {...field} value={field.value ?? ''} />
+                  <ImageUpload 
+                    value={field.value || ''} 
+                    onChange={field.onChange} 
+                    folder="clients/cin" 
+                  />
                 </FormControl>
-                {watchPhotoCIN && watchPhotoCIN.startsWith('http') && (
-                  <div className="relative w-full aspect-[16/10] rounded-md overflow-hidden border bg-muted my-2">
-                      <Image 
-                          src={watchPhotoCIN} 
-                          alt="Aperçu CIN" 
-                          fill 
-                          className="object-contain"
-                          data-ai-hint="id card"
-                      />
-                  </div>
-                )}
-                <FormDescription>Collez l'URL de l'image de la carte d'identité.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
 
-          <div className="space-y-3">
-            <FormLabel>Autres documents (Permis, Passeport...)</FormLabel>
-            {fields.map((item, index) => (
-              <FormField
-                key={item.id}
-                control={control}
-                name={`otherPhotos.${index}.url`}
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="flex items-center gap-2">
-                      <FormControl>
-                        <Input {...field} placeholder="URL de la photo" />
-                      </FormControl>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive"
-                        onClick={() => remove(index)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            ))}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="w-full border-dashed"
-              onClick={() => append({ url: '' })}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Ajouter un autre document
-            </Button>
-          </div>
+          <FormField
+            control={form.control}
+            name="otherPhotos"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Autres documents (Permis, Passeport...)</FormLabel>
+                <FormControl>
+                  <ImageUpload 
+                    value={field.value || []} 
+                    onChange={field.onChange} 
+                    folder="clients/docs" 
+                    multiple 
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
 
         <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isSubmitting}>
