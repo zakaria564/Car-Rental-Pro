@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Image as ImageIcon, X, Loader2, Plus, AlertCircle, Link as LinkIcon, Upload } from 'lucide-react';
+import { Camera, Image as ImageIcon, X, Loader2, Plus, AlertCircle, Link as LinkIcon, Upload, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useFirebase } from '@/firebase';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
@@ -28,6 +28,7 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [showUrlInput, setShowUrlInput] = useState(false);
+  const [lastSource, setLastSource] = useState<'gallery' | 'camera' | null>(null);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -85,14 +86,14 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
       canvas.toBlob((blob) => {
         if (blob) {
           const file = new File([blob], `capture_${Date.now()}.jpg`, { type: 'image/jpeg' });
-          handleUpload(file);
+          handleUpload(file, 'camera');
           closeCamera();
         }
       }, 'image/jpeg', 0.9);
     }
   };
 
-  const handleUpload = async (file: File) => {
+  const handleUpload = async (file: File, source: 'gallery' | 'camera') => {
     const bucket = (app as any)?.options?.storageBucket;
     
     if (!storage || !bucket || bucket.includes("YOUR_STORAGE_BUCKET") || bucket === "") {
@@ -113,10 +114,10 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
         setShowUrlInput(true);
         toast({
             variant: 'destructive',
-            title: 'Délai dépassé',
-            description: 'Passage en mode manuel (URL).'
+            title: 'Serveur indisponible',
+            description: 'Passage automatique en mode manuel (URL).'
         });
-    }, 8000);
+    }, 4000);
 
     uploadTask.on(
       'state_changed',
@@ -129,17 +130,13 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
         setUploading(false);
         if (error.code !== 'storage/canceled') {
           setShowUrlInput(true);
-          toast({ 
-            variant: 'destructive', 
-            title: 'Erreur de transfert', 
-            description: 'Utilisez le mode manuel.' 
-          });
         }
       },
       async () => {
         clearTimeout(timeout);
         try {
             const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            setLastSource(source);
             if (multiple) {
               onChange([...urls, downloadURL]);
             } else {
@@ -160,6 +157,7 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
       onChange(urls.filter(url => url !== urlToRemove));
     } else {
       onChange('');
+      setLastSource(null);
     }
   };
 
@@ -168,49 +166,67 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
       {label && <label className="text-sm font-bold text-foreground mb-2 block uppercase tracking-wider">{label}</label>}
       
       {!multiple && (
-        <div className="space-y-4">
-          {/* Cadre d'affichage principal */}
-          <div 
-            onClick={() => !urls[0] && !uploading && fileInputRef.current?.click()}
-            className={cn(
-              "relative group w-full aspect-[16/9] rounded-2xl overflow-hidden border-2 border-dashed transition-all bg-muted/20 flex items-center justify-center shadow-inner cursor-pointer",
-              urls[0] ? "border-primary/20 bg-card" : "border-muted-foreground/20 hover:border-primary/40"
-            )}
-          >
-            {urls[0] && urls[0].startsWith('http') ? (
-              <>
-                <Image src={urls[0]} alt="Preview" fill className="object-contain" unoptimized />
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
-                  <Button type="button" variant="destructive" size="icon" onClick={(e) => { e.stopPropagation(); removeImage(urls[0]); }} className="h-10 w-10 rounded-full">
-                    <X className="h-5 w-5" />
-                  </Button>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* ZONE GALERIE */}
+          <div className="space-y-2">
+            <span className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Option 1 : Galerie</span>
+            <div 
+              onClick={() => !uploading && fileInputRef.current?.click()}
+              className={cn(
+                "relative group w-full aspect-video rounded-xl overflow-hidden border-2 border-dashed transition-all bg-muted/20 flex items-center justify-center shadow-inner cursor-pointer",
+                (urls[0] && lastSource === 'gallery') ? "border-primary/20 bg-card" : "border-muted-foreground/10 hover:border-primary/30"
+              )}
+            >
+              {(urls[0] && lastSource === 'gallery') ? (
+                <>
+                  <Image src={urls[0]} alt="Preview Galerie" fill className="object-contain" unoptimized />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Button type="button" variant="destructive" size="icon" onClick={(e) => { e.stopPropagation(); removeImage(urls[0]); }} className="h-8 w-8 rounded-full">
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </>
+              ) : uploading ? (
+                <div className="flex flex-col items-center gap-2 px-4 w-full">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  <Progress value={progress} className="h-1 w-full" />
                 </div>
-              </>
-            ) : uploading ? (
-              <div className="flex flex-col items-center gap-2 w-full px-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <Progress value={progress} className="h-1.5 w-full max-w-[150px]" />
-                <span className="text-[10px] font-bold text-primary uppercase">{Math.round(progress)}%</span>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-2 text-muted-foreground opacity-40 group-hover:opacity-100 transition-opacity">
-                <ImageIcon className="h-12 w-12" />
-                <span className="text-xs font-medium uppercase tracking-widest">Choisir une photo</span>
-              </div>
-            )}
+              ) : (
+                <div className="flex flex-col items-center gap-2 text-muted-foreground opacity-40">
+                  <Upload className="h-8 w-8" />
+                  <span className="text-[9px] font-bold uppercase">Choisir fichier</span>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Boutons Galerie/Caméra */}
-          {!uploading && (
-            <div className="grid grid-cols-2 gap-3">
-              <Button type="button" variant="outline" className="h-12 rounded-xl text-xs font-bold gap-2" onClick={() => fileInputRef.current?.click()}>
-                <Upload className="h-4 w-4" /> Galerie
-              </Button>
-              <Button type="button" variant="outline" className="h-12 rounded-xl text-xs font-bold gap-2" onClick={openCamera}>
-                <Camera className="h-4 w-4" /> Caméra HD
-              </Button>
+          {/* ZONE CAMÉRA */}
+          <div className="space-y-2">
+            <span className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Option 2 : Appareil Photo</span>
+            <div 
+              onClick={() => !uploading && openCamera()}
+              className={cn(
+                "relative group w-full aspect-video rounded-xl overflow-hidden border-2 border-dashed transition-all bg-muted/20 flex items-center justify-center shadow-inner cursor-pointer",
+                (urls[0] && lastSource === 'camera') ? "border-primary/20 bg-card" : "border-muted-foreground/10 hover:border-primary/30"
+              )}
+            >
+              {(urls[0] && lastSource === 'camera') ? (
+                <>
+                  <Image src={urls[0]} alt="Preview Caméra" fill className="object-contain" unoptimized />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Button type="button" variant="destructive" size="icon" onClick={(e) => { e.stopPropagation(); removeImage(urls[0]); }} className="h-8 w-8 rounded-full">
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-col items-center gap-2 text-muted-foreground opacity-40">
+                  <Camera className="h-8 w-8" />
+                  <span className="text-[9px] font-bold uppercase">Prendre photo</span>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       )}
 
@@ -251,8 +267,8 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
       <input type="file" className="hidden" ref={fileInputRef} accept="image/*" multiple={multiple} onChange={(e) => {
         const files = e.target.files;
         if (files && files.length > 0) {
-          if (multiple) Array.from(files).forEach(f => handleUpload(f));
-          else handleUpload(files[0]);
+          if (multiple) Array.from(files).forEach(f => handleUpload(f, 'gallery'));
+          else handleUpload(files[0], 'gallery');
         }
         e.target.value = '';
       }} />
@@ -261,7 +277,7 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
       <div className="pt-2 border-t border-dashed mt-2">
         <button type="button" onClick={() => setShowUrlInput(!showUrlInput)} className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground hover:text-primary transition-all flex items-center gap-2 mx-auto py-2">
           <LinkIcon className="h-3 w-3" />
-          {showUrlInput ? "Masquer l'URL" : "Gérer par URL"}
+          {showUrlInput ? "Masquer l'URL" : "Mode Manuel (URL)"}
         </button>
 
         {showUrlInput && (
@@ -282,11 +298,11 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
                   <Button type="button" variant="outline" size="sm" className="w-full h-10 text-[9px] font-bold uppercase rounded-lg border-dashed" onClick={() => onChange([...urls, ""])}>+ Ajouter une autre URL</Button>
                 </>
               ) : (
-                <Input placeholder="Coller le lien de l'image ici..." value={typeof value === 'string' ? value : ''} onChange={(e) => onChange(e.target.value)} className="h-12 text-xs rounded-lg bg-card border-primary/10" />
+                <Input placeholder="Coller le lien de l'image ici..." value={typeof value === 'string' ? value : ''} onChange={(e) => { onChange(e.target.value); setLastSource('gallery'); }} className="h-12 text-xs rounded-lg bg-card border-primary/10" />
               )}
               <div className="flex items-start gap-2 p-2 bg-amber-500/5 rounded-lg border border-amber-500/10">
                 <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
-                <p className="text-[9px] text-amber-700/80 font-medium">Note : Utilisez ce champ si le stockage automatique n'est pas activé.</p>
+                <p className="text-[9px] text-amber-700/80 font-medium">Note : Utilisez ce champ si le stockage automatique n'est pas prêt.</p>
               </div>
             </div>
           </div>
