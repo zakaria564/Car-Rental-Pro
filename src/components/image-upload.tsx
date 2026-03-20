@@ -11,6 +11,7 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
+import * as VisuallyHidden from '@radix-ui/react-visually-hidden';
 
 interface ImageUploadProps {
   value: string | string[];
@@ -93,12 +94,11 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
   const handleUpload = async (file: File) => {
     const bucket = (app as any)?.options?.storageBucket;
     
-    // Détection immédiate si Storage n'est pas configuré
     if (!storage || !bucket || bucket.includes("YOUR_STORAGE_BUCKET") || bucket === "") {
       setShowUrlInput(true);
       toast({
         title: 'Mode Manuel Activé',
-        description: 'Le stockage Cloud n\'est pas encore configuré dans votre console Firebase. Veuillez utiliser des liens directs.',
+        description: 'Le stockage Cloud n\'est pas encore activé. Utilisez des liens directs.',
       });
       return;
     }
@@ -106,22 +106,21 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
     setUploading(true);
     setProgress(0);
 
-    // Timeout de sécurité pour éviter de rester bloqué sur "en cours"
-    const timeout = setTimeout(() => {
-        if (uploading) {
-            setUploading(false);
-            setShowUrlInput(true);
-            toast({
-                variant: 'destructive',
-                title: 'Délai dépassé',
-                description: 'Le serveur met trop de temps à répondre. Passage en mode manuel.'
-            });
-        }
-    }, 8000);
-
     const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
     const storageRef = ref(storage, `${folder}/${fileName}`);
     const uploadTask = uploadBytesResumable(storageRef, file);
+
+    // Timeout pour éviter de rester bloqué sur "en cours" si Firebase ne répond pas
+    const timeout = setTimeout(() => {
+        uploadTask.cancel();
+        setUploading(false);
+        setShowUrlInput(true);
+        toast({
+            variant: 'destructive',
+            title: 'Délai dépassé',
+            description: 'Le serveur ne répond pas. Passage en mode manuel.'
+        });
+    }, 10000);
 
     uploadTask.on(
       'state_changed',
@@ -131,26 +130,31 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
       },
       (error) => {
         clearTimeout(timeout);
-        console.error('Upload error:', error);
+        console.warn('Upload error handled:', error.code);
         setUploading(false);
         setShowUrlInput(true);
         toast({ 
           variant: 'destructive', 
-          title: 'Erreur d\'envoi', 
-          description: 'Vérifiez que le service Storage est activé dans votre console Firebase.' 
+          title: 'Serveur Indisponible', 
+          description: 'Passage automatique en mode manuel (URL).' 
         });
       },
       async () => {
         clearTimeout(timeout);
-        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-        if (multiple) {
-          onChange([...urls, downloadURL]);
-        } else {
-          onChange(downloadURL);
+        try {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            if (multiple) {
+              onChange([...urls, downloadURL]);
+            } else {
+              onChange(downloadURL);
+            }
+            setUploading(false);
+            setProgress(0);
+            toast({ title: 'Succès', description: 'Image enregistrée avec succès.' });
+        } catch (err) {
+            setUploading(false);
+            setShowUrlInput(true);
         }
-        setUploading(false);
-        setProgress(0);
-        toast({ title: 'Succès', description: 'Image enregistrée avec succès.' });
       }
     );
   };
@@ -167,7 +171,6 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
     <div className="space-y-4">
       {label && <label className="text-sm font-bold text-foreground mb-2 block">{label}</label>}
       
-      {/* CADRE PHOTO UNIQUE */}
       {!multiple && (
         <div className="space-y-4">
           <div className={cn(
@@ -223,7 +226,6 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
         </div>
       )}
 
-      {/* GRILLE MULTI-PHOTOS */}
       {multiple && (
         <div className="space-y-4">
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
@@ -267,7 +269,6 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
         e.target.value = '';
       }} />
 
-      {/* ZONE MANUELLE (URL) */}
       <div className="pt-2 border-t border-dashed mt-4">
         <button type="button" onClick={() => setShowUrlInput(!showUrlInput)} className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-all flex items-center gap-2 mx-auto py-2">
           <LinkIcon className="h-3 w-3" />
@@ -305,9 +306,11 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
         )}
       </div>
 
-      {/* DIALOGUE CAMÉRA HD */}
       <Dialog open={isCameraOpen} onOpenChange={(open) => !open && closeCamera()}>
         <DialogContent className="sm:max-w-2xl p-0 overflow-hidden bg-zinc-950 border-none rounded-none sm:rounded-[2rem] shadow-2xl">
+          <VisuallyHidden.Root>
+            <DialogTitle>Appareil photo</DialogTitle>
+          </VisuallyHidden.Root>
           <div className="relative aspect-video bg-black flex items-center justify-center min-h-[450px]">
             {hasCameraPermission === false ? (
               <div className="text-center text-white p-10 space-y-6">
@@ -321,19 +324,15 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
             ) : (
               <>
                 <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
-                
-                {/* OVERLAY DE CADRAGE PROFESSIONNEL */}
                 <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
                   <div className="w-[85%] h-[75%] border-2 border-white/10 rounded-[2rem] relative">
                     <div className="absolute top-0 left-0 w-12 h-12 border-t-4 border-l-4 border-primary rounded-tl-[1.5rem]" />
                     <div className="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 border-primary rounded-tr-[1.5rem]" />
                     <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-primary rounded-bl-[1.5rem]" />
                     <div className="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 border-primary rounded-br-[1.5rem]" />
-                    
                     <div className="absolute inset-0 flex items-center justify-center opacity-[0.03]">
                         <Scan className="h-48 w-48 text-white" strokeWidth={0.5} />
                     </div>
-                    
                     <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/40 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/10">
                         <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/80">Flux Pro HD Actif</span>
                     </div>
@@ -342,12 +341,10 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
               </>
             )}
           </div>
-          
           <div className="p-10 flex justify-between items-center bg-zinc-950">
             <Button type="button" variant="outline" size="icon" onClick={closeCamera} className="h-16 w-16 rounded-full border-white/10 bg-white/5 text-white hover:bg-white/20 active:scale-90 transition-all">
                 <X className="h-8 w-8" />
             </Button>
-            
             <button 
                 type="button" 
                 onClick={capturePhoto} 
@@ -357,8 +354,7 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
               <div className="w-20 h-20 bg-white rounded-full shadow-[0_0_30px_rgba(255,255,255,0.3)] group-hover:scale-95 transition-transform" />
               <div className="absolute -inset-2 border-2 border-primary rounded-full animate-ping opacity-20 [animation-duration:2s]" />
             </button>
-            
-            <div className="w-16" /> {/* Spacer pour centrer le déclencheur */}
+            <div className="w-16" />
           </div>
         </DialogContent>
       </Dialog>
