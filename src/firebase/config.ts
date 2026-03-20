@@ -21,6 +21,10 @@ const getFirebaseApp = (): FirebaseApp => {
     if (!firebaseConfig.apiKey) {
         console.warn('Firebase API Key is missing. Check your environment variables.');
     }
+    
+    if (!firebaseConfig.storageBucket) {
+        console.warn('Firebase Storage Bucket is missing. Image uploads will be disabled. Set NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET in .env');
+    }
 
     return initializeApp(firebaseConfig);
   }

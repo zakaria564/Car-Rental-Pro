@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Image as ImageIcon, X, Loader2, AlertCircle, RefreshCw, Link as LinkIcon, CheckCircle2, Upload, Scan } from 'lucide-react';
+import { Camera, Image as ImageIcon, X, Loader2, AlertCircle, RefreshCw, Link as LinkIcon, CheckCircle2, Upload, Scan, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useFirebase } from '@/firebase';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
@@ -21,16 +21,18 @@ interface ImageUploadProps {
 }
 
 export function ImageUpload({ value, onChange, folder, multiple = false, label }: ImageUploadProps) {
-  const { storage } = useFirebase();
+  const { storage, app } = useFirebase();
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [showUrlInput, setShowUrlInput] = useState(false);
+  const [isStuck, setIsStuck] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const urls = Array.isArray(value) ? value : (value ? [value] : []);
 
@@ -40,6 +42,7 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
         const stream = videoRef.current.srcObject as MediaStream;
         stream.getTracks().forEach(track => track.stop());
       }
+      if (uploadTimeoutRef.current) clearTimeout(uploadTimeoutRef.current);
     };
   }, []);
 
@@ -64,7 +67,7 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
       toast({
         variant: 'destructive',
         title: 'Accès caméra refusé',
-        description: 'Veuillez autoriser l\'accès dans les paramètres de votre navigateur pour une capture HD.',
+        description: 'Veuillez autoriser l\'accès dans les paramètres de votre navigateur.',
       });
     }
   };
@@ -92,16 +95,19 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
           handleUpload(file);
           closeCamera();
         }
-      }, 'image/jpeg', 0.95);
+      }, 'image/jpeg', 0.90);
     }
   };
 
   const handleUpload = async (file: File) => {
-    if (!storage) {
+    // Check if storage is actually configured
+    const bucket = (app as any)?.options?.storageBucket;
+    if (!storage || !bucket) {
+      console.error("Firebase Storage not properly configured. Missing storageBucket.");
       toast({
         variant: 'destructive',
-        title: 'Mode manuel activé',
-        description: 'Le stockage automatique n\'est pas configuré. Veuillez utiliser un lien direct.',
+        title: 'Stockage non configuré',
+        description: 'Le service de stockage Firebase n\'est pas activé. Basculement en mode URL manuelle.',
       });
       setShowUrlInput(true);
       return;
@@ -109,6 +115,12 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
 
     setUploading(true);
     setProgress(0);
+    setIsStuck(false);
+
+    // Safety timeout: if progress stays 0 for 5 seconds, show a recovery button
+    uploadTimeoutRef.current = setTimeout(() => {
+      setIsStuck(true);
+    }, 5000);
 
     try {
       const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
@@ -120,18 +132,24 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
         (snapshot) => {
           const p = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
           setProgress(p);
+          if (p > 0 && uploadTimeoutRef.current) {
+            clearTimeout(uploadTimeoutRef.current);
+            setIsStuck(false);
+          }
         },
         (error) => {
-          console.error('Upload failed:', error);
+          console.error('Upload task failed:', error);
           setUploading(false);
+          if (uploadTimeoutRef.current) clearTimeout(uploadTimeoutRef.current);
           toast({ 
             variant: 'destructive', 
-            title: 'Erreur d\'envoi', 
-            description: 'L\'envoi a échoué. Basculement vers le mode lien manuel.' 
+            title: 'Échec de l\'envoi', 
+            description: 'Erreur réseau ou de configuration. Utilisez le mode URL.' 
           });
           setShowUrlInput(true);
         },
         async () => {
+          if (uploadTimeoutRef.current) clearTimeout(uploadTimeoutRef.current);
           const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
           if (multiple) {
             onChange([...urls, downloadURL]);
@@ -140,6 +158,7 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
           }
           setUploading(false);
           setProgress(0);
+          setIsStuck(false);
           toast({
             title: 'Image enregistrée',
             description: 'Le fichier a été ajouté avec succès.',
@@ -147,8 +166,9 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
         }
       );
     } catch (err) {
-      console.error("Upload initialization error:", err);
+      console.error("Upload initialization failed:", err);
       setUploading(false);
+      if (uploadTimeoutRef.current) clearTimeout(uploadTimeoutRef.current);
       setShowUrlInput(true);
     }
   };
@@ -179,30 +199,39 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
     }
   };
 
+  const cancelUpload = () => {
+    setUploading(false);
+    setIsStuck(false);
+    if (uploadTimeoutRef.current) clearTimeout(uploadTimeoutRef.current);
+    setShowUrlInput(true);
+  };
+
   return (
     <div className="space-y-4">
       {label && <label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">{label}</label>}
       
       <div className="flex flex-wrap gap-4">
         {urls.map((url, index) => (
-          <div key={index} className="relative group w-28 h-28 rounded-xl overflow-hidden border-2 border-muted shadow-lg bg-card transition-all hover:scale-105">
-            <Image src={url} alt="Aperçu" fill className="object-cover" unoptimized />
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <button
-                type="button"
-                onClick={() => removeImage(url)}
-                className="p-2 bg-destructive text-white rounded-full shadow-xl hover:bg-destructive/90 transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
+          url && url.startsWith('http') && (
+            <div key={index} className="relative group w-28 h-28 rounded-xl overflow-hidden border-2 border-muted shadow-lg bg-card transition-all hover:scale-105">
+              <Image src={url} alt="Aperçu" fill className="object-cover" unoptimized />
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <button
+                  type="button"
+                  onClick={() => removeImage(url)}
+                  className="p-2 bg-destructive text-white rounded-full shadow-xl hover:bg-destructive/90 transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="absolute bottom-1 right-1">
+                 <CheckCircle2 className="h-4 w-4 text-green-500 fill-white" />
+              </div>
             </div>
-            <div className="absolute bottom-1 right-1">
-               <CheckCircle2 className="h-4 w-4 text-green-500 fill-white" />
-            </div>
-          </div>
+          )
         ))}
 
-        {(multiple || urls.length === 0) && !uploading && (
+        {(multiple || urls.length === 0 || (urls.length === 1 && !urls[0])) && !uploading && (
           <div className="flex gap-3">
             <Button 
               type="button" 
@@ -238,12 +267,24 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
         )}
 
         {uploading && (
-          <div className="w-28 h-28 flex flex-col items-center justify-center border-2 border-primary/30 rounded-xl bg-primary/5 animate-pulse">
-            <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-            <div className="w-20 px-2">
-              <Progress value={progress} className="h-1.5" />
-            </div>
-            <span className="text-[10px] mt-2 font-black text-primary">{Math.round(progress)}%</span>
+          <div className="w-28 h-28 flex flex-col items-center justify-center border-2 border-primary/30 rounded-xl bg-primary/5">
+            {isStuck ? (
+              <div className="flex flex-col items-center gap-2 p-2 text-center">
+                <AlertTriangle className="h-6 w-6 text-amber-500 animate-pulse" />
+                <span className="text-[8px] font-bold uppercase leading-tight">Problème ?</span>
+                <Button variant="ghost" size="sm" onClick={cancelUpload} className="h-6 text-[8px] px-1 bg-amber-100 hover:bg-amber-200">
+                  MODE MANUEL
+                </Button>
+              </div>
+            ) : (
+              <>
+                <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+                <div className="w-20 px-2">
+                  <Progress value={progress} className="h-1.5" />
+                </div>
+                <span className="text-[10px] mt-2 font-black text-primary">{Math.round(progress)}%</span>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -255,7 +296,7 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
           onClick={() => setShowUrlInput(!showUrlInput)}
         >
           <LinkIcon className="h-3 w-3" />
-          {showUrlInput ? "Masquer l'URL" : "Gérer l'URL manuellement"}
+          {showUrlInput ? "Masquer la gestion URL" : "Gérer l'URL manuellement"}
         </button>
 
         {showUrlInput && (
@@ -265,7 +306,7 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
                 {urls.map((url, i) => (
                   <div key={i} className="flex gap-2">
                     <Input 
-                      placeholder="https://..." 
+                      placeholder="Lien de l'image (https://...)" 
                       value={url} 
                       onChange={(e) => handleManualUrlChange(e.target.value, i)}
                       className="h-9 text-xs font-mono bg-background"
@@ -287,12 +328,15 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
               </div>
             ) : (
               <Input 
-                placeholder="https://..." 
+                placeholder="Lien de l'image (https://...)" 
                 value={typeof value === 'string' ? value : ''} 
                 onChange={(e) => handleManualUrlChange(e.target.value)}
                 className="h-9 text-xs font-mono bg-background"
               />
             )}
+            <p className="text-[9px] text-muted-foreground italic">
+              * Utilisez ce champ si le téléchargement automatique ne démarre pas.
+            </p>
           </div>
         )}
       </div>
@@ -302,7 +346,7 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
           <DialogHeader className="p-4 bg-white/5 text-white backdrop-blur-2xl absolute top-0 left-0 w-full z-20 border-b border-white/10 flex flex-row items-center justify-between">
             <DialogTitle className="text-white font-black uppercase tracking-widest text-sm flex items-center gap-2">
               <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-              Capture HD
+              PRO CAPTURE HD
             </DialogTitle>
             <div className="flex items-center gap-2">
                <span className="text-[10px] font-bold text-zinc-400 bg-white/10 px-2 py-0.5 rounded-full uppercase">1080p actif</span>
@@ -349,7 +393,7 @@ export function ImageUpload({ value, onChange, folder, multiple = false, label }
             {hasCameraPermission === null && (
               <div className="flex flex-col items-center gap-4 z-30">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                <p className="text-zinc-400 text-xs font-black uppercase tracking-widest">Optimisation du flux...</p>
+                <p className="text-zinc-400 text-xs font-black uppercase tracking-widest">Initialisation...</p>
               </div>
             )}
           </div>
