@@ -5,7 +5,7 @@ import { Auth, getAuth } from 'firebase/auth';
 import { Firestore, getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
 import { FirebaseStorage, getStorage } from "firebase/storage";
 
-// This function ensures that Firebase is initialized only once.
+// Cette fonction garantit que Firebase n'est initialisé qu'une seule fois.
 const getFirebaseApp = (): FirebaseApp => {
   if (!getApps().length) {
     const firebaseConfig = {
@@ -18,12 +18,13 @@ const getFirebaseApp = (): FirebaseApp => {
       measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
     };
 
+    // Diagnostics de configuration
     if (!firebaseConfig.apiKey) {
-        console.warn('Firebase API Key is missing. Check your environment variables.');
+        console.warn("Clé API Firebase manquante. Vérifiez vos variables d'environnement.");
     }
     
-    if (!firebaseConfig.storageBucket) {
-        console.warn('Firebase Storage Bucket is missing. Image uploads will be disabled. Set NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET in .env');
+    if (!firebaseConfig.storageBucket || firebaseConfig.storageBucket.includes("YOUR_STORAGE_BUCKET")) {
+        console.warn("Le bucket Firebase Storage n'est pas configuré. Le mode manuel (URL) sera activé par défaut.");
     }
 
     return initializeApp(firebaseConfig);
@@ -37,13 +38,14 @@ export function getFirebaseServices() {
   const firestore = getFirestore(app);
   const storage = getStorage(app);
 
+  // Activation de la persistance hors-ligne pour Firestore
   if (typeof window !== 'undefined') {
     enableIndexedDbPersistence(firestore)
       .catch((err) => {
         if (err.code == 'failed-precondition') {
-          console.warn('Firestore persistence failed: Multiple tabs open, persistence can only be enabled in one tab at a time.');
+          console.warn("La persistance Firestore a échoué : plusieurs onglets ouverts.");
         } else if (err.code == 'unimplemented') {
-          console.warn('Firestore persistence is not supported in this browser.');
+          console.warn("Le navigateur ne supporte pas la persistance Firestore.");
         }
       });
   }
