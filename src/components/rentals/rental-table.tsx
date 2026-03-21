@@ -474,9 +474,9 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
   
   const getSheetTitle = () => {
     if (formMode === 'new') return "Créer un nouveau contrat";
-    if (formMode === 'edit') return "Modifier le contrat de location";
-    if (formMode === 'check-in') return "Réceptionner le Véhicule";
-    return "";
+    if (formMode === 'edit') return "Modifier le contrat";
+    if (formMode === 'check-in') return "Réceptionner le véhicule";
+    return "Gestion du contrat";
   };
 
 
@@ -623,7 +623,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
         {rentalForModal && (
             <DialogContent className="sm:max-w-4xl">
                 <DialogHeader className="no-print">
-                    <DialogTitle>Détails du contrat de location #{rentalForModal.contractNumber}</DialogTitle>
+                    <DialogTitle>Détails du contrat #{rentalForModal.contractNumber}</DialogTitle>
                     <DialogDesc>
                       Créé le {getSafeDate(rentalForModal.createdAt) ? format(getSafeDate(rentalForModal.createdAt)!, "dd LLL, y 'à' HH:mm", { locale: fr }) : 'N/A'}
                     </DialogDesc>
@@ -646,7 +646,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
         {rentalForModal && (
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
+                    <AlertDialogTitle>Supprimer ce contrat ?</AlertDialogTitle>
                     <AlertDialogDescription>
                       Cette action est irréversible. Le contrat de location sera définitivement supprimé.
                     </AlertDialogDescription>

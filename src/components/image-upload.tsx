@@ -16,8 +16,8 @@ interface ImageUploadProps {
 }
 
 /**
- * Système de gestion d'images simplifié.
- * Permet de choisir une photo (conversion Base64) ou de coller un lien direct.
+ * Elite Media Suite - Version Simplifiée Base64
+ * Permet de choisir une photo (conversion Base64 auto) ou de coller un lien direct.
  */
 export function ImageUpload({ value, onChange, multiple = false }: ImageUploadProps) {
   const { toast } = useToast();
@@ -40,7 +40,7 @@ export function ImageUpload({ value, onChange, multiple = false }: ImageUploadPr
           toast({
             variant: "destructive",
             title: "Image trop lourde",
-            description: "Veuillez choisir une image de moins de 1 Mo pour un chargement rapide.",
+            description: "Veuillez choisir une image de moins de 1 Mo pour une fluidité maximale.",
           });
           continue;
         }
@@ -120,7 +120,10 @@ export function ImageUpload({ value, onChange, multiple = false }: ImageUploadPr
               <div className="p-4 rounded-full bg-muted/20">
                 <ImageIcon className="h-10 w-10 opacity-30" />
               </div>
-              <span className="text-xs font-medium italic">Aucune photo sélectionnée</span>
+              <span className="text-xs font-medium italic text-center px-4">
+                Aucune photo sélectionnée<br/>
+                <span className="text-[10px] opacity-60">Utilisez le bouton ci-dessous</span>
+              </span>
             </div>
           )
         ) : (
