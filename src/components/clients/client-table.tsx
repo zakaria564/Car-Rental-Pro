@@ -13,7 +13,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { PlusCircle, ArrowUpDown, ChevronDown, MoreHorizontal, User, Trash2, Mail, Phone, MapPin, CreditCard, FileText, Copy, Check } from "lucide-react";
+import { PlusCircle, ArrowUpDown, ChevronDown, MoreHorizontal, User, Trash2, Mail, Phone, MapPin, CreditCard, FileText, Copy, Check, ExternalLink } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -132,10 +132,13 @@ function ClientDetails({ client }: { client: Client }) {
           </div>
 
           <div className="space-y-3">
-              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Carte d'Identité</h4>
+              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex justify-between items-center">
+                <span>Carte d'Identité</span>
+                {client.photoCIN && <span className="text-[10px] normal-case font-normal text-muted-foreground italic">(Cliquez pour imprimer)</span>}
+              </h4>
               <div className="relative w-full aspect-[16/10] rounded-lg overflow-hidden border-2 bg-muted shadow-sm group">
                   {client.photoCIN ? (
-                      <a href={client.photoCIN} target="_blank" rel="noopener noreferrer" className="block w-full h-full">
+                      <a href={client.photoCIN} target="_blank" rel="noopener noreferrer" className="block w-full h-full relative cursor-zoom-in">
                         <Image 
                             src={client.photoCIN} 
                             alt={`CIN de ${client.nom}`} 
@@ -143,6 +146,9 @@ function ClientDetails({ client }: { client: Client }) {
                             className="object-contain group-hover:scale-105 transition-transform duration-300"
                             unoptimized
                         />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <ExternalLink className="text-white h-8 w-8" />
+                        </div>
                       </a>
                   ) : (
                       <div className="flex flex-col items-center justify-center h-full text-muted-foreground space-y-2">
@@ -160,7 +166,7 @@ function ClientDetails({ client }: { client: Client }) {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {client.otherPhotos.map((photoUrl, index) => (
                   photoUrl && (
-                    <a key={index} href={photoUrl} target="_blank" rel="noopener noreferrer" className="relative block aspect-[4/3] rounded-md overflow-hidden border bg-muted hover:ring-2 hover:ring-primary transition-all">
+                    <a key={index} href={photoUrl} target="_blank" rel="noopener noreferrer" className="relative block aspect-[4/3] rounded-md overflow-hidden border bg-muted hover:ring-2 hover:ring-primary transition-all group cursor-zoom-in">
                         <Image
                             src={photoUrl}
                             alt={`Document ${index + 1}`}
@@ -168,6 +174,9 @@ function ClientDetails({ client }: { client: Client }) {
                             className="object-contain p-1"
                             unoptimized
                         />
+                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <ExternalLink className="text-white h-5 w-5" />
+                        </div>
                     </a>
                   )
                 ))}
@@ -508,7 +517,7 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
       }}>
         <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Détails du client</DialogTitle>
+            <DialogTitle>Détails du client : {selectedClient?.nom}</DialogTitle>
             <DialogDescription>
               Fiche complète et documents de {selectedClient?.nom || 'l\'utilisateur'}.
             </DialogDescription>

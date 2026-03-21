@@ -14,7 +14,7 @@ import CarDamageDiagram, { carParts } from "./car-damage-diagram";
 import { Skeleton } from "../ui/skeleton";
 import { Logo } from "../logo";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
-import { Gavel } from 'lucide-react';
+import { Gavel, ExternalLink } from 'lucide-react';
 import { Button } from '../ui/button';
 
 
@@ -77,14 +77,17 @@ export const DeprecatedInspectionView: React.FC<{ data: any, type: 'depart' | 'r
                     <div className="grid grid-cols-3 gap-2 mt-1">
                         {data.photos.map((photoUrl: string, index: number) => (
                            photoUrl && (
-                            <a key={index} href={photoUrl} target="_blank" rel="noopener noreferrer" className="relative aspect-square block hover:opacity-80 transition-opacity">
+                            <a key={index} href={photoUrl} target="_blank" rel="noopener noreferrer" className="relative aspect-square block hover:opacity-80 transition-opacity cursor-zoom-in group">
                                 <Image
                                     src={photoUrl}
                                     alt={`Photo ${type} ${index + 1}`}
                                     fill
                                     className="rounded-md object-cover"
-                                    unoptimized={photoUrl.startsWith('data:')}
+                                    unoptimized
                                 />
+                                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <ExternalLink className="text-white h-4 w-4" />
+                                </div>
                             </a>
                            )
                         ))}
@@ -218,14 +221,17 @@ export const InspectionDetailsView: React.FC<{ inspectionId: string, type: 'depa
                     <div className="grid grid-cols-3 gap-2 mt-1">
                         {inspection.photos.map((photoUrl, index) => (
                             photoUrl && (
-                            <a key={index} href={photoUrl} target="_blank" rel="noopener noreferrer" className="relative aspect-square block hover:opacity-80 transition-opacity">
+                            <a key={index} href={photoUrl} target="_blank" rel="noopener noreferrer" className="relative aspect-square block hover:opacity-80 transition-opacity cursor-zoom-in group">
                                 <Image
                                     src={photoUrl}
                                     alt={`Photo ${type} ${index + 1}`}
                                     fill
                                     className="rounded-md object-cover"
-                                    unoptimized={photoUrl.startsWith('data:')}
+                                    unoptimized
                                 />
+                                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <ExternalLink className="text-white h-4 w-4" />
+                                </div>
                             </a>
                             )
                         ))}

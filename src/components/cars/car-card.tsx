@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { Pencil, FileText, TriangleAlert, Gauge, Fuel, Cog, Trash2, Car as CarIcon } from "lucide-react";
+import { Pencil, FileText, TriangleAlert, Gauge, Fuel, Cog, Trash2, Car as CarIcon, ExternalLink } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -106,13 +106,18 @@ export default function CarCard({ car }: { car: Car }) {
            <Badge className={cn(availability.className, "text-white")}>{availability.text}</Badge>
         </div>
         {car.photoURL ? (
-            <Image
-                src={car.photoURL}
-                alt={`${car.marque} ${car.modele}`}
-                fill
-                className="object-contain"
-                unoptimized
-            />
+            <a href={car.photoURL} target="_blank" rel="noopener noreferrer" className="block w-full h-full relative cursor-zoom-in group/img">
+                <Image
+                    src={car.photoURL}
+                    alt={`${car.marque} ${car.modele}`}
+                    fill
+                    className="object-contain"
+                    unoptimized
+                />
+                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
+                    <ExternalLink className="text-white h-6 w-6" />
+                </div>
+            </a>
         ) : (
             <div className="flex items-center justify-center h-full">
                 <CarIcon className="w-16 h-16 text-muted-foreground" />
@@ -145,7 +150,7 @@ export default function CarCard({ car }: { car: Car }) {
                 <TooltipProvider><Tooltip><TooltipTrigger asChild><DialogTrigger asChild><Button variant="outline" size="icon"><FileText className="h-4 w-4" /></Button></DialogTrigger></TooltipTrigger><TooltipContent><p>Détails & Entretien</p></TooltipContent></Tooltip></TooltipProvider>
                 <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
-                        <DialogTitle>Détails du véhicule</DialogTitle>
+                        <DialogTitle>Détails du véhicule : {car.marque} {car.modele}</DialogTitle>
                         <DialogDescription>{car.marque} {car.modele} - {car.immat}</DialogDescription>
                     </DialogHeader>
                     <CarDetails car={car} groupedMaintenanceHistory={groupedMaintenanceHistory} filteredHistory={filteredHistory} historyFilterDate={historyFilterDate} setHistoryFilterDate={setHistoryFilterDate} />
