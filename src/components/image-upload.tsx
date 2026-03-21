@@ -1,10 +1,13 @@
 'use client';
 
-import React from 'react';
-import { Link as LinkIcon, Image as ImageIcon, X } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { ImageIcon, LinkIcon, Upload, X, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { useFirebase } from '@/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { useToast } from '@/hooks/use-toast';
 
 interface ImageUploadProps {
   value: string | string[];
@@ -14,20 +17,70 @@ interface ImageUploadProps {
 }
 
 /**
- * Composant ultra-simplifié pour gérer les images via URL uniquement.
- * Élimine tout risque de blocage lié au stockage Firebase.
+ * Composant simplifié pour gérer les images :
+ * 1. Bouton pour choisir un fichier (Upload automatique vers Firebase Storage)
+ * 2. Champ texte pour coller directement une URL
  */
-export function ImageUpload({ value, onChange, multiple = false }: ImageUploadProps) {
+export function ImageUpload({ value, onChange, folder = 'general', multiple = false }: ImageUploadProps) {
+  const { storage } = useFirebase();
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  
+  // Normalisation des URLs en tableau
   const urls = Array.isArray(value) ? value : (value ? [value] : []);
 
-  const handleAddUrl = () => {
-    const url = prompt("Veuillez coller l'URL directe de l'image (ex: https://...) :");
-    if (url && url.trim()) {
-      if (multiple) {
-        onChange([...urls, url.trim()]);
-      } else {
-        onChange(url.trim());
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    if (!storage) {
+      toast({
+        variant: "destructive",
+        title: "Configuration requise",
+        description: "Firebase Storage n'est pas activé. Veuillez coller l'URL manuellement.",
+      });
+      return;
+    }
+
+    setUploading(true);
+    const newUrls = [...urls];
+
+    try {
+      for (const file of files) {
+        // Création d'une référence unique pour le fichier
+        const fileRef = ref(storage, `${folder}/${Date.now()}_${file.name}`);
+        
+        // Téléchargement
+        const snapshot = await uploadBytes(fileRef, file);
+        
+        // Récupération de l'URL publique
+        const downloadURL = await getDownloadURL(snapshot.ref);
+        
+        if (multiple) {
+          newUrls.push(downloadURL);
+        } else {
+          // Mode simple : on remplace la valeur
+          onChange(downloadURL);
+          setUploading(false);
+          return;
+        }
       }
+      
+      if (multiple) {
+        onChange(newUrls);
+      }
+    } catch (error: any) {
+      console.error("Erreur Upload:", error);
+      toast({
+        variant: "destructive",
+        title: "Échec de l'envoi",
+        description: "Vérifiez que le service Storage est actif dans votre console Firebase.",
+      });
+    } finally {
+      setUploading(false);
+      // Reset de l'input pour permettre de choisir le même fichier deux fois
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -39,17 +92,13 @@ export function ImageUpload({ value, onChange, multiple = false }: ImageUploadPr
     }
   };
 
-  const updateSingleUrl = (newUrl: string) => {
-    onChange(newUrl.trim());
-  };
-
   return (
-    <div className="space-y-3">
-      {/* Zone d'affichage / Preview */}
+    <div className="space-y-4">
+      {/* Zone de prévisualisation (Mode Simple) */}
       {!multiple && (
         <div className={cn(
-          "relative aspect-video w-full rounded-xl border-2 border-dashed border-muted-foreground/20 bg-muted/10 flex flex-col items-center justify-center overflow-hidden transition-all",
-          urls[0] && "border-none bg-black"
+          "relative aspect-video w-full rounded-xl border-2 border-dashed flex flex-col items-center justify-center overflow-hidden bg-muted/10 transition-all",
+          urls[0] ? "border-primary/50 bg-muted/20" : "border-muted-foreground/20"
         )}>
           {urls[0] ? (
             <>
@@ -63,7 +112,7 @@ export function ImageUpload({ value, onChange, multiple = false }: ImageUploadPr
               <button 
                 type="button" 
                 onClick={() => removeImage(urls[0])}
-                className="absolute top-2 right-2 bg-destructive text-white p-1.5 rounded-full shadow-lg hover:scale-110 transition-transform z-10"
+                className="absolute top-2 right-2 bg-destructive text-white p-1 rounded-full shadow-lg hover:scale-110 transition-transform z-10"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -74,10 +123,17 @@ export function ImageUpload({ value, onChange, multiple = false }: ImageUploadPr
               <span className="text-xs font-medium">Aucune image sélectionnée</span>
             </div>
           )}
+          
+          {uploading && (
+            <div className="absolute inset-0 bg-background/60 backdrop-blur-sm flex flex-col items-center justify-center gap-2 z-20">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="text-xs font-bold text-primary">Téléchargement...</span>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Grille pour le mode multiple (Contrats) */}
+      {/* Grille de prévisualisation (Mode Multiple - Contrats) */}
       {multiple && urls.length > 0 && (
         <div className="grid grid-cols-3 gap-3">
           {urls.map((url, i) => (
@@ -92,56 +148,52 @@ export function ImageUpload({ value, onChange, multiple = false }: ImageUploadPr
               </button>
             </div>
           ))}
+          {uploading && (
+            <div className="aspect-square rounded-lg border-2 border-dashed flex items-center justify-center bg-muted/50">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          )}
         </div>
       )}
 
       {/* Contrôles de saisie */}
-      <div className="space-y-2">
-        {!multiple ? (
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input 
-                placeholder="Coller le lien de l'image ici..." 
-                value={urls[0] || ''} 
-                onChange={(e) => updateSingleUrl(e.target.value)}
-                className="pl-9 h-10 text-sm rounded-lg"
-              />
-            </div>
-          </div>
-        ) : (
-          <button 
+      <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button
             type="button"
-            onClick={handleAddUrl}
-            className="w-full h-12 border-2 border-dashed border-primary/30 rounded-xl text-xs font-bold uppercase tracking-wider text-primary hover:bg-primary/5 transition-all flex items-center justify-center gap-2"
+            disabled={uploading}
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center justify-center gap-2 h-11 px-4 rounded-xl bg-primary text-white hover:bg-primary/90 transition-all font-bold text-sm shadow-md active:scale-95 disabled:opacity-50"
           >
-            <PlusCircle className="h-4 w-4" />
-            Ajouter un lien d'image
+            <Upload className="h-4 w-4" />
+            Choisir dans la galerie
           </button>
-        )}
-        <p className="text-[10px] text-muted-foreground italic px-1">
-          Astuce : Copiez le lien d'une image en ligne et collez-le ici.
+          
+          <div className="relative">
+            <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Ou collez le lien ici..."
+              value={!multiple ? (urls[0] || '') : ''}
+              onChange={(e) => !multiple && onChange(e.target.value)}
+              className="pl-9 h-11 rounded-xl border-muted-foreground/20 focus:border-primary transition-all"
+            />
+          </div>
+        </div>
+        
+        <p className="text-[10px] text-muted-foreground italic px-1 text-center">
+          Note : Le bouton Galerie colle automatiquement l'URL si votre Firebase est configuré.
         </p>
       </div>
-    </div>
-  );
-}
 
-// Helper pour le bouton d'ajout dans le mode multiple (import manquant sinon)
-function PlusCircle({ className }: { className?: string }) {
-  return (
-    <svg 
-      className={className} 
-      xmlns="http://www.w3.org/2000/svg" 
-      width="24" height="24" 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="2" 
-      strokeLinecap="round" 
-      strokeLinejoin="round"
-    >
-      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
-    </svg>
+      {/* Input de fichier caché */}
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        onChange={handleFileChange} 
+        multiple={multiple} 
+        accept="image/*" 
+        className="hidden" 
+      />
+    </div>
   );
 }
