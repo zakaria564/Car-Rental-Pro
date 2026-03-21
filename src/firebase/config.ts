@@ -18,7 +18,6 @@ const getFirebaseApp = (): FirebaseApp => {
       measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
     };
 
-    // Diagnostics de configuration - Utilisation de guillemets doubles pour éviter les erreurs d'apostrophes
     if (!firebaseConfig.apiKey) {
         console.warn("Clé API Firebase manquante. Vérifiez vos variables d'environnement.");
     }
@@ -34,7 +33,6 @@ export function getFirebaseServices() {
   const firestore = getFirestore(app);
   const storage = getStorage(app);
 
-  // Activation de la persistance hors-ligne pour Firestore
   if (typeof window !== 'undefined') {
     enableIndexedDbPersistence(firestore)
       .catch((err) => {

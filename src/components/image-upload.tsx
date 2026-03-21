@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
-import { ImageIcon, LinkIcon, Upload, X, Loader2, Image as ImageIconLucide } from 'lucide-react';
+import { Upload, X, Loader2, Image as ImageIconLucide, LinkIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -15,15 +15,15 @@ interface ImageUploadProps {
 }
 
 /**
- * Composant ImageUpload simplifié utilisant la conversion Base64.
- * Avantage : Pas besoin de configurer Firebase Storage, l'image est stockée en texte.
+ * Composant de gestion d'images simplifié.
+ * Convertit automatiquement les fichiers en Base64 pour un stockage direct en base de données.
  */
 export function ImageUpload({ value, onChange, multiple = false }: ImageUploadProps) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [processing, setProcessing] = useState(false);
   
-  // Normalisation des données
+  // Normalisation des données pour gérer l'affichage unique ou multiple
   const urls = Array.isArray(value) ? value : (value ? [value] : []);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -35,7 +35,7 @@ export function ImageUpload({ value, onChange, multiple = false }: ImageUploadPr
 
     try {
       for (const file of files) {
-        // Limite de taille pour le Base64 (recommandé < 1Mo pour Firestore)
+        // Limite de sécurité pour éviter de saturer Firestore (recommandé < 1Mo)
         if (file.size > 1024 * 1024) {
           toast({
             variant: "destructive",
@@ -50,7 +50,7 @@ export function ImageUpload({ value, onChange, multiple = false }: ImageUploadPr
         if (multiple) {
           newUrls.push(base64);
         } else {
-          // Mode unique : on remplace
+          // Mode unique : on remplace la valeur actuelle
           onChange(base64);
           setProcessing(false);
           return;
@@ -169,16 +169,12 @@ export function ImageUpload({ value, onChange, multiple = false }: ImageUploadPr
         <div className="relative">
           <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Ou collez l'adresse URL ici..."
+            placeholder="Ou coller un lien direct (URL)..."
             value={!multiple ? (urls[0] || '') : ''}
             onChange={(e) => !multiple && onChange(e.target.value)}
             className="pl-9 h-11 rounded-xl border-muted-foreground/20 focus:border-primary transition-all text-xs"
           />
         </div>
-        
-        <p className="text-[10px] text-muted-foreground italic text-center px-2">
-          Note : Les photos sont converties en texte (Base64) pour un stockage immédiat sans serveur.
-        </p>
       </div>
 
       {/* Input caché */}
