@@ -52,7 +52,6 @@ import { fr } from "date-fns/locale";
 import { getSafeDate } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 
-// New component for client details
 function ClientDetails({ client }: { client: Client }) {
   const { toast } = useToast();
   const [copied, setCopied] = React.useState(false);

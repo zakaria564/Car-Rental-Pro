@@ -5,7 +5,6 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
 import { getStorage } from "firebase/storage";
 
-// Cette fonction garantit que Firebase n'est initialisé qu'une seule fois.
 const getFirebaseApp = (): FirebaseApp => {
   if (!getApps().length) {
     const firebaseConfig = {

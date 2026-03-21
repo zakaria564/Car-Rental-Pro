@@ -17,7 +17,7 @@ interface ImageUploadProps {
 
 /**
  * Elite Media Suite - Version Base64 avec Compression Automatique
- * Résout le problème "Fichier trop volumineux" en compressant l'image avant l'envoi.
+ * Appliquée à toute l'application pour éviter les erreurs de taille Firestore.
  */
 export function ImageUpload({ value, onChange, multiple = false }: ImageUploadProps) {
   const { toast } = useToast();
@@ -79,7 +79,6 @@ export function ImageUpload({ value, onChange, multiple = false }: ImageUploadPr
 
     try {
       for (const file of files) {
-        // On compresse systématiquement pour éviter les erreurs de taille Firestore
         const optimizedBase64 = await compressImage(file);
         
         if (multiple) {
@@ -99,7 +98,7 @@ export function ImageUpload({ value, onChange, multiple = false }: ImageUploadPr
       toast({
         variant: "destructive",
         title: "Erreur de traitement",
-        description: "L'image est peut-être corrompue ou trop complexe.",
+        description: "L'image est peut-être corrompue ou trop lourde.",
       });
     } finally {
       setProcessing(false);
