@@ -16,8 +16,8 @@ interface ImageUploadProps {
 }
 
 /**
- * Elite Media Suite - Version Simplifiée Base64
- * Permet de choisir une photo (conversion Base64 auto) ou de coller un lien direct.
+ * Elite Media Suite - Version Base64 Simplifiée
+ * Permet de choisir une photo et de l'afficher instantanément.
  */
 export function ImageUpload({ value, onChange, multiple = false }: ImageUploadProps) {
   const { toast } = useToast();
@@ -35,12 +35,12 @@ export function ImageUpload({ value, onChange, multiple = false }: ImageUploadPr
 
     try {
       for (const file of files) {
-        // Limite de 1Mo pour le format Base64 afin de ne pas surcharger Firestore
+        // Limite raisonnable pour le format Base64 (1Mo)
         if (file.size > 1024 * 1024) {
           toast({
             variant: "destructive",
-            title: "Image trop lourde",
-            description: "Veuillez choisir une image de moins de 1 Mo pour une fluidité maximale.",
+            title: "Fichier trop volumineux",
+            description: "Veuillez choisir une image de moins de 1 Mo pour une performance optimale.",
           });
           continue;
         }
@@ -60,11 +60,11 @@ export function ImageUpload({ value, onChange, multiple = false }: ImageUploadPr
         onChange(newUrls);
       }
     } catch (error) {
-      console.error("Erreur de conversion:", error);
+      console.error("Erreur de traitement:", error);
       toast({
         variant: "destructive",
-        title: "Échec du traitement",
-        description: "Impossible de lire le fichier photo.",
+        title: "Erreur",
+        description: "Impossible de traiter la photo.",
       });
     } finally {
       setProcessing(false);
@@ -91,11 +91,11 @@ export function ImageUpload({ value, onChange, multiple = false }: ImageUploadPr
 
   return (
     <div className="space-y-4">
-      {/* Cadre de prévisualisation */}
+      {/* Zone de prévisualisation */}
       <div className={cn(
-        "relative w-full rounded-2xl border-2 border-dashed transition-all overflow-hidden bg-muted/5",
+        "relative w-full rounded-xl border-2 border-dashed transition-all overflow-hidden bg-muted/10",
         !multiple && "aspect-[16/9]",
-        multiple && "min-h-[120px] p-4"
+        multiple && "min-h-[100px] p-2"
       )}>
         {!multiple ? (
           urls[0] ? (
@@ -110,82 +110,75 @@ export function ImageUpload({ value, onChange, multiple = false }: ImageUploadPr
               <button 
                 type="button" 
                 onClick={() => removeImage(urls[0])}
-                className="absolute top-2 right-2 bg-destructive text-white p-1.5 rounded-full shadow-lg hover:scale-110 transition-transform z-10"
+                className="absolute top-2 right-2 bg-destructive text-white p-1 rounded-full shadow hover:scale-110 transition-transform"
               >
                 <X className="h-4 w-4" />
               </button>
             </>
           ) : (
-            <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3">
-              <div className="p-4 rounded-full bg-muted/20">
-                <ImageIcon className="h-10 w-10 opacity-30" />
-              </div>
-              <span className="text-xs font-medium italic text-center px-4">
-                Aucune photo sélectionnée<br/>
-                <span className="text-[10px] opacity-60">Utilisez le bouton ci-dessous</span>
-              </span>
+            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+              <ImageIcon className="h-8 w-8 mb-2 opacity-20" />
+              <p className="text-xs italic">Aucune photo</p>
             </div>
           )
         ) : (
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-2">
             {urls.map((url, i) => (
-              <div key={i} className="relative aspect-square rounded-xl overflow-hidden border bg-muted shadow-sm">
+              <div key={i} className="relative aspect-square rounded-md overflow-hidden border bg-muted">
                 <Image src={url} alt="Aperçu" fill className="object-cover" unoptimized />
                 <button 
                   type="button" 
                   onClick={() => removeImage(url)}
-                  className="absolute top-1 right-1 bg-destructive text-white p-1 rounded-lg"
+                  className="absolute top-1 right-1 bg-destructive text-white p-0.5 rounded shadow"
                 >
                   <X className="h-3 w-3" />
                 </button>
               </div>
             ))}
-            {urls.length < 12 && (
+            {urls.length < 10 && (
                <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="aspect-square rounded-xl border-2 border-dashed flex flex-col items-center justify-center text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/5 transition-all"
+                className="aspect-square rounded-md border-2 border-dashed flex flex-col items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors"
               >
-                <Upload className="h-6 w-6 mb-1" />
-                <span className="text-[10px] font-bold uppercase">Ajouter</span>
+                <Upload className="h-5 w-5 mb-1" />
+                <span className="text-[10px] font-bold">AJOUTER</span>
               </button>
             )}
           </div>
         )}
         
         {processing && (
-          <div className="absolute inset-0 bg-background/60 backdrop-blur-sm flex flex-col items-center justify-center gap-2 z-20">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <span className="text-xs font-bold text-primary">Traitement...</span>
+          <div className="absolute inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center z-10">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         )}
       </div>
 
       {/* Actions */}
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-2">
         <Button
           type="button"
           disabled={processing}
           variant="secondary"
           onClick={() => fileInputRef.current?.click()}
-          className="w-full h-11 rounded-xl font-bold flex items-center gap-2"
+          className="w-full h-10 rounded-lg font-semibold flex items-center gap-2"
         >
           <Upload className="h-4 w-4" />
           Choisir une photo
         </Button>
         
-        <div className="relative group">
-          <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+        <div className="relative">
+          <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Ou coller un lien direct (URL)..."
+            placeholder="Ou lien direct (URL)..."
             value={!multiple ? (urls[0] || '') : ''}
             onChange={(e) => !multiple && onChange(e.target.value)}
-            className="pl-9 h-11 rounded-xl border-muted-foreground/20 focus:border-primary focus:ring-primary text-xs"
+            className="pl-9 h-10 rounded-lg text-xs"
           />
         </div>
       </div>
 
-      {/* Input caché */}
       <input 
         type="file" 
         ref={fileInputRef} 

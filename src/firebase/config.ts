@@ -19,7 +19,7 @@ const getFirebaseApp = (): FirebaseApp => {
     };
 
     if (!firebaseConfig.apiKey) {
-        console.warn("Clé API Firebase manquante. Vérifiez vos variables d'environnement.");
+        console.warn("Clé API Firebase manquante.");
     }
     
     return initializeApp(firebaseConfig);
