@@ -99,7 +99,7 @@ function ClientDetails({ client }: { client: Client }) {
                                     copyToClipboard(client.email!);
                                 }}
                             >
-                                {copied ? <Check className="h-3 w-3 text-green-500" /> : <Check className="h-3 w-3" />}
+                                {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent><p>Copier l'e-mail</p></TooltipContent>
@@ -142,7 +142,7 @@ function ClientDetails({ client }: { client: Client }) {
                             alt={`CIN de ${client.nom}`} 
                             fill 
                             className="object-contain group-hover:scale-105 transition-transform duration-300"
-                            unoptimized={client.photoCIN.startsWith('data:')}
+                            unoptimized
                             data-ai-hint="id card"
                         />
                       </a>
@@ -168,7 +168,7 @@ function ClientDetails({ client }: { client: Client }) {
                             alt={`Document ${index + 1}`}
                             fill
                             className="object-contain p-1"
-                            unoptimized={photoUrl.startsWith('data:')}
+                            unoptimized
                             data-ai-hint="client document"
                         />
                     </a>
@@ -509,7 +509,9 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
         <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>Détails du client</DialogTitle>
-            {selectedClient && <DialogDescription>Fiche complète pour {selectedClient.nom}.</DialogDescription>}
+            <DialogDescription>
+              Fiche complète et documents de {selectedClient?.nom || 'l\'utilisateur'}.
+            </DialogDescription>
           </DialogHeader>
           {selectedClient && <ClientDetails client={selectedClient} />}
         </DialogContent>
