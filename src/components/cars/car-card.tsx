@@ -2,23 +2,22 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { Wrench, Pencil, FileText, TriangleAlert, Gauge, Fuel, Cog, Construction, Printer, Trash2, Car as CarIcon } from "lucide-react";
+import { Pencil, FileText, TriangleAlert, Gauge, Fuel, Cog, Trash2, Car as CarIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { Car, Maintenance } from "@/lib/definitions";
+import type { Car } from "@/lib/definitions";
 import { formatCurrency, cn, getSafeDate } from "@/lib/utils";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import CarForm from "./car-form";
-import MaintenanceForm from "./maintenance-form";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "../ui/scroll-area";
 import { useFirebase } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { differenceInDays, format } from "date-fns";
-import { CarDetails, PrintableCarDetails } from "./car-details-view";
+import { CarDetails } from "./car-details-view";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { doc, getDoc, writeBatch } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
@@ -36,7 +35,6 @@ const getAvailabilityProps = (car: Car) => {
 export default function CarCard({ car }: { car: Car }) {
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = React.useState(false);
-  const [isMaintenanceSheetOpen, setIsMaintenanceSheetOpen] = React.useState(false);
   const [historyFilterDate, setHistoryFilterDate] = React.useState<Date | undefined>();
   const [isArchiveAlertOpen, setIsArchiveAlertOpen] = React.useState(false);
 
@@ -86,7 +84,7 @@ export default function CarCard({ car }: { car: Car }) {
     return groupedMaintenanceHistory.filter((group: any) => format(group.date, 'yyyy-MM-dd') === filterDateStr);
   }, [groupedMaintenanceHistory, historyFilterDate]);
 
-  const { documentAttention, maintenanceAttention } = React.useMemo(() => {
+  const { documentAttention } = React.useMemo(() => {
     const today = new Date();
     let hasExpired = false, hasSoon = false, docMessages: string[] = [];
     const checkDoc = (date: any, name: string) => {
@@ -98,7 +96,7 @@ export default function CarCard({ car }: { car: Car }) {
     };
     checkDoc(car.dateExpirationAssurance, "Assurance");
     checkDoc(car.dateProchaineVisiteTechnique, "Visite");
-    return { documentAttention: { needsAttention: hasExpired || hasSoon, message: docMessages.join(' '), status: hasExpired ? 'expired' : 'soon' }, maintenanceAttention: { needsAttention: false, message: "" } };
+    return { documentAttention: { needsAttention: hasExpired || hasSoon, message: docMessages.join(' '), status: hasExpired ? 'expired' : 'soon' } };
   }, [car]);
 
   return (
@@ -146,17 +144,37 @@ export default function CarCard({ car }: { car: Car }) {
             <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
                 <TooltipProvider><Tooltip><TooltipTrigger asChild><DialogTrigger asChild><Button variant="outline" size="icon"><FileText className="h-4 w-4" /></Button></DialogTrigger></TooltipTrigger><TooltipContent><p>Détails & Entretien</p></TooltipContent></Tooltip></TooltipProvider>
                 <DialogContent className="sm:max-w-lg">
-                    <DialogHeader><DialogTitle>Détails du véhicule</DialogTitle></DialogHeader>
+                    <DialogHeader>
+                        <DialogTitle>Détails du véhicule</DialogTitle>
+                        <DialogDescription>{car.marque} {car.modele} - {car.immat}</DialogDescription>
+                    </DialogHeader>
                     <CarDetails car={car} groupedMaintenanceHistory={groupedMaintenanceHistory} filteredHistory={filteredHistory} historyFilterDate={historyFilterDate} setHistoryFilterDate={setHistoryFilterDate} />
                 </DialogContent>
             </Dialog>
             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                 <SheetTrigger asChild><Button variant="outline" size="icon" disabled={car.disponibilite === 'louee'}><Pencil className="h-4 w-4" /></Button></SheetTrigger>
-                <SheetContent className="sm:max-w-[480px]"><ScrollArea className="h-full pr-6"><CarForm car={car} onFinished={() => setIsSheetOpen(false)} /></ScrollArea></SheetContent>
+                <SheetContent className="sm:max-w-[480px]">
+                    <SheetHeader>
+                        <SheetTitle>Modifier le véhicule</SheetTitle>
+                        <SheetDescription>{car.marque} {car.modele} ({car.immat})</SheetDescription>
+                    </SheetHeader>
+                    <ScrollArea className="h-full pr-6">
+                        <CarForm car={car} onFinished={() => setIsSheetOpen(false)} />
+                    </ScrollArea>
+                </SheetContent>
             </Sheet>
             <AlertDialog open={isArchiveAlertOpen} onOpenChange={setIsArchiveAlertOpen}>
                 <AlertDialogTrigger asChild><Button variant="outline" size="icon" className="text-destructive" disabled={car.disponibilite === 'louee'}><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
-                <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Archiver ?</AlertDialogTitle><AlertDialogDescription>Déplacer ce véhicule vers les archives ?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Annuler</AlertDialogCancel><AlertDialogAction onClick={handleArchiveCar} className="bg-destructive">Archiver</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Archiver ce véhicule ?</AlertDialogTitle>
+                        <AlertDialogDescription>Le véhicule sera déplacé vers les archives et ne sera plus visible dans la flotte active.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleArchiveCar} className="bg-destructive">Archiver</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
             </AlertDialog>
           </div>
         </div>

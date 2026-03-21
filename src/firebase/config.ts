@@ -1,9 +1,9 @@
 'use client';
 
 import { FirebaseApp, getApp, getApps, initializeApp } from 'firebase/app';
-import { Auth, getAuth } from 'firebase/auth';
-import { Firestore, getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
-import { FirebaseStorage, getStorage } from "firebase/storage";
+import { getAuth } from 'firebase/auth';
+import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
+import { getStorage } from "firebase/storage";
 
 // Cette fonction garantit que Firebase n'est initialisé qu'une seule fois.
 const getFirebaseApp = (): FirebaseApp => {
