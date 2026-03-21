@@ -16,7 +16,7 @@ import {
   getExpandedRowModel,
 } from "@tanstack/react-table";
 import { MoreHorizontal, Trash2, FileText, Printer, ArrowUpDown, ChevronDown, ChevronRight } from "lucide-react";
-import { format, differenceInCalendarDays, startOfDay } from "date-fns";
+import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
 import { Button } from "@/components/ui/button";
@@ -58,9 +58,9 @@ const StatementDialog = ({ rental, payments, onPrintClick }: {
   return (
     <DialogContent className="sm:max-w-2xl">
       <DialogHeader>
-        <DialogTitle>Relevé de compte (Archives)</DialogTitle>
+        <DialogTitle>Relevé Archivé : {rental.contractNumber}</DialogTitle>
         <DialogDescription>
-          Contrat {rental.contractNumber} pour {rental.locataire.nomPrenom}
+          Situation financière archivée pour {rental.locataire.nomPrenom}
         </DialogDescription>
       </DialogHeader>
       <div className="rounded-md border">
@@ -163,32 +163,20 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
     }
     
     const styles = `
-      body { 
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-       }
+      body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
       .no-print { display: none !important; }
-       @page {
-        size: A4;
-        margin: 15mm;
-      }
+      @page { size: A4; margin: 15mm; }
     `;
 
     printWindow.document.write('<html><head><title>Facture</title>');
-    
     Array.from(document.styleSheets).forEach(sheet => {
-        if (sheet.href) {
-            printWindow.document.write(`<link rel="stylesheet" href="${sheet.href}">`);
-        }
+        if (sheet.href) printWindow.document.write(`<link rel="stylesheet" href="${sheet.href}">`);
     });
-
     printWindow.document.write(`<style>${styles}</style>`);
     printWindow.document.write('</head><body>');
     printWindow.document.write(printContent.innerHTML);
     printWindow.document.write('</body></html>');
-    
     printWindow.document.close();
-    
     printWindow.onload = function() {
       setTimeout(function() {
         printWindow.focus();
@@ -444,22 +432,24 @@ export default function ArchivedPaymentsTable({ payments, rentals }: { payments:
             if (!open) setStatementRental(null);
         }}>
           {statementRental && (
-             <>
-                <div className="hidden">
-                    <Invoice 
-                        rental={statementRental} 
-                        payments={payments.filter(p => p.rentalId === statementRental.id)}
-                        totalAmount={calculateTotalRentalAmount(statementRental)}
-                    />
-                </div>
-                <StatementDialog 
-                    rental={statementRental} 
-                    payments={payments.filter(p => p.rentalId === statementRental.id)}
-                    onPrintClick={handlePrintInvoice}
-                />
-            </>
+             <StatementDialog 
+                rental={statementRental} 
+                payments={payments.filter(p => p.rentalId === statementRental.id)}
+                onPrintClick={handlePrintInvoice}
+             />
           )}
         </Dialog>
+
+        {/* Invoice cachée pour l'impression */}
+        <div className="hidden">
+            {statementRental && (
+                <Invoice 
+                    rental={statementRental} 
+                    payments={payments.filter(p => p.rentalId === statementRental.id)}
+                    totalAmount={calculateTotalRentalAmount(statementRental)}
+                />
+            )}
+        </div>
       
       <AlertDialog open={!!rentalToDelete} onOpenChange={(open) => !open && setRentalToDelete(null)}>
         {rentalToDelete && (

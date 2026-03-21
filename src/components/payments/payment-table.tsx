@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -52,9 +51,9 @@ const RentalStatementDialog = ({ rental, payments, onDeletePaymentClick, onPrint
   return (
     <DialogContent className="sm:max-w-2xl">
       <DialogHeader>
-        <DialogTitle>Relevé de compte</DialogTitle>
+        <DialogTitle>Relevé de compte : {rental.contractNumber}</DialogTitle>
         <DialogDescription>
-          Contrat {rental.contractNumber} pour {rental.locataire.nomPrenom}
+          Suivi des paiements pour {rental.locataire.nomPrenom}
         </DialogDescription>
       </DialogHeader>
       <div className="rounded-md border">
@@ -178,15 +177,12 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
     const carRef = doc(firestore, 'cars', rentalToDel.vehicule.carId);
     const paymentsQuery = query(collection(firestore, 'payments'), where("rentalId", "==", rentalToDel.id));
 
-    // Lectures hors transaction pour éviter les conflits reads/writes
     const paymentsSnapshot = await getDocs(paymentsQuery);
 
     try {
         await runTransaction(firestore, async (transaction) => {
-            // LECTURES Firestore (transaction.get)
             const carDoc = await transaction.get(carRef);
 
-            // ÉCRITURES Firestore (delete, update)
             paymentsSnapshot.forEach(docSnap => {
                 transaction.delete(docSnap.ref);
             });
@@ -310,10 +306,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
       accessorKey: "contractNumber",
       header: () => <div className="text-[12px] font-bold text-foreground">Contrat N°</div>,
       cell: ({ row }) => {
-        if (row.getIsGrouped()) {
-            const latest = row.subRows[0]?.original;
-            return latest ? <span className="font-mono text-[12px] text-muted-foreground bg-muted p-1 rounded">Dernier: {latest.contractNumber}</span> : null;
-        }
+        if (row.getIsGrouped()) return null;
         return <span className="font-mono font-medium text-[12px]">{row.original.contractNumber}</span>;
       },
     },
@@ -321,10 +314,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
         accessorKey: "vehicule.marque",
         header: () => <div className="text-[12px] font-bold text-foreground">Voiture</div>,
         cell: ({ row }) => {
-            if (row.getIsGrouped()) {
-                const latest = row.subRows[0]?.original;
-                return latest ? <span className="text-[12px] text-muted-foreground">{latest.vehicule.marque}</span> : null;
-            }
+            if (row.getIsGrouped()) return null;
             return <span className="text-[12px]">{row.original.vehicule.marque}</span>;
         },
     },
@@ -332,10 +322,7 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
         accessorKey: "vehicule.immatriculation",
         header: () => <div className="text-[12px] font-bold text-foreground">Immatriculation</div>,
         cell: ({ row }) => {
-            if (row.getIsGrouped()) {
-                const latest = row.subRows[0]?.original;
-                return latest ? <Badge variant="outline" className="font-mono text-[12px] opacity-70">{latest.vehicule.immatriculation}</Badge> : null;
-            }
+            if (row.getIsGrouped()) return null;
             return <Badge variant="secondary" className="font-mono text-[12px]">{row.original.vehicule.immatriculation}</Badge>;
         },
     },
@@ -534,7 +521,6 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
                     table.getRowModel().rows.map((row) => {
                         let hasUnpaid = false;
                         if (row.getIsGrouped()) {
-                            // On signale toujours si le client a une dette sur N'IMPORTE QUEL contrat
                             const total = row.subRows.reduce((acc, subRow) => acc + calculateTotalRentalAmount(subRow.original), 0);
                             const paid = row.subRows.reduce((acc, subRow) => acc + (subRow.original.location.montantPaye || 0), 0);
                             hasUnpaid = (total - paid) > 0.01;
@@ -598,24 +584,25 @@ export default function PaymentTable({ rentals, payments, onAddPaymentForRental 
             if (!open) setStatementRental(null);
         }}>
           {statementRental && (
-             <>
-                <div className="hidden">
-                    <Invoice 
-                        rental={statementRental} 
-                        payments={payments.filter(p => p.rentalId === statementRental.id)}
-                        totalAmount={calculateTotalRentalAmount(statementRental)}
-                    />
-                </div>
-
-                <RentalStatementDialog 
-                    rental={statementRental} 
-                    payments={payments.filter(p => p.rentalId === statementRental.id)}
-                    onDeletePaymentClick={setPaymentToDelete}
-                    onPrintClick={handlePrintInvoice}
-                />
-            </>
+             <RentalStatementDialog 
+                rental={statementRental} 
+                payments={payments.filter(p => p.rentalId === statementRental.id)}
+                onDeletePaymentClick={setPaymentToDelete}
+                onPrintClick={handlePrintInvoice}
+             />
           )}
         </Dialog>
+
+        {/* Partie cachée pour l'impression - Toujours présente mais masquée */}
+        <div className="hidden">
+            {statementRental && (
+                <Invoice 
+                    rental={statementRental} 
+                    payments={payments.filter(p => p.rentalId === statementRental.id)}
+                    totalAmount={calculateTotalRentalAmount(statementRental)}
+                />
+            )}
+        </div>
 
         <AlertDialog open={!!paymentToDelete} onOpenChange={(open) => !open && setPaymentToDelete(null)}>
             {paymentToDelete && (
