@@ -1,12 +1,10 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
-import { ImageIcon, LinkIcon, Upload, X, Loader2 } from 'lucide-react';
+import { ImageIcon, LinkIcon, Upload, X, Loader2, Image as ImageIconLucide } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
-import { useFirebase } from '@/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useToast } from '@/hooks/use-toast';
 
 interface ImageUploadProps {
@@ -17,52 +15,44 @@ interface ImageUploadProps {
 }
 
 /**
- * Composant simplifié pour gérer les images :
- * 1. Bouton pour choisir un fichier (Upload automatique vers Firebase Storage)
- * 2. Champ texte pour coller directement une URL
+ * Composant ImageUpload simplifié utilisant la conversion Base64.
+ * Avantage : Pas besoin de configurer Firebase Storage, l'image est stockée en texte.
  */
-export function ImageUpload({ value, onChange, folder = 'general', multiple = false }: ImageUploadProps) {
-  const { storage } = useFirebase();
+export function ImageUpload({ value, onChange, multiple = false }: ImageUploadProps) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
+  const [processing, setProcessing] = useState(false);
   
-  // Normalisation des URLs en tableau
+  // Normalisation des données
   const urls = Array.isArray(value) ? value : (value ? [value] : []);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
-    if (!storage) {
-      toast({
-        variant: "destructive",
-        title: "Configuration requise",
-        description: "Firebase Storage n'est pas activé. Veuillez coller l'URL manuellement.",
-      });
-      return;
-    }
-
-    setUploading(true);
+    setProcessing(true);
     const newUrls = [...urls];
 
     try {
       for (const file of files) {
-        // Création d'une référence unique pour le fichier
-        const fileRef = ref(storage, `${folder}/${Date.now()}_${file.name}`);
-        
-        // Téléchargement
-        const snapshot = await uploadBytes(fileRef, file);
-        
-        // Récupération de l'URL publique
-        const downloadURL = await getDownloadURL(snapshot.ref);
+        // Limite de taille pour le Base64 (recommandé < 1Mo pour Firestore)
+        if (file.size > 1024 * 1024) {
+          toast({
+            variant: "destructive",
+            title: "Image trop volumineuse",
+            description: "Pour un enregistrement rapide, préférez des images de moins de 1 Mo.",
+          });
+          continue;
+        }
+
+        const base64 = await fileToBase64(file);
         
         if (multiple) {
-          newUrls.push(downloadURL);
+          newUrls.push(base64);
         } else {
-          // Mode simple : on remplace la valeur
-          onChange(downloadURL);
-          setUploading(false);
+          // Mode unique : on remplace
+          onChange(base64);
+          setProcessing(false);
           return;
         }
       }
@@ -70,18 +60,26 @@ export function ImageUpload({ value, onChange, folder = 'general', multiple = fa
       if (multiple) {
         onChange(newUrls);
       }
-    } catch (error: any) {
-      console.error("Erreur Upload:", error);
+    } catch (error) {
+      console.error("Erreur conversion Base64:", error);
       toast({
         variant: "destructive",
-        title: "Échec de l'envoi",
-        description: "Vérifiez que le service Storage est actif dans votre console Firebase.",
+        title: "Échec du traitement",
+        description: "Impossible de lire le fichier photo.",
       });
     } finally {
-      setUploading(false);
-      // Reset de l'input pour permettre de choisir le même fichier deux fois
+      setProcessing(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
+  };
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
   };
 
   const removeImage = (urlToRemove: string) => {
@@ -94,10 +92,10 @@ export function ImageUpload({ value, onChange, folder = 'general', multiple = fa
 
   return (
     <div className="space-y-4">
-      {/* Zone de prévisualisation (Mode Simple) */}
+      {/* Cadre de prévisualisation (Mode Photo Unique) */}
       {!multiple && (
         <div className={cn(
-          "relative aspect-video w-full rounded-xl border-2 border-dashed flex flex-col items-center justify-center overflow-hidden bg-muted/10 transition-all",
+          "relative aspect-[16/9] w-full rounded-xl border-2 border-dashed flex flex-col items-center justify-center overflow-hidden bg-muted/10 transition-all",
           urls[0] ? "border-primary/50 bg-muted/20" : "border-muted-foreground/20"
         )}>
           {urls[0] ? (
@@ -119,26 +117,26 @@ export function ImageUpload({ value, onChange, folder = 'general', multiple = fa
             </>
           ) : (
             <div className="flex flex-col items-center gap-2 text-muted-foreground">
-              <ImageIcon className="h-10 w-10 opacity-20" />
-              <span className="text-xs font-medium">Aucune image sélectionnée</span>
+              <ImageIconLucide className="h-10 w-10 opacity-20" />
+              <span className="text-xs font-medium italic">Aucune photo sélectionnée</span>
             </div>
           )}
           
-          {uploading && (
+          {processing && (
             <div className="absolute inset-0 bg-background/60 backdrop-blur-sm flex flex-col items-center justify-center gap-2 z-20">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <span className="text-xs font-bold text-primary">Téléchargement...</span>
+              <span className="text-xs font-bold text-primary">Conversion...</span>
             </div>
           )}
         </div>
       )}
 
-      {/* Grille de prévisualisation (Mode Multiple - Contrats) */}
+      {/* Grille pour les inspections (Mode Multi-Photos) */}
       {multiple && urls.length > 0 && (
         <div className="grid grid-cols-3 gap-3">
           {urls.map((url, i) => (
             <div key={i} className="relative aspect-square rounded-lg overflow-hidden border bg-muted shadow-sm group">
-              <Image src={url} alt="Doc" fill className="object-cover" unoptimized />
+              <Image src={url} alt="Aperçu" fill className="object-cover" unoptimized />
               <button 
                 type="button" 
                 onClick={() => removeImage(url)}
@@ -148,7 +146,7 @@ export function ImageUpload({ value, onChange, folder = 'general', multiple = fa
               </button>
             </div>
           ))}
-          {uploading && (
+          {processing && (
             <div className="aspect-square rounded-lg border-2 border-dashed flex items-center justify-center bg-muted/50">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>
@@ -156,36 +154,34 @@ export function ImageUpload({ value, onChange, folder = 'general', multiple = fa
         </div>
       )}
 
-      {/* Contrôles de saisie */}
+      {/* Zone d'actions */}
       <div className="flex flex-col gap-3">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <button
-            type="button"
-            disabled={uploading}
-            onClick={() => fileInputRef.current?.click()}
-            className="flex items-center justify-center gap-2 h-11 px-4 rounded-xl bg-primary text-white hover:bg-primary/90 transition-all font-bold text-sm shadow-md active:scale-95 disabled:opacity-50"
-          >
-            <Upload className="h-4 w-4" />
-            Choisir dans la galerie
-          </button>
-          
-          <div className="relative">
-            <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Ou collez le lien ici..."
-              value={!multiple ? (urls[0] || '') : ''}
-              onChange={(e) => !multiple && onChange(e.target.value)}
-              className="pl-9 h-11 rounded-xl border-muted-foreground/20 focus:border-primary transition-all"
-            />
-          </div>
+        <button
+          type="button"
+          disabled={processing}
+          onClick={() => fileInputRef.current?.click()}
+          className="w-full flex items-center justify-center gap-2 h-11 px-4 rounded-xl bg-primary text-white hover:bg-primary/90 transition-all font-bold text-sm shadow-md active:scale-95 disabled:opacity-50"
+        >
+          <Upload className="h-4 w-4" />
+          Choisir une photo
+        </button>
+        
+        <div className="relative">
+          <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Ou collez l'adresse URL ici..."
+            value={!multiple ? (urls[0] || '') : ''}
+            onChange={(e) => !multiple && onChange(e.target.value)}
+            className="pl-9 h-11 rounded-xl border-muted-foreground/20 focus:border-primary transition-all text-xs"
+          />
         </div>
         
-        <p className="text-[10px] text-muted-foreground italic px-1 text-center">
-          Note : Le bouton Galerie colle automatiquement l'URL si votre Firebase est configuré.
+        <p className="text-[10px] text-muted-foreground italic text-center px-2">
+          Note : Les photos sont converties en texte (Base64) pour un stockage immédiat sans serveur.
         </p>
       </div>
 
-      {/* Input de fichier caché */}
+      {/* Input caché */}
       <input 
         type="file" 
         ref={fileInputRef} 

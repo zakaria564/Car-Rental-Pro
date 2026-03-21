@@ -18,7 +18,7 @@ const getFirebaseApp = (): FirebaseApp => {
       measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
     };
 
-    // Diagnostics de configuration
+    // Diagnostics de configuration - Utilisation de guillemets doubles pour éviter les erreurs d'apostrophes
     if (!firebaseConfig.apiKey) {
         console.warn("Clé API Firebase manquante. Vérifiez vos variables d'environnement.");
     }
