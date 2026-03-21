@@ -23,10 +23,6 @@ const getFirebaseApp = (): FirebaseApp => {
         console.warn("Clé API Firebase manquante. Vérifiez vos variables d'environnement.");
     }
     
-    if (!firebaseConfig.storageBucket || firebaseConfig.storageBucket.includes("YOUR_STORAGE_BUCKET") || firebaseConfig.storageBucket === "") {
-        console.warn("Le bucket Firebase Storage n'est pas configuré. Le mode manuel (URL) sera disponible par défaut.");
-    }
-
     return initializeApp(firebaseConfig);
   }
   return getApp();
