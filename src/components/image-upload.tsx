@@ -16,8 +16,8 @@ interface ImageUploadProps {
 }
 
 /**
- * Elite Media Suite - Version Base64 Simplifiée
- * Permet de choisir une photo et de l'afficher instantanément.
+ * Elite Media Suite - Version Base64 avec Compression Automatique
+ * Résout le problème "Fichier trop volumineux" en compressant l'image avant l'envoi.
  */
 export function ImageUpload({ value, onChange, multiple = false }: ImageUploadProps) {
   const { toast } = useToast();
@@ -25,6 +25,50 @@ export function ImageUpload({ value, onChange, multiple = false }: ImageUploadPr
   const [processing, setProcessing] = useState(false);
   
   const urls = Array.isArray(value) ? value : (value ? [value] : []);
+
+  // Fonction de compression intelligente pour garantir le stockage Base64
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new window.Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          // Limite à 1200px pour un équilibre parfait qualité/poids
+          const MAX_SIZE = 1200;
+          if (width > height) {
+            if (width > MAX_SIZE) {
+              height *= MAX_SIZE / width;
+              width = MAX_SIZE;
+            }
+          } else {
+            if (height > MAX_SIZE) {
+              width *= MAX_SIZE / height;
+              height = MAX_SIZE;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return reject(new Error("Canvas context failed"));
+          
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Export en JPEG qualité 0.7 (très léger pour Base64)
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          resolve(dataUrl);
+        };
+        img.onerror = () => reject(new Error("Image loading failed"));
+      };
+      reader.onerror = () => reject(new Error("File reading failed"));
+    });
+  };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -35,22 +79,13 @@ export function ImageUpload({ value, onChange, multiple = false }: ImageUploadPr
 
     try {
       for (const file of files) {
-        // Limite raisonnable pour le format Base64 (1Mo)
-        if (file.size > 1024 * 1024) {
-          toast({
-            variant: "destructive",
-            title: "Fichier trop volumineux",
-            description: "Veuillez choisir une image de moins de 1 Mo pour une performance optimale.",
-          });
-          continue;
-        }
-
-        const base64 = await fileToBase64(file);
+        // On compresse systématiquement pour éviter les erreurs de taille Firestore
+        const optimizedBase64 = await compressImage(file);
         
         if (multiple) {
-          newUrls.push(base64);
+          newUrls.push(optimizedBase64);
         } else {
-          onChange(base64);
+          onChange(optimizedBase64);
           setProcessing(false);
           return;
         }
@@ -60,25 +95,16 @@ export function ImageUpload({ value, onChange, multiple = false }: ImageUploadPr
         onChange(newUrls);
       }
     } catch (error) {
-      console.error("Erreur de traitement:", error);
+      console.error("Compression Error:", error);
       toast({
         variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de traiter la photo.",
+        title: "Erreur de traitement",
+        description: "L'image est peut-être corrompue ou trop complexe.",
       });
     } finally {
       setProcessing(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
-  };
-
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = error => reject(error);
-    });
   };
 
   const removeImage = (urlToRemove: string) => {
@@ -91,7 +117,6 @@ export function ImageUpload({ value, onChange, multiple = false }: ImageUploadPr
 
   return (
     <div className="space-y-4">
-      {/* Zone de prévisualisation */}
       <div className={cn(
         "relative w-full rounded-xl border-2 border-dashed transition-all overflow-hidden bg-muted/10",
         !multiple && "aspect-[16/9]",
@@ -110,7 +135,7 @@ export function ImageUpload({ value, onChange, multiple = false }: ImageUploadPr
               <button 
                 type="button" 
                 onClick={() => removeImage(urls[0])}
-                className="absolute top-2 right-2 bg-destructive text-white p-1 rounded-full shadow hover:scale-110 transition-transform"
+                className="absolute top-2 right-2 bg-destructive text-white p-1 rounded-full shadow hover:scale-110 transition-transform z-20"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -118,7 +143,7 @@ export function ImageUpload({ value, onChange, multiple = false }: ImageUploadPr
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
               <ImageIcon className="h-8 w-8 mb-2 opacity-20" />
-              <p className="text-xs italic">Aucune photo</p>
+              <p className="text-xs italic">Aucune photo sélectionnée</p>
             </div>
           )
         ) : (
@@ -129,7 +154,7 @@ export function ImageUpload({ value, onChange, multiple = false }: ImageUploadPr
                 <button 
                   type="button" 
                   onClick={() => removeImage(url)}
-                  className="absolute top-1 right-1 bg-destructive text-white p-0.5 rounded shadow"
+                  className="absolute top-1 right-1 bg-destructive text-white p-0.5 rounded shadow z-20"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -139,23 +164,25 @@ export function ImageUpload({ value, onChange, multiple = false }: ImageUploadPr
                <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="aspect-square rounded-md border-2 border-dashed flex flex-col items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                className="aspect-square rounded-md border-2 border-dashed flex flex-col items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors bg-background"
               >
                 <Upload className="h-5 w-5 mb-1" />
-                <span className="text-[10px] font-bold">AJOUTER</span>
+                <span className="text-[10px] font-bold uppercase">Ajouter</span>
               </button>
             )}
           </div>
         )}
         
         {processing && (
-          <div className="absolute inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center z-10">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <div className="absolute inset-0 bg-background/60 backdrop-blur-sm flex items-center justify-center z-30">
+            <div className="flex flex-col items-center gap-2">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <span className="text-xs font-semibold">Optimisation...</span>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Actions */}
       <div className="flex flex-col gap-2">
         <Button
           type="button"

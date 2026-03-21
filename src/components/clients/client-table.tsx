@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import type { Client } from "@/lib/definitions";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from "@/components/ui/sheet";
 import ClientForm from "./client-form";
 import { ScrollArea } from "../ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "../ui/alert-dialog";
@@ -143,7 +143,6 @@ function ClientDetails({ client }: { client: Client }) {
                             fill 
                             className="object-contain group-hover:scale-105 transition-transform duration-300"
                             unoptimized
-                            data-ai-hint="id card"
                         />
                       </a>
                   ) : (
@@ -169,7 +168,6 @@ function ClientDetails({ client }: { client: Client }) {
                             fill
                             className="object-contain p-1"
                             unoptimized
-                            data-ai-hint="client document"
                         />
                     </a>
                   )
@@ -492,11 +490,14 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
             </Button>
           </div>
         </div>
-        <SheetContent className="sm:max-w-[500px]">
+        <SheetContent className="sm:max-w-[500px] flex flex-col">
           <SheetHeader>
             <SheetTitle>{selectedClient ? "Modifier le client" : "Nouveau client"}</SheetTitle>
+            <SheetDescription>
+                {selectedClient ? "Mettez à jour les informations de " + selectedClient.nom : "Remplissez le formulaire pour ajouter un nouveau client."}
+            </SheetDescription>
           </SheetHeader>
-          <ScrollArea className="h-full pr-6">
+          <ScrollArea className="flex-grow pr-6">
               <ClientForm client={selectedClient} onFinished={() => setIsSheetOpen(false)} />
           </ScrollArea>
         </SheetContent>
