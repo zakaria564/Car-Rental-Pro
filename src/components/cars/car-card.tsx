@@ -276,12 +276,13 @@ export default function CarCard({ car }: { car: Car }) {
         <div className="absolute top-2 left-2 z-10">
            <Badge className={cn(availability.className, "text-white")}>{availability.text}</Badge>
         </div>
-        {car.photoURL && car.photoURL.startsWith('http') ? (
+        {car.photoURL ? (
             <Image
                 src={car.photoURL}
                 alt={`${car.marque} ${car.modele}`}
                 fill
                 className="object-contain"
+                unoptimized={car.photoURL.startsWith('data:')}
                 data-ai-hint="car photo"
             />
         ) : (

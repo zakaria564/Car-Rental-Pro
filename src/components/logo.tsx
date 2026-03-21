@@ -15,7 +15,7 @@ export function Logo({ className }: { className?: string }) {
   const companySettings = firebase ? firebase.companySettings : null;
   const logoUrl = companySettings?.logoUrl;
 
-  if (logoUrl && logoUrl.startsWith('http')) {
+  if (logoUrl) {
     return (
       <div className={cn("relative h-16 w-16 flex-shrink-0", className)}>
         <Image 
@@ -23,6 +23,7 @@ export function Logo({ className }: { className?: string }) {
           alt={companySettings?.companyName || "Logo Agence"} 
           fill 
           className="object-contain"
+          unoptimized={logoUrl.startsWith('data:')}
           priority
         />
       </div>

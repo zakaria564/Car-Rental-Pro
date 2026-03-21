@@ -76,13 +76,14 @@ export const DeprecatedInspectionView: React.FC<{ data: any, type: 'depart' | 'r
                     <strong className="text-xs font-semibold">Photos ({type === 'depart' ? 'Départ' : 'Retour'}):</strong>
                     <div className="grid grid-cols-3 gap-2 mt-1">
                         {data.photos.map((photoUrl: string, index: number) => (
-                           photoUrl && photoUrl.startsWith('http') && (
+                           photoUrl && (
                             <a key={index} href={photoUrl} target="_blank" rel="noopener noreferrer" className="relative aspect-square block hover:opacity-80 transition-opacity">
                                 <Image
                                     src={photoUrl}
                                     alt={`Photo ${type} ${index + 1}`}
                                     fill
                                     className="rounded-md object-cover"
+                                    unoptimized={photoUrl.startsWith('data:')}
                                 />
                             </a>
                            )
@@ -216,13 +217,14 @@ export const InspectionDetailsView: React.FC<{ inspectionId: string, type: 'depa
                     <strong className="text-xs font-semibold">Photos ({type === 'depart' ? 'Départ' : 'Retour'}):</strong>
                     <div className="grid grid-cols-3 gap-2 mt-1">
                         {inspection.photos.map((photoUrl, index) => (
-                            photoUrl && photoUrl.startsWith('http') && (
+                            photoUrl && (
                             <a key={index} href={photoUrl} target="_blank" rel="noopener noreferrer" className="relative aspect-square block hover:opacity-80 transition-opacity">
                                 <Image
                                     src={photoUrl}
                                     alt={`Photo ${type} ${index + 1}`}
                                     fill
                                     className="rounded-md object-cover"
+                                    unoptimized={photoUrl.startsWith('data:')}
                                 />
                             </a>
                             )

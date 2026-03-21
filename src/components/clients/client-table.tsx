@@ -135,13 +135,14 @@ function ClientDetails({ client }: { client: Client }) {
           <div className="space-y-3">
               <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Carte d'Identité</h4>
               <div className="relative w-full aspect-[16/10] rounded-lg overflow-hidden border-2 bg-muted shadow-sm group">
-                  {client.photoCIN && client.photoCIN.startsWith('http') ? (
+                  {client.photoCIN ? (
                       <a href={client.photoCIN} target="_blank" rel="noopener noreferrer" className="block w-full h-full">
                         <Image 
                             src={client.photoCIN} 
                             alt={`CIN de ${client.nom}`} 
                             fill 
                             className="object-contain group-hover:scale-105 transition-transform duration-300"
+                            unoptimized={client.photoCIN.startsWith('data:')}
                             data-ai-hint="id card"
                         />
                       </a>
@@ -167,6 +168,7 @@ function ClientDetails({ client }: { client: Client }) {
                             alt={`Document ${index + 1}`}
                             fill
                             className="object-contain p-1"
+                            unoptimized={photoUrl.startsWith('data:')}
                             data-ai-hint="client document"
                         />
                     </a>
