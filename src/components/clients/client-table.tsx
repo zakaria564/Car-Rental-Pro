@@ -134,7 +134,7 @@ function ClientDetails({ client }: { client: Client }) {
           <div className="space-y-3">
               <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex justify-between items-center">
                 <span>Carte d'Identité</span>
-                {client.photoCIN && <span className="text-[10px] normal-case font-normal text-muted-foreground italic">(Cliquez pour imprimer)</span>}
+                {client.photoCIN && <span className="text-[10px] normal-case font-normal text-muted-foreground italic">(Cliquez pour voir)</span>}
               </h4>
               <div className="relative w-full aspect-[16/10] rounded-lg overflow-hidden border-2 bg-muted shadow-sm group">
                   {client.photoCIN ? (
@@ -517,9 +517,9 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
       }}>
         <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Détails du client : {selectedClient?.nom}</DialogTitle>
+            <DialogTitle>Fiche Client</DialogTitle>
             <DialogDescription>
-              Fiche complète et documents de {selectedClient?.nom || 'l\'utilisateur'}.
+              Détails complets et pièces justificatives de {selectedClient?.nom || 'l\'utilisateur'}.
             </DialogDescription>
           </DialogHeader>
           {selectedClient && <ClientDetails client={selectedClient} />}

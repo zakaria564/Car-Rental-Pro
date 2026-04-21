@@ -1,4 +1,3 @@
-
 'use client';
 
 import { FirebaseApp } from 'firebase/app';
@@ -39,10 +38,6 @@ export function useFirebase() {
     throw new Error('useFirebase must be used within a FirebaseProvider');
   }
    if (!context.app || !context.firestore || !context.auth || !context.storage) {
-    // This can happen during the initial client-side render while Firebase is initializing.
-    // The `FirebaseClientProvider` should display a loading state, but to prevent a hard crash
-    // during a potential race condition, we return the context as is.
-    // Consuming components are expected to handle null services.
     return context;
   }
   return context as { app: FirebaseApp; firestore: Firestore; auth: Auth; storage: FirebaseStorage; companySettings: CompanySettings | null };
@@ -64,17 +59,21 @@ export function FirebaseProvider({
   React.useEffect(() => {
     if (!value.firestore) return;
 
+    // Use onSnapshot but with a try/catch or safe error handler to avoid permission crashes
     const settingsRef = doc(value.firestore, 'settings', 'company');
     const unsubscribe = onSnapshot(settingsRef, (docSnap) => {
       if (docSnap.exists()) {
         setCompanySettings(docSnap.data() as CompanySettings);
       } else {
-        // Provide a default if no settings are found in Firestore
         setCompanySettings({ companyName: "Location Auto Pro", logoUrl: "" });
       }
     }, (error) => {
-      console.error("Failed to fetch company settings:", error);
-      // Set default on error to prevent crashes
+      // Gracefully handle permission errors without crashing the UI
+      if (error.code === 'permission-denied') {
+        console.warn("Firestore permissions not yet ready or denied for company settings.");
+      } else {
+        console.error("Failed to fetch company settings:", error);
+      }
       setCompanySettings({ companyName: "Location Auto Pro", logoUrl: "" });
     });
 

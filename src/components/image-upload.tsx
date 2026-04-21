@@ -17,7 +17,7 @@ interface ImageUploadProps {
 
 /**
  * Elite Media Suite - Version Base64 avec Compression Automatique
- * Appliquée à toute l'application pour éviter les erreurs de taille Firestore.
+ * Permet de réduire drastiquement la taille des fichiers avant stockage.
  */
 export function ImageUpload({ value, onChange, multiple = false }: ImageUploadProps) {
   const { toast } = useToast();
@@ -26,7 +26,6 @@ export function ImageUpload({ value, onChange, multiple = false }: ImageUploadPr
   
   const urls = Array.isArray(value) ? value : (value ? [value] : []);
 
-  // Fonction de compression intelligente pour garantir le stockage Base64
   const compressImage = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -59,8 +58,6 @@ export function ImageUpload({ value, onChange, multiple = false }: ImageUploadPr
           if (!ctx) return reject(new Error("Canvas context failed"));
           
           ctx.drawImage(img, 0, 0, width, height);
-
-          // Export en JPEG qualité 0.7 (très léger pour Base64)
           const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
           resolve(dataUrl);
         };
@@ -98,7 +95,7 @@ export function ImageUpload({ value, onChange, multiple = false }: ImageUploadPr
       toast({
         variant: "destructive",
         title: "Erreur de traitement",
-        description: "L'image est peut-être corrompue ou trop lourde.",
+        description: "L'image est trop volumineuse ou corrompue.",
       });
     } finally {
       setProcessing(false);
@@ -197,7 +194,7 @@ export function ImageUpload({ value, onChange, multiple = false }: ImageUploadPr
         <div className="relative">
           <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Ou lien direct (URL)..."
+            placeholder="Lien direct (URL) facultatif..."
             value={!multiple ? (urls[0] || '') : ''}
             onChange={(e) => !multiple && onChange(e.target.value)}
             className="pl-9 h-10 rounded-lg text-xs"

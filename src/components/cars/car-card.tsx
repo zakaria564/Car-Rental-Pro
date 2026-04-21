@@ -150,7 +150,7 @@ export default function CarCard({ car }: { car: Car }) {
                 <TooltipProvider><Tooltip><TooltipTrigger asChild><DialogTrigger asChild><Button variant="outline" size="icon"><FileText className="h-4 w-4" /></Button></DialogTrigger></TooltipTrigger><TooltipContent><p>Détails & Entretien</p></TooltipContent></Tooltip></TooltipProvider>
                 <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
-                        <DialogTitle>Détails du véhicule : {car.marque} {car.modele}</DialogTitle>
+                        <DialogTitle>Détails du véhicule</DialogTitle>
                         <DialogDescription>{car.marque} {car.modele} - {car.immat}</DialogDescription>
                     </DialogHeader>
                     <CarDetails car={car} groupedMaintenanceHistory={groupedMaintenanceHistory} filteredHistory={filteredHistory} historyFilterDate={historyFilterDate} setHistoryFilterDate={setHistoryFilterDate} />

@@ -43,7 +43,7 @@ import { cn, formatCurrency, getSafeDate, getRentalDate, calculateTotalRentalAmo
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import RentalForm from "./rental-form";
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogDescription as DialogDesc, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { query, where, runTransaction, doc, collection, getDocs } from "firebase/firestore";
 import { useFirebase } from "@/firebase";
@@ -186,11 +186,9 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     
     try {
         await runTransaction(firestore, async (transaction) => {
-            // READS FIRST
             const carDoc = await transaction.get(carRef);
             const paymentsSnapshot = await getDocs(paymentsQuery);
 
-            // WRITES AFTER
             paymentsSnapshot.forEach(paymentDoc => {
                 transaction.delete(paymentDoc.ref);
             });
@@ -597,11 +595,9 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
         <SheetContent className="sm:max-w-[600px] flex flex-col">
             <SheetHeader>
               <SheetTitle>{getSheetTitle()}</SheetTitle>
-              {rentalForModal && (
-                <SheetDescription>
-                    {rentalForModal.vehicule.marque} ({rentalForModal.vehicule.immatriculation})
-                </SheetDescription>
-              )}
+              <SheetDescription>
+                  Gérez les détails de la location et l'état du véhicule.
+              </SheetDescription>
             </SheetHeader>
             <ScrollArea className="flex-grow pr-6">
               <RentalForm 
@@ -624,9 +620,9 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
             <DialogContent className="sm:max-w-4xl">
                 <DialogHeader className="no-print">
                     <DialogTitle>Détails du contrat #{rentalForModal.contractNumber}</DialogTitle>
-                    <DialogDesc>
-                      Créé le {getSafeDate(rentalForModal.createdAt) ? format(getSafeDate(rentalForModal.createdAt)!, "dd LLL, y 'à' HH:mm", { locale: fr }) : 'N/A'}
-                    </DialogDesc>
+                    <DialogDescription>
+                      Consultez les informations de location et les inspections de départ/retour.
+                    </DialogDescription>
                 </DialogHeader>
                 <RentalDetails rental={rentalForModal} />
                 <DialogFooter className="no-print">
@@ -648,7 +644,7 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
                 <AlertDialogHeader>
                     <AlertDialogTitle>Supprimer ce contrat ?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Cette action est irréversible. Le contrat de location sera définitivement supprimé.
+                      Cette action est irréversible. Le contrat de location sera définitivement supprimé ainsi que ses paiements.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -668,11 +664,9 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
         <SheetContent className="sm:max-w-md flex flex-col">
             <SheetHeader>
                 <SheetTitle>Ajouter un paiement</SheetTitle>
-                {rentalForModal && (
-                    <SheetDescription>
-                        Contrat N° {rentalForModal.contractNumber}
-                    </SheetDescription>
-                )}
+                <SheetDescription>
+                    Enregistrez un nouveau versement pour le contrat N° {rentalForModal?.contractNumber}
+                </SheetDescription>
             </SheetHeader>
             <div className="flex-1 min-h-0">
                 <PaymentForm 
