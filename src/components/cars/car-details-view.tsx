@@ -1,10 +1,9 @@
-
 'use client';
 
 import React from 'react';
 import { format, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, ExternalLink } from "lucide-react";
 import type { Car, Maintenance } from "@/lib/definitions";
 import { formatCurrency, cn, getSafeDate } from "@/lib/utils";
 import { ScrollArea } from "../ui/scroll-area";
@@ -16,6 +15,7 @@ import { Calendar } from "../ui/calendar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { Logo } from "../logo";
 import { useFirebase } from '@/firebase';
+import Image from 'next/image';
 
 const getAvailabilityProps = (car: Car) => {
     switch (car.disponibilite) {
@@ -56,6 +56,22 @@ export function CarDetails({ car, groupedMaintenanceHistory, filteredHistory, hi
     return (
         <ScrollArea className="h-[70vh] pr-4">
             <div className="space-y-4 text-sm">
+                {car.photoURL && (
+                    <div className="relative aspect-video w-full rounded-lg overflow-hidden border bg-muted group">
+                        <a href={car.photoURL} target="_blank" rel="noopener noreferrer" className="block w-full h-full">
+                            <Image 
+                                src={car.photoURL} 
+                                alt={`${car.marque} ${car.modele}`} 
+                                fill 
+                                className="object-contain transition-transform group-hover:scale-105" 
+                                unoptimized 
+                            />
+                            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <ExternalLink className="text-white h-8 w-8" />
+                            </div>
+                        </a>
+                    </div>
+                )}
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                     <div><strong>Marque:</strong> {car.marque}</div>
                     <div><strong>Modèle:</strong> {car.modele}</div>
@@ -135,7 +151,7 @@ export function CarDetails({ car, groupedMaintenanceHistory, filteredHistory, hi
                                         onSelect={setHistoryFilterDate}
                                         initialFocus
                                         locale={fr}
-                                        captionLayout="dropdown-nav"
+                                        captionLayout="dropdown"
                                         fromYear={new Date().getFullYear() - 10}
                                         toYear={new Date().getFullYear()}
                                       />
