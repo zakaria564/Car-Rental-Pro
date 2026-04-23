@@ -58,7 +58,7 @@ export function CarDetails({ car, groupedMaintenanceHistory, filteredHistory, hi
             <div className="space-y-4 text-sm">
                 {car.photoURL && (
                     <div className="relative aspect-video w-full rounded-lg overflow-hidden border bg-muted group">
-                        <a href={car.photoURL} target="_blank" rel="noopener noreferrer" className="block w-full h-full">
+                        <a href={car.photoURL} target="_blank" rel="noopener noreferrer" className="block w-full h-full cursor-zoom-in">
                             <Image 
                                 src={car.photoURL} 
                                 alt={`${car.marque} ${car.modele}`} 
