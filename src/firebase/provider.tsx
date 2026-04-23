@@ -68,12 +68,7 @@ export function FirebaseProvider({
         setCompanySettings({ companyName: "Location Auto Pro", logoUrl: "" });
       }
     }, (error) => {
-      // Gracefully handle permission errors without crashing the UI
-      if (error.code === 'permission-denied') {
-        console.warn("Firestore permissions not yet ready or denied for company settings.");
-      } else {
-        console.error("Failed to fetch company settings:", error);
-      }
+      // Silently handle initial permission errors
       setCompanySettings({ companyName: "Location Auto Pro", logoUrl: "" });
     });
 
