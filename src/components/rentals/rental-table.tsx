@@ -120,7 +120,6 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       return;
     }
 
-    // Collect all styles from the current document
     const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
       .map(tag => tag.outerHTML)
       .join('');
@@ -479,7 +478,6 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
 
 
   if (isDashboard) {
-    // Simplified rendering for dashboard view
     return (
        <div className="rounded-md border bg-card">
          <Table wrapperClassName="overflow-hidden">
@@ -516,7 +514,6 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
     );
   }
 
-  // Full table with dialogs for the main rentals page
   return (
     <>
       <div className="w-full">
@@ -582,8 +579,6 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
           <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Suivant</Button>
         </div>
       </div>
-
-      {/* --- Modals Section --- */}
 
       <Sheet open={isSheetOpen} onOpenChange={(open) => {
           setIsSheetOpen(open);

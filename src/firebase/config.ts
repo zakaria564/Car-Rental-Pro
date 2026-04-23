@@ -18,7 +18,7 @@ const getFirebaseApp = (): FirebaseApp => {
     };
 
     if (!firebaseConfig.apiKey) {
-        console.warn("Clé API Firebase manquante.");
+        console.warn("API Key Firebase manquante.");
     }
     
     return initializeApp(firebaseConfig);
@@ -36,7 +36,7 @@ export function getFirebaseServices() {
     enableIndexedDbPersistence(firestore)
       .catch((err) => {
         if (err.code === 'failed-precondition') {
-          console.warn("La persistance Firestore a échoué : plusieurs onglets ouverts.");
+          console.warn("La persistance Firestore a echoue : plusieurs onglets ouverts.");
         } else if (err.code === 'unimplemented') {
           console.warn("Le navigateur ne supporte pas la persistance Firestore.");
         }

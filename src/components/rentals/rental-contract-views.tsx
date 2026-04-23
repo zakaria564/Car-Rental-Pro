@@ -307,7 +307,6 @@ export function RentalDetails({ rental, isArchived = false }: { rental: Rental, 
       <ScrollArea className="h-[80vh]">
         <div className="p-1" id="printable-contract">
           <div className="printable-contract-body flex flex-col h-full min-h-[260mm] p-6 border rounded-md bg-white text-black" >
-            {/* Header optimized for A4 / Logo at Left */}
             <header className="flex justify-between items-start pb-4 mb-6 border-b border-gray-200">
                 <div className="flex items-center gap-4">
                     <Logo className="h-20 w-20" />
@@ -359,7 +358,7 @@ export function RentalDetails({ rental, isArchived = false }: { rental: Rental, 
                             <div><strong>Transmission:</strong> {rental.vehicule.transmission}</div>
                         </div>
                         <div className="space-y-1 mt-3 text-sm pt-2 border-t border-dashed border-gray-200">
-                            <h4 className="font-bold text-xs uppercase text-gray-500">Période &amp; Coût :</h4>
+                            <h4 className="font-bold text-xs uppercase text-gray-500">Période & Coût :</h4>
                             <div><strong>Début:</strong> {safeDebutDate ? format(safeDebutDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</div>
                             <div><strong>Fin Prévue:</strong> {safeFinDate ? format(safeFinDate, "dd/MM/yy 'à' HH:mm", { locale: fr }) : 'N/A'}</div>
                             <div><strong>Lieu de départ:</strong> {rental.location.lieuDepart || 'Agence'}</div>
@@ -412,7 +411,6 @@ export function RentalDetails({ rental, isArchived = false }: { rental: Rental, 
                 </div>
             </div>
 
-            {/* Signatures Footer */}
             <div className="signatures-section mt-auto pt-8 flex justify-between border-t border-gray-100">
                 <div className="text-center w-2/5">
                     <p className="font-bold text-xs uppercase mb-1">Cachet et Signature de l'Agence</p>

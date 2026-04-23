@@ -59,7 +59,6 @@ export function FirebaseProvider({
   React.useEffect(() => {
     if (!value.firestore) return;
 
-    // Use onSnapshot but with a try/catch or safe error handler to avoid permission crashes
     const settingsRef = doc(value.firestore, 'settings', 'company');
     const unsubscribe = onSnapshot(settingsRef, (docSnap) => {
       if (docSnap.exists()) {
@@ -68,7 +67,7 @@ export function FirebaseProvider({
         setCompanySettings({ companyName: "Location Auto Pro", logoUrl: "" });
       }
     }, (error) => {
-      // Silently handle initial permission errors
+      // Manage permissions errors silently for settings
       setCompanySettings({ companyName: "Location Auto Pro", logoUrl: "" });
     });
 

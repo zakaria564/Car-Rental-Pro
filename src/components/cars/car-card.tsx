@@ -18,7 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { differenceInDays, format } from "date-fns";
 import { CarDetails } from "./car-details-view";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { doc, getDoc, writeBatch } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
@@ -169,7 +169,7 @@ export default function CarCard({ car }: { car: Car }) {
                 </SheetContent>
             </Sheet>
             <AlertDialog open={isArchiveAlertOpen} onOpenChange={setIsArchiveAlertOpen}>
-                <AlertDialogTrigger asChild><Button variant="outline" size="icon" className="text-destructive" disabled={car.disponibilite === 'louee'}><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
+                <AlertDialogAction asChild><Button variant="outline" size="icon" className="text-destructive" disabled={car.disponibilite === 'louee'}><Trash2 className="h-4 w-4" /></Button></AlertDialogAction>
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Archiver ce véhicule ?</AlertDialogTitle>
