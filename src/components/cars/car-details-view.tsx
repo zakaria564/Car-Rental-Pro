@@ -77,7 +77,6 @@ export function CarDetails({ car, groupedMaintenanceHistory, filteredHistory, hi
                     <div><strong>Modèle:</strong> {car.modele}</div>
                     <div><strong>Mise en circulation:</strong> {getSafeDate(car.dateMiseEnCirculation) ? format(getSafeDate(car.dateMiseEnCirculation)!, 'dd/MM/yyyy', { locale: fr }) : 'N/A'}</div>
                     <div><strong>Immatriculation:</strong> {car.immat}</div>
-                    {car.immatWW && <div><strong>Immatriculation WW:</strong> {car.immatWW}</div>}
                     <div><strong>N° de châssis:</strong> {car.numChassis}</div>
                     <div><strong>Couleur:</strong> {car.couleur}</div>
                     <div><strong>Kilométrage:</strong> {car.kilometrage.toLocaleString()} km</div>
@@ -85,44 +84,22 @@ export function CarDetails({ car, groupedMaintenanceHistory, filteredHistory, hi
                     <div><strong>Transmission:</strong> {car.transmission}</div>
                     <div><strong>Puissance:</strong> {car.puissance} cv</div>
                     <div><strong>Places:</strong> {car.nbrPlaces}</div>
-                    <div><strong>État:</strong> {car.etat}</div>
                      {!isArchived && <div className="flex items-center gap-2"><strong>Disponibilité:</strong> <Badge variant="default" className={cn(availability.className, 'text-white')}>{availability.text}</Badge></div>}
                 </div>
-                 {car.disponibilite === 'maintenance' && car.currentMaintenance && (
-                    <div className="col-span-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm">
-                        <p className="font-semibold text-yellow-800">Détails de la maintenance en cours:</p>
-                        <p><strong>Depuis le:</strong> {getSafeDate(car.currentMaintenance.startDate) ? format(getSafeDate(car.currentMaintenance.startDate)!, 'dd/MM/yyyy') : 'N/A'}</p>
-                        <p><strong>Raison:</strong> {car.currentMaintenance.reason}</p>
-                        {car.currentMaintenance.notes && <p><strong>Notes:</strong> {car.currentMaintenance.notes}</p>}
-                    </div>
-                )}
                 <Separator />
                  <div className="space-y-2">
-                    <h4 className="font-semibold text-base">Documents &amp; Expirations</h4>
+                    <h4 className="font-semibold text-base">Documents</h4>
                     <div className="flex items-center gap-2">
                         <strong>Expiration Assurance:</strong> {assuranceDate ? format(assuranceDate, 'dd/MM/yyyy', { locale: fr }) : 'N/A'}
                         {isAssuranceExpired && <Badge variant="destructive">Expirée</Badge>}
-                        {isAssuranceExpiringSoon && <Badge className="bg-accent text-accent-foreground hover:bg-accent/80">Expire bientôt</Badge>}
+                        {isAssuranceExpiringSoon && <Badge className="bg-amber-500 text-white">Expire bientôt</Badge>}
                     </div>
                     <div className="flex items-center gap-2">
                         <strong>Prochaine Visite:</strong> {visiteDate ? format(visiteDate, 'dd/MM/yyyy', { locale: fr }) : 'N/A'}
                         {isVisiteExpired && <Badge variant="destructive">Expirée</Badge>}
-                        {isVisiteExpiringSoon && <Badge className="bg-accent text-accent-foreground hover:bg-accent/80">Expire bientôt</Badge>}
+                        {isVisiteExpiringSoon && <Badge className="bg-amber-500 text-white">Expire bientôt</Badge>}
                     </div>
-                    <div><strong>Vignette:</strong> {car.anneeVignette || 'N/A'}</div>
                 </div>
-                 {car.maintenanceSchedule && (
-                    <>
-                        <Separator />
-                        <div className="space-y-2">
-                            <h4 className="font-semibold text-base">Plan d'Entretien</h4>
-                            {car.maintenanceSchedule.prochainVidangeKm && <div><strong>Prochaine Vidange:</strong> {car.maintenanceSchedule.prochainVidangeKm.toLocaleString()} km</div>}
-                            {car.maintenanceSchedule.prochainFiltreGasoilKm && <div><strong>Prochain Filtre Gazole:</strong> {car.maintenanceSchedule.prochainFiltreGasoilKm.toLocaleString()} km</div>}
-                            {car.maintenanceSchedule.prochainesPlaquettesFreinKm && <div><strong>Prochaines Plaquettes:</strong> {car.maintenanceSchedule.prochainesPlaquettesFreinKm.toLocaleString()} km</div>}
-                            {car.maintenanceSchedule.prochaineCourroieDistributionKm && <div><strong>Prochaine Distribution:</strong> {car.maintenanceSchedule.prochaineCourroieDistributionKm.toLocaleString()} km</div>}
-                        </div>
-                    </>
-                )}
                 
                 {groupedMaintenanceHistory.length > 0 && (
                     <>
@@ -130,18 +107,11 @@ export function CarDetails({ car, groupedMaintenanceHistory, filteredHistory, hi
                         <div className="space-y-3">
                            <div className="flex justify-between items-center">
                                 <h4 className="font-semibold text-base">Historique d'entretien</h4>
-                                <div className="flex items-center gap-2">
-                                  <Popover>
+                                <Popover>
                                     <PopoverTrigger asChild>
-                                      <Button
-                                        variant={"outline"}
-                                        className={cn(
-                                          "w-[240px] justify-start text-left font-normal h-8",
-                                          !historyFilterDate && "text-muted-foreground"
-                                        )}
-                                      >
+                                      <Button variant={"outline"} className={cn("w-[200px] justify-start text-left font-normal h-8", !historyFilterDate && "text-muted-foreground")}>
                                         <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {historyFilterDate ? format(historyFilterDate, "dd MMMM yyyy", { locale: fr }) : <span>Choisir une date</span>}
+                                        {historyFilterDate ? format(historyFilterDate, "dd MMMM yyyy", { locale: fr }) : <span>Filtrer par date</span>}
                                       </Button>
                                     </PopoverTrigger>
                                     <PopoverContent className="w-auto p-0">
@@ -157,12 +127,6 @@ export function CarDetails({ car, groupedMaintenanceHistory, filteredHistory, hi
                                       />
                                     </PopoverContent>
                                   </Popover>
-                                  {historyFilterDate && (
-                                    <Button variant="ghost" size="sm" onClick={() => setHistoryFilterDate(undefined)}>
-                                        Effacer
-                                    </Button>
-                                  )}
-                                </div>
                             </div>
                              <div className="space-y-3">
                                 {filteredHistory.map((group, index) => (
@@ -190,9 +154,6 @@ export function CarDetails({ car, groupedMaintenanceHistory, filteredHistory, hi
                                         )}
                                     </div>
                                 ))}
-                                {filteredHistory.length === 0 && (
-                                    <p className="text-center text-muted-foreground py-4">Aucune intervention ne correspond à votre recherche.</p>
-                                )}
                             </div>
                         </div>
                     </>
@@ -212,102 +173,58 @@ export const PrintableCarDetails: React.FC<{ car: Car; history: any[] }> = ({ ca
     const groupedMaintenanceHistory = history;
     const agencyName = companySettings?.companyName || "Location Auto Pro";
 
-    const PrintableHeader = ({ isIntervention }: { isIntervention: boolean }) => (
-        <header className="flex justify-between items-start pb-4 mb-4 border-b">
-            <div className="flex items-center gap-4">
-                <Logo className="h-16 w-16" />
-                <div>
-                    <h2 className="font-bold text-lg">{agencyName}</h2>
-                    <p className="text-xs text-gray-600">{isIntervention ? "Fiche d'intervention" : "Fiche de suivi du véhicule"}</p>
-                </div>
-            </div>
-            <div className="text-right">
-                <h1 className="font-bold text-xl">{car.marque} {car.modele}</h1>
-                <p className="font-mono text-base">{car.immat}</p>
-            </div>
-        </header>
-    );
-    
-    const VehicleInfo = () => (
-      <>
-        <section className="mb-4">
-            <h3 className="font-bold text-base mb-2 border-b pb-1">Informations Générales</h3>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-1">
-                <div><strong>Mise en circulation:</strong> {getSafeDate(car.dateMiseEnCirculation) ? format(getSafeDate(car.dateMiseEnCirculation)!, 'dd/MM/yyyy', { locale: fr }) : 'N/A'}</div>
-                <div><strong>N° de châssis:</strong> {car.numChassis}</div>
-                <div><strong>Couleur:</strong> {car.couleur}</div>
-                <div><strong>Kilométrage Actuel:</strong> {car.kilometrage.toLocaleString()} km</div>
-                <div><strong>Carburant:</strong> {car.carburantType}</div>
-                <div><strong>Transmission:</strong> {car.transmission}</div>
-                <div><strong>Puissance:</strong> {car.puissance} cv</div>
-                <div><strong>Places:</strong> {car.nbrPlaces}</div>
-            </div>
-        </section>
-        <section className="mb-4">
-            <h3 className="font-bold text-base mb-2 border-b pb-1">Documents &amp; Plan d'Entretien</h3>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-1">
-                <div><strong>Expiration Assurance:</strong> {getSafeDate(car.dateExpirationAssurance) ? format(getSafeDate(car.dateExpirationAssurance)!, 'dd/MM/yyyy', { locale: fr }) : 'N/A'}</div>
-                <div><strong>Prochaine Visite:</strong> {getSafeDate(car.dateProchaineVisiteTechnique) ? format(getSafeDate(car.dateProchaineVisiteTechnique)!, 'dd/MM/yyyy', { locale: fr }) : 'N/A'}</div>
-                {car.maintenanceSchedule?.prochainVidangeKm && <div><strong>Prochaine Vidange:</strong> {car.maintenanceSchedule.prochainVidangeKm.toLocaleString()} km</div>}
-                {car.maintenanceSchedule?.prochainFiltreGasoilKm && <div><strong>Prochain Filtre Gazole:</strong> {car.maintenanceSchedule.prochainFiltreGasoilKm.toLocaleString()} km</div>}
-                {car.maintenanceSchedule?.prochainesPlaquettesFreinKm && <div><strong>Prochaines Plaquettes:</strong> {car.maintenanceSchedule.prochainesPlaquettesFreinKm.toLocaleString()} km</div>}
-                {car.maintenanceSchedule?.prochaineCourroieDistributionKm && <div><strong>Prochaine Distribution:</strong> {car.maintenanceSchedule.prochaineCourroieDistributionKm.toLocaleString()} km</div>}
-            </div>
-        </section>
-      </>
-    );
-
     return (
-        <div id={`printable-details-${car.id}`} className="font-sans text-sm bg-white text-black">
-            {groupedMaintenanceHistory.length > 0 ? (
-                <>
-                    {groupedMaintenanceHistory.map((group, index) => (
-                        <div key={index} className="p-1 printable-group">
-                            <PrintableHeader isIntervention={true} />
-                            <VehicleInfo />
-                             <section>
-                                <h3 className="font-bold text-base mb-2 border-b pb-1">
-                                    Interventions du {format(group.date, "dd MMMM yyyy", { locale: fr })}
-                                    <span className="float-right font-normal">{group.kilometrage.toLocaleString()} km</span>
-                                </h3>
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead className="w-[40%]">Intervention</TableHead>
-                                            <TableHead>Description</TableHead>
-                                            <TableHead className="text-right w-[20%]">Coût</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {group.events.map((event: Maintenance, eventIndex: number) => (
-                                            <TableRow key={eventIndex}>
-                                                <TableCell className="font-medium">{event.typeIntervention}</TableCell>
-                                                <TableCell>{event.description}</TableCell>
-                                                <TableCell className="text-right">{event.cout != null ? formatCurrency(event.cout, 'MAD') : '-'}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                        {group.totalCost > 0 && (
-                                            <TableRow className="bg-gray-100 font-bold" style={{printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact'}}>
-                                                <TableCell colSpan={2} className="text-right">Total des interventions</TableCell>
-                                                <TableCell className="text-right">{formatCurrency(group.totalCost, 'MAD')}</TableCell>
-                                            </TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </section>
-                        </div>
-                    ))}
-                </>
-            ) : (
-                <div className="p-1">
-                    <PrintableHeader isIntervention={false} />
-                    <VehicleInfo />
-                    <section>
-                        <h3 className="font-bold text-base mb-2 border-b pb-1">Historique d'entretien</h3>
-                        <p className="text-sm text-gray-500 py-4 text-center">Aucun historique d'entretien enregistré.</p>
-                    </section>
+        <div id={`printable-details-${car.id}`} className="p-6 font-sans text-sm bg-white text-black">
+            <header className="flex justify-between items-start pb-4 mb-6 border-b">
+                <div className="flex items-center gap-4">
+                    <Logo className="h-16 w-16" />
+                    <div>
+                        <h2 className="font-bold text-lg">{agencyName}</h2>
+                    </div>
                 </div>
-            )}
+                <div className="text-right">
+                    <h1 className="font-bold text-xl">{car.marque} {car.modele}</h1>
+                    <p className="font-mono">{car.immat}</p>
+                </div>
+            </header>
+            <section className="mb-6">
+                <h3 className="font-bold text-base mb-2 border-b pb-1">Informations Véhicule</h3>
+                <div className="grid grid-cols-2 gap-4">
+                    <div><strong>Mise en circulation:</strong> {getSafeDate(car.dateMiseEnCirculation) ? format(getSafeDate(car.dateMiseEnCirculation)!, 'dd/MM/yyyy') : 'N/A'}</div>
+                    <div><strong>Kilométrage:</strong> {car.kilometrage.toLocaleString()} km</div>
+                    <div><strong>Carburant:</strong> {car.carburantType}</div>
+                    <div><strong>Transmission:</strong> {car.transmission}</div>
+                </div>
+            </section>
+            <section>
+                <h3 className="font-bold text-base mb-2 border-b pb-1">Historique d'entretien</h3>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Km</TableHead>
+                            <TableHead>Intervention</TableHead>
+                            <TableHead className="text-right">Coût</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {groupedMaintenanceHistory.length > 0 ? groupedMaintenanceHistory.map((group, index) => (
+                            <React.Fragment key={index}>
+                                {group.events.map((event: Maintenance, eventIndex: number) => (
+                                    <TableRow key={`${index}-${eventIndex}`}>
+                                        <TableCell>{eventIndex === 0 ? format(group.date, 'dd/MM/yyyy') : ''}</TableCell>
+                                        <TableCell>{eventIndex === 0 ? group.kilometrage.toLocaleString() : ''}</TableCell>
+                                        <TableCell>{event.typeIntervention}</TableCell>
+                                        <TableCell className="text-right">{event.cout != null ? formatCurrency(event.cout, 'MAD') : '-'}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </React.Fragment>
+                        )) : (
+                            <TableRow><TableCell colSpan={4} className="text-center">Aucun historique.</TableCell></TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </section>
         </div>
     );
 };

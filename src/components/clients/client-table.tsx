@@ -109,18 +109,11 @@ function ClientDetails({ client }: { client: Client }) {
             </div>
 
             <div className="space-y-1">
-              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Contact & Adresse</h4>
+              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Contact</h4>
               <p className="flex items-center gap-2"><Phone className="h-4 w-4 text-primary" /> <a href={`tel:${client.telephone.replace(/\s/g, '')}`} className="underline hover:text-primary">{client.telephone}</a></p>
               <p className="flex items-start gap-2">
                 <MapPin className="h-4 w-4 text-primary mt-1 shrink-0" />
-                <a 
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(client.adresse)}`} 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="underline hover:text-primary transition-colors"
-                >
-                  {client.adresse}
-                </a>
+                <span className="text-sm">{client.adresse}</span>
               </p>
             </div>
 
@@ -132,10 +125,7 @@ function ClientDetails({ client }: { client: Client }) {
           </div>
 
           <div className="space-y-3">
-              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex justify-between items-center">
-                <span>Carte d'Identité</span>
-                {client.photoCIN && <span className="text-[10px] normal-case font-normal text-muted-foreground italic">(Cliquez pour voir/imprimer)</span>}
-              </h4>
+              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Carte d'Identité</h4>
               <div className="relative w-full aspect-[16/10] rounded-lg overflow-hidden border-2 bg-muted shadow-sm group">
                   {client.photoCIN ? (
                       <a href={client.photoCIN} target="_blank" rel="noopener noreferrer" className="block w-full h-full relative cursor-zoom-in">
@@ -151,9 +141,9 @@ function ClientDetails({ client }: { client: Client }) {
                         </div>
                       </a>
                   ) : (
-                      <div className="flex flex-col items-center justify-center h-full text-muted-foreground space-y-2">
+                      <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                           <CreditCard className="h-10 w-10 opacity-20" />
-                          <p className="text-xs italic">Aucune image disponible</p>
+                          <p className="text-xs italic">Aucune image</p>
                       </div>
                   )}
               </div>
@@ -210,16 +200,11 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
             operation: 'delete'
         }, serverError as Error);
         errorEmitter.emit('permission-error', permissionError);
-        toast({
-            variant: "destructive",
-            title: "Erreur de suppression",
-            description: "Vous n'avez pas la permission de supprimer ce client.",
-        });
     });
 
     toast({
         title: "Client supprimé",
-        description: "Le client a été supprimé de la base de données.",
+        description: "Le client a été supprimé avec succès.",
     });
   };
 
@@ -229,74 +214,24 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
       header: ({ column }) => (
         <Button
           variant="ghost"
-          className="text-[12px] font-bold"
+          className="text-xs font-bold"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
           Nom
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       ),
-      cell: ({ row }) => <div className="font-bold text-foreground text-[12px]">{row.getValue("nom")}</div>,
+      cell: ({ row }) => <div className="font-bold text-foreground text-xs">{row.getValue("nom")}</div>,
     },
     {
       accessorKey: "cin",
-      header: () => <div className="text-[12px] font-bold text-foreground">CIN</div>,
-      cell: ({ row }) => <Badge variant="outline" className="font-mono text-[12px]">{row.getValue("cin")}</Badge>,
-    },
-    {
-      accessorKey: "email",
-      header: () => <div className="text-[12px] font-bold text-foreground">E-mail</div>,
-      cell: ({ row }) => {
-        const email = row.getValue("email") as string;
-        return email ? (
-            <div className="flex items-center gap-1 group">
-                <a 
-                    href={`mailto:${email.trim()}`} 
-                    className="text-primary hover:underline flex items-center gap-1.5 text-[12px] truncate max-w-[150px]"
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <Mail className="h-3 w-3" />
-                    {email}
-                </a>
-            </div>
-        ) : <span className="text-muted-foreground italic text-[12px]">N/A</span>;
-      },
+      header: () => <div className="text-xs font-bold text-foreground">CIN</div>,
+      cell: ({ row }) => <Badge variant="outline" className="font-mono text-xs">{row.getValue("cin")}</Badge>,
     },
     {
       accessorKey: "telephone",
-      header: () => <div className="text-[12px] font-bold text-foreground">Téléphone</div>,
-      cell: ({ row }) => {
-        const telephone = row.getValue("telephone") as string;
-        return (
-            <a 
-                href={`tel:${telephone.replace(/\s/g, '')}`} 
-                className="hover:text-primary transition-colors flex items-center gap-1.5 font-medium text-[12px]"
-                onClick={(e) => e.stopPropagation()}
-            >
-                <Phone className="h-3 w-3 opacity-50" />
-                {telephone}
-            </a>
-        );
-      },
-    },
-    {
-      accessorKey: "adresse",
-      header: () => <div className="text-[12px] font-bold text-foreground">Adresse</div>,
-      cell: ({ row }) => {
-        const adresse = row.getValue("adresse") as string;
-        return (
-            <a 
-                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(adresse)}`} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="flex items-center gap-1.5 max-w-[200px] hover:text-primary transition-colors group"
-                onClick={(e) => e.stopPropagation()}
-            >
-                <MapPin className="h-3 w-3 opacity-50 shrink-0 group-hover:opacity-100" />
-                <span className="truncate text-[12px] text-muted-foreground group-hover:underline">{adresse}</span>
-            </a>
-        );
-      },
+      header: () => <div className="text-xs font-bold text-foreground">Téléphone</div>,
+      cell: ({ row }) => <span className="text-xs">{row.getValue("telephone")}</span>,
     },
     {
       id: "actions",
@@ -313,18 +248,18 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48" onClick={(e) => e.stopPropagation()}>
-                <DropdownMenuLabel className="text-[12px]">Actions</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => { setSelectedClient(client); setIsDetailsOpen(true); }} className="text-[12px]">
+                <DropdownMenuLabel className="text-xs">Actions</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => { setSelectedClient(client); setIsDetailsOpen(true); }} className="text-xs">
                   <User className="mr-2 h-4 w-4" />
                   Voir la fiche complète
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setSelectedClient(client); setIsSheetOpen(true); }} className="text-[12px]">
+                <DropdownMenuItem onClick={() => { setSelectedClient(client); setIsSheetOpen(true); }} className="text-xs">
                   <FileText className="mr-2 h-4 w-4" />
                   Modifier
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                  <AlertDialogTrigger asChild>
-                    <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10 text-[12px]">
+                    <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10 text-xs">
                       <Trash2 className="mr-2 h-4 w-4" />
                       Supprimer le client
                     </DropdownMenuItem>
@@ -384,34 +319,8 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
               }
               className="max-w-sm"
             />
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="ml-auto text-[12px]">
-                  Affichage <ChevronDown className="ml-2 h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {table
-                  .getAllColumns()
-                  .filter((column) => column.getCanHide())
-                  .map((column) => {
-                    return (
-                      <DropdownMenuCheckboxItem
-                        key={column.id}
-                        className="capitalize text-[12px]"
-                        checked={column.getIsVisible()}
-                        onCheckedChange={(value) =>
-                          column.toggleVisibility(!!value)
-                        }
-                      >
-                        {column.id === 'adresse' ? 'Adresse' : column.id}
-                      </DropdownMenuCheckboxItem>
-                    );
-                  })}
-              </DropdownMenuContent>
-            </DropdownMenu>
             <SheetTrigger asChild>
-              <Button className="bg-primary hover:bg-primary/90" onClick={() => setSelectedClient(null)}>
+              <Button className="ml-auto" onClick={() => setSelectedClient(null)}>
                 <PlusCircle className="mr-2 h-4 w-4" /> Ajouter client
               </Button>
             </SheetTrigger>
@@ -423,7 +332,7 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
                   <TableRow key={headerGroup.id}>
                     {headerGroup.headers.map((header) => {
                       return (
-                        <TableHead key={header.id}>
+                        <TableHead key={header.id} className="text-xs font-bold text-foreground">
                           {header.isPlaceholder
                             ? null
                             : flexRender(
@@ -451,7 +360,7 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
                       {row.getVisibleCells().map((cell) => (
                         <TableCell 
                           key={cell.id}
-                          className="text-[12px]"
+                          className="text-xs"
                           onClick={(e) => {
                             if (cell.column.id === 'actions') {
                               e.stopPropagation();
@@ -470,7 +379,7 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
                   <TableRow>
                     <TableCell
                       colSpan={columns.length}
-                      className="h-24 text-center text-[12px]"
+                      className="h-24 text-center text-xs"
                     >
                       Aucun client trouvé.
                     </TableCell>
@@ -502,7 +411,7 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
           <SheetHeader>
             <SheetTitle>{selectedClient ? "Modifier le client" : "Nouveau client"}</SheetTitle>
             <SheetDescription>
-                {selectedClient ? "Mettez à jour les informations de " + selectedClient.nom : "Remplissez le formulaire pour ajouter un nouveau client."}
+                {selectedClient ? "Mise à jour des infos de " + selectedClient.nom : "Remplissez le formulaire ci-dessous."}
             </SheetDescription>
           </SheetHeader>
           <ScrollArea className="flex-grow pr-6">
@@ -519,7 +428,7 @@ export default function ClientTable({ clients }: { clients: Client[] }) {
           <DialogHeader>
             <DialogTitle>Fiche Client</DialogTitle>
             <DialogDescription>
-              Détails complets et pièces justificatives de {selectedClient?.nom || 'l\'utilisateur'}.
+              Détails complets de {selectedClient?.nom || 'l\'utilisateur'}.
             </DialogDescription>
           </DialogHeader>
           {selectedClient && <ClientDetails client={selectedClient} />}

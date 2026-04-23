@@ -169,7 +169,7 @@ export default function CarCard({ car }: { car: Car }) {
                 </SheetContent>
             </Sheet>
             <AlertDialog open={isArchiveAlertOpen} onOpenChange={setIsArchiveAlertOpen}>
-                <AlertDialogAction asChild><Button variant="outline" size="icon" className="text-destructive" disabled={car.disponibilite === 'louee'}><Trash2 className="h-4 w-4" /></Button></AlertDialogAction>
+                <TooltipProvider><Tooltip><TooltipTrigger asChild><Button variant="outline" size="icon" className="text-destructive" disabled={car.disponibilite === 'louee'} onClick={() => setIsArchiveAlertOpen(true)}><Trash2 className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Archiver</p></TooltipContent></Tooltip></TooltipProvider>
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Archiver ce véhicule ?</AlertDialogTitle>

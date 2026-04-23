@@ -74,7 +74,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
         dateExpirationAssurance: getSafeDate(car.dateExpirationAssurance) ?? undefined,
         dateProchaineVisiteTechnique: getSafeDate(car.dateProchaineVisiteTechnique) ?? undefined,
         anneeVignette: car.anneeVignette ?? undefined,
-        immatWW: car.immatWW ?? "",
+        immatWW: car.immatWW ?? undefined,
         maintenanceSchedule: car.maintenanceSchedule ? {
           prochainVidangeKm: car.maintenanceSchedule.prochainVidangeKm ?? undefined,
           prochainFiltreGasoilKm: car.maintenanceSchedule.prochainFiltreGasoilKm ?? undefined,
@@ -145,13 +145,6 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
         cleanedData[key] = null;
       }
     }
-     if (cleanedData.maintenanceSchedule) {
-      for (const key in cleanedData.maintenanceSchedule) {
-        if (cleanedData.maintenanceSchedule[key] === undefined || cleanedData.maintenanceSchedule[key] === '') {
-          cleanedData.maintenanceSchedule[key] = null;
-        }
-      }
-    }
     
     const carPayload = {
       ...cleanedData,
@@ -171,7 +164,6 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
         onFinished();
       })
       .catch((serverError) => {
-        console.error("Firestore Error:", serverError.message);
         const permissionError = new FirestorePermissionError({
           path: carRef.path,
           operation: isNewCar ? 'create' : 'update',
@@ -182,7 +174,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
         toast({
           variant: "destructive",
           title: "Une erreur est survenue",
-          description: "Impossible de sauvegarder la voiture. Vérifiez vos permissions et réessayez.",
+          description: "Impossible de sauvegarder la voiture. Vérifiez vos permissions.",
         });
       }).finally(() => {
         setIsSubmitting(false);
@@ -274,11 +266,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                               value={field.value instanceof Date && !isNaN(field.value.getTime()) ? format(field.value, "yyyy-MM-dd") : ""}
                               onChange={(e) => {
                                 const dateString = e.target.value;
-                                if (!dateString) {
-                                    field.onChange(null);
-                                } else {
-                                    field.onChange(new Date(dateString));
-                                }
+                                field.onChange(dateString ? new Date(dateString) : undefined);
                               }}
                             />
                           </FormControl>
@@ -291,22 +279,9 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                     name="immat"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Plaque d'immatriculation (12345 - أ - 1)</FormLabel>
+                        <FormLabel>Plaque d'immatriculation</FormLabel>
                         <FormControl>
                             <Input placeholder="12345 - أ - 1" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                    <FormField
-                    control={form.control}
-                    name="immatWW"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Immatriculation WW (temporaire)</FormLabel>
-                        <FormControl>
-                            <Input placeholder="WW 123456" {...field} value={field.value ?? ''} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
@@ -317,9 +292,9 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                     name="numChassis"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Numéro de châssis</FormLabel>
+                        <FormLabel>Numéro de châssis (VIN)</FormLabel>
                         <FormControl>
-                            <Input placeholder="17 caractères alphanumériques" {...field} />
+                            <Input placeholder="17 caractères" {...field} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
@@ -334,29 +309,9 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                           <FormControl>
                               <Input 
                                   type="number" 
-                                  placeholder="54000"
+                                  placeholder="0"
                                   value={field.value ?? ''}
-                                  onChange={(e) => {
-                                    const kmValue = e.target.value;
-                                    field.onChange(kmValue === '' ? '' : Number(kmValue));
-                                    const km = Number(kmValue);
-                                    if (!isNaN(km) && km > 0 && isNewCar) {
-                                        const calculateNext = (currentKm: number, interval: number) => {
-                                            if (interval <= 0) return null;
-                                            const next = Math.ceil(currentKm / interval) * interval;
-                                            return next > currentKm ? next : next + interval;
-                                        };
-                                        form.setValue('maintenanceSchedule.prochainVidangeKm', calculateNext(km, 10000), { shouldValidate: true });
-                                        form.setValue('maintenanceSchedule.prochainFiltreGasoilKm', calculateNext(km, 20000), { shouldValidate: true });
-                                        form.setValue('maintenanceSchedule.prochainesPlaquettesFreinKm', calculateNext(km, 20000), { shouldValidate: true });
-                                        form.setValue('maintenanceSchedule.prochaineCourroieDistributionKm', calculateNext(km, 60000), { shouldValidate: true });
-                                    } else if (kmValue === '' && isNewCar) {
-                                        form.setValue('maintenanceSchedule.prochainVidangeKm', null, { shouldValidate: true });
-                                        form.setValue('maintenanceSchedule.prochainFiltreGasoilKm', null, { shouldValidate: true });
-                                        form.setValue('maintenanceSchedule.prochainesPlaquettesFreinKm', null, { shouldValidate: true });
-                                        form.setValue('maintenanceSchedule.prochaineCourroieDistributionKm', null, { shouldValidate: true });
-                                    }
-                                  }}
+                                  onChange={(e) => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
                               />
                           </FormControl>
                           <FormMessage />
@@ -456,31 +411,8 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                         <FormItem>
                         <FormLabel>Prix par jour (MAD)</FormLabel>
                         <FormControl>
-                            <Input type="number" placeholder="99.99" {...field} value={field.value ?? ''} />
+                            <Input type="number" placeholder="250" {...field} value={field.value ?? ''} />
                         </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                    <FormField
-                    control={form.control}
-                    name="etat"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>État</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Sélectionnez l'état de la voiture" />
-                            </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                            <SelectItem value="new">Neuf</SelectItem>
-                            <SelectItem value="good">Bon</SelectItem>
-                            <SelectItem value="fair">Passable</SelectItem>
-                            <SelectItem value="poor">Mauvais</SelectItem>
-                            </SelectContent>
-                        </Select>
                         <FormMessage />
                         </FormItem>
                     )}
@@ -495,18 +427,14 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                         name="dateExpirationAssurance"
                         render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Date d'expiration de l'assurance</FormLabel>
+                              <FormLabel>Expiration Assurance</FormLabel>
                               <FormControl>
                                 <Input
                                   type="date"
                                   value={field.value instanceof Date && !isNaN(field.value.getTime()) ? format(field.value, "yyyy-MM-dd") : ""}
                                   onChange={(e) => {
                                     const dateString = e.target.value;
-                                    if (!dateString) {
-                                        field.onChange(null);
-                                    } else {
-                                        field.onChange(new Date(dateString));
-                                    }
+                                    field.onChange(dateString ? new Date(dateString) : undefined);
                                   }}
                                 />
                               </FormControl>
@@ -519,18 +447,14 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                             name="dateProchaineVisiteTechnique"
                             render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Date de la prochaine visite technique</FormLabel>
+                                  <FormLabel>Prochaine Visite Technique</FormLabel>
                                   <FormControl>
                                     <Input
                                       type="date"
                                       value={field.value instanceof Date && !isNaN(field.value.getTime()) ? format(field.value, "yyyy-MM-dd") : ""}
                                       onChange={(e) => {
                                         const dateString = e.target.value;
-                                        if (!dateString) {
-                                            field.onChange(null);
-                                        } else {
-                                            field.onChange(new Date(dateString));
-                                        }
+                                        field.onChange(dateString ? new Date(dateString) : undefined);
                                       }}
                                     />
                                   </FormControl>
@@ -553,73 +477,10 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                         />
                 </AccordionContent>
             </AccordionItem>
-            <AccordionItem value="item-3">
-                <AccordionTrigger>Plan d'Entretien (Automatique)</AccordionTrigger>
-                <AccordionContent className="pt-4 space-y-4">
-                    <FormDescription>
-                        Les échéances sont calculées automatiquement en fonction du kilométrage du véhicule.
-                    </FormDescription>
-                    <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                            control={form.control}
-                            name="maintenanceSchedule.prochainVidangeKm"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Prochaine vidange (km)</FormLabel>
-                                    <FormControl>
-                                        <Input type="number" placeholder="Auto" {...field} value={field.value ?? ''} readOnly />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="maintenanceSchedule.prochainFiltreGasoilKm"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Prochain filtre gazole (km)</FormLabel>
-                                    <FormControl>
-                                        <Input type="number" placeholder="Auto" {...field} value={field.value ?? ''} readOnly />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="maintenanceSchedule.prochainesPlaquettesFreinKm"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Prochaines plaquettes (km)</FormLabel>
-                                    <FormControl>
-                                        <Input type="number" placeholder="Auto" {...field} value={field.value ?? ''} readOnly />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="maintenanceSchedule.prochaineCourroieDistributionKm"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Prochaine distribution (km)</FormLabel>
-                                    <FormControl>
-                                        <Input type="number" placeholder="Auto" {...field} value={field.value ?? ''} readOnly />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    </div>
-                </AccordionContent>
-            </AccordionItem>
         </Accordion>
 
-        
-        <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isSubmitting}>
-          {isSubmitting ? 'Enregistrement...' : (car ? 'Mettre à jour la voiture' : 'Ajouter une voiture')}
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
+          {isSubmitting ? 'Enregistrement...' : (car ? 'Mettre à jour' : 'Ajouter le véhicule')}
         </Button>
       </form>
     </Form>
