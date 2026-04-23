@@ -1,21 +1,17 @@
 'use client';
 
 import React from 'react';
-import { format, differenceInCalendarDays, startOfDay } from 'date-fns';
+import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Image from 'next/image';
-import type { Rental, Damage, Inspection, DamageType, Payment } from "@/lib/definitions";
-import { damageTypes } from "@/lib/definitions";
-import { formatCurrency, cn, getSafeDate, getRentalDate, calculateTotalRentalAmount } from "@/lib/utils";
-import { doc, onSnapshot, collection, query, where } from "firebase/firestore";
+import type { Rental, Damage, Inspection } from "@/lib/definitions";
+import { formatCurrency, getSafeDate, calculateTotalRentalAmount } from "@/lib/utils";
+import { doc, onSnapshot } from "firebase/firestore";
 import { useFirebase } from "@/firebase";
 import { ScrollArea } from "../ui/scroll-area";
-import CarDamageDiagram, { carParts } from "./car-damage-diagram";
+import { carParts } from "./car-damage-diagram";
 import { Skeleton } from "../ui/skeleton";
 import { Logo } from "../logo";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
-import { Gavel, ExternalLink } from 'lucide-react';
-import { Button } from '../ui/button';
 
 export const ReadOnlyCheckbox = ({ checked }: { checked: boolean | undefined }) => (
     <div className="h-4 w-4 border border-black flex items-center justify-center" style={{ printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' }}>
@@ -53,7 +49,7 @@ export const InspectionDetailsView: React.FC<{ inspectionId: string, type: 'depa
             {inspection.photos && inspection.photos.length > 0 && (
                 <div className="flex gap-2 mt-2 no-print overflow-x-auto pb-2">
                     {inspection.photos.map((url: string, i: number) => (
-                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="relative h-16 w-16 shrink-0 rounded border overflow-hidden">
+                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="relative h-16 w-16 shrink-0 rounded border overflow-hidden hover:ring-2 hover:ring-primary transition-all">
                             <Image src={url} alt="Photo inspection" fill className="object-cover" unoptimized />
                         </a>
                     ))}
@@ -63,7 +59,7 @@ export const InspectionDetailsView: React.FC<{ inspectionId: string, type: 'depa
     );
 };
 
-export function RentalDetails({ rental }: { rental: Rental }) {
+export function RentalDetails({ rental, isArchived = false }: { rental: Rental, isArchived?: boolean }) {
     const { companySettings } = useFirebase();
     const agencyName = companySettings?.companyName || "Location Auto Pro";
     const totalAmount = calculateTotalRentalAmount(rental);
@@ -78,7 +74,7 @@ export function RentalDetails({ rental }: { rental: Rental }) {
                     <div><h2 className="font-bold text-xl uppercase">{agencyName}</h2></div>
                 </div>
                 <div className="text-right">
-                    <h1 className="font-bold text-lg">CONTRAT DE LOCATION</h1>
+                    <h1 className="font-bold text-lg">CONTRAT DE LOCATION {isArchived && "(ARCHIVÉ)"}</h1>
                     <p className="font-mono text-sm">N° {rental.contractNumber}</p>
                 </div>
             </header>

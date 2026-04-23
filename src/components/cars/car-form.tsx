@@ -7,14 +7,13 @@ import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import type { Car } from "@/lib/definitions";
 import { useFirebase } from "@/firebase";
@@ -92,11 +91,11 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
     return {
       marque: "",
       modele: "",
-      dateMiseEnCirculation: undefined as any,
+      dateMiseEnCirculation: undefined,
       immat: "",
       immatWW: "",
       numChassis: "",
-      kilometrage: undefined as any,
+      kilometrage: 0,
       couleur: "",
       nbrPlaces: 4,
       puissance: 7,
@@ -105,8 +104,8 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
       prixParJour: 250,
       etat: "new" as const,
       photoURL: "",
-      dateExpirationAssurance: undefined as any,
-      dateProchaineVisiteTechnique: undefined as any,
+      dateExpirationAssurance: undefined,
+      dateProchaineVisiteTechnique: undefined,
       anneeVignette: new Date().getFullYear(),
       maintenanceSchedule: {
         prochainVidangeKm: undefined,
@@ -120,14 +119,14 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
   const form = useForm<CarFormValues>({
     resolver: zodResolver(carFormSchema),
     mode: "onChange",
-    defaultValues,
+    defaultValues: defaultValues as any,
   });
   
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const selectedMarque = form.watch("marque") as CarBrand;
 
   React.useEffect(() => {
-    form.reset(defaultValues);
+    form.reset(defaultValues as any);
   }, [car, defaultValues, form]);
 
 
@@ -184,7 +183,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-4 pb-10">
-        <Accordion type="multiple" defaultValue={['item-1', 'item-2', 'item-3']} className="w-full">
+        <Accordion type="multiple" defaultValue={['item-1', 'item-2']} className="w-full">
             <AccordionItem value="item-1">
                 <AccordionTrigger>Informations Générales</AccordionTrigger>
                 <AccordionContent className="pt-4 space-y-4">
@@ -311,7 +310,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                   type="number" 
                                   placeholder="0"
                                   value={field.value ?? ''}
-                                  onChange={(e) => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
+                                  onChange={(e) => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))}
                               />
                           </FormControl>
                           <FormMessage />
