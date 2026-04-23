@@ -18,16 +18,14 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { useToast } from "@/hooks/use-toast";
 import type { Car } from "@/lib/definitions";
 import { useFirebase } from "@/firebase";
-import { arrayUnion, collection, doc, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
+import { collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import React from "react";
 import { format } from "date-fns";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
-import { carBrands, type CarBrand, maintenanceInterventionTypes } from "@/lib/car-data";
+import { carBrands, type CarBrand } from "@/lib/car-data";
 import { getSafeDate } from "@/lib/utils";
-import { Plus, Trash2 } from "lucide-react";
-import { Textarea } from "../ui/textarea";
 import { ImageUpload } from "../image-upload";
 
 const carFormSchema = z.object({
@@ -69,21 +67,36 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
   const isNewCar = !car;
 
   const defaultValues = React.useMemo(() => {
-    const baseCar = car ? {
-      ...car,
-      dateMiseEnCirculation: getSafeDate(car.dateMiseEnCirculation),
-      dateExpirationAssurance: getSafeDate(car.dateExpirationAssurance),
-      dateProchaineVisiteTechnique: getSafeDate(car.dateProchaineVisiteTechnique),
-      anneeVignette: car.anneeVignette ?? undefined,
-      immatWW: car.immatWW ?? "",
-    } : {
+    if (car) {
+      return {
+        ...car,
+        dateMiseEnCirculation: getSafeDate(car.dateMiseEnCirculation) ?? undefined,
+        dateExpirationAssurance: getSafeDate(car.dateExpirationAssurance) ?? undefined,
+        dateProchaineVisiteTechnique: getSafeDate(car.dateProchaineVisiteTechnique) ?? undefined,
+        anneeVignette: car.anneeVignette ?? undefined,
+        immatWW: car.immatWW ?? "",
+        maintenanceSchedule: car.maintenanceSchedule ? {
+          prochainVidangeKm: car.maintenanceSchedule.prochainVidangeKm ?? undefined,
+          prochainFiltreGasoilKm: car.maintenanceSchedule.prochainFiltreGasoilKm ?? undefined,
+          prochainesPlaquettesFreinKm: car.maintenanceSchedule.prochainesPlaquettesFreinKm ?? undefined,
+          prochaineCourroieDistributionKm: car.maintenanceSchedule.prochaineCourroieDistributionKm ?? undefined,
+        } : {
+          prochainVidangeKm: undefined,
+          prochainFiltreGasoilKm: undefined,
+          prochainesPlaquettesFreinKm: undefined,
+          prochaineCourroieDistributionKm: undefined,
+        }
+      };
+    }
+
+    return {
       marque: "",
       modele: "",
-      dateMiseEnCirculation: undefined,
+      dateMiseEnCirculation: undefined as any,
       immat: "",
       immatWW: "",
       numChassis: "",
-      kilometrage: undefined,
+      kilometrage: undefined as any,
       couleur: "",
       nbrPlaces: 4,
       puissance: 7,
@@ -92,25 +105,16 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
       prixParJour: 250,
       etat: "new" as const,
       photoURL: "",
-      dateExpirationAssurance: null,
-      dateProchaineVisiteTechnique: null,
+      dateExpirationAssurance: undefined as any,
+      dateProchaineVisiteTechnique: undefined as any,
       anneeVignette: new Date().getFullYear(),
-    };
-
-    const maintenanceSchedule = car?.maintenanceSchedule ? {
-        prochainVidangeKm: car.maintenanceSchedule.prochainVidangeKm,
-        prochainFiltreGasoilKm: car.maintenanceSchedule.prochainFiltreGasoilKm,
-        prochainesPlaquettesFreinKm: car.maintenanceSchedule.prochainesPlaquettesFreinKm,
-        prochaineCourroieDistributionKm: car.maintenanceSchedule.prochaineCourroieDistributionKm,
-    } : {
+      maintenanceSchedule: {
         prochainVidangeKm: undefined,
         prochainFiltreGasoilKm: undefined,
         prochainesPlaquettesFreinKm: undefined,
         prochaineCourroieDistributionKm: undefined,
+      }
     };
-    
-    return {...baseCar, maintenanceSchedule};
-
   }, [car]);
 
   const form = useForm<CarFormValues>({
@@ -135,7 +139,6 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
 
     const { id, ...carDataForFirestore } = data;
     
-    // Clean up undefined values before sending to Firestore
     const cleanedData: {[key: string]: any} = { ...carDataForFirestore };
     for (const key in cleanedData) {
       if (cleanedData[key] === undefined) {
@@ -348,10 +351,10 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                                         form.setValue('maintenanceSchedule.prochainesPlaquettesFreinKm', calculateNext(km, 20000), { shouldValidate: true });
                                         form.setValue('maintenanceSchedule.prochaineCourroieDistributionKm', calculateNext(km, 60000), { shouldValidate: true });
                                     } else if (kmValue === '' && isNewCar) {
-                                        form.setValue('maintenanceSchedule.prochainVidangeKm', undefined, { shouldValidate: true });
-                                        form.setValue('maintenanceSchedule.prochainFiltreGasoilKm', undefined, { shouldValidate: true });
-                                        form.setValue('maintenanceSchedule.prochainesPlaquettesFreinKm', undefined, { shouldValidate: true });
-                                        form.setValue('maintenanceSchedule.prochaineCourroieDistributionKm', undefined, { shouldValidate: true });
+                                        form.setValue('maintenanceSchedule.prochainVidangeKm', null, { shouldValidate: true });
+                                        form.setValue('maintenanceSchedule.prochainFiltreGasoilKm', null, { shouldValidate: true });
+                                        form.setValue('maintenanceSchedule.prochainesPlaquettesFreinKm', null, { shouldValidate: true });
+                                        form.setValue('maintenanceSchedule.prochaineCourroieDistributionKm', null, { shouldValidate: true });
                                     }
                                   }}
                               />
@@ -554,7 +557,7 @@ export default function CarForm({ car, onFinished }: { car: Car | null, onFinish
                 <AccordionTrigger>Plan d'Entretien (Automatique)</AccordionTrigger>
                 <AccordionContent className="pt-4 space-y-4">
                     <FormDescription>
-                        Les échéances sont calculées automatiquement en fonction du kilométrage du véhicule. Pour enregistrer une intervention, utilisez l'action "Mettre en maintenance".
+                        Les échéances sont calculées automatiquement en fonction du kilométrage du véhicule.
                     </FormDescription>
                     <div className="grid grid-cols-2 gap-4">
                         <FormField

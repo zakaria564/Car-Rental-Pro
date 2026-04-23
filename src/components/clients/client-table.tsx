@@ -134,7 +134,7 @@ function ClientDetails({ client }: { client: Client }) {
           <div className="space-y-3">
               <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex justify-between items-center">
                 <span>Carte d'Identité</span>
-                {client.photoCIN && <span className="text-[10px] normal-case font-normal text-muted-foreground italic">(Cliquez pour voir)</span>}
+                {client.photoCIN && <span className="text-[10px] normal-case font-normal text-muted-foreground italic">(Cliquez pour voir/imprimer)</span>}
               </h4>
               <div className="relative w-full aspect-[16/10] rounded-lg overflow-hidden border-2 bg-muted shadow-sm group">
                   {client.photoCIN ? (

@@ -16,7 +16,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { PlusCircle, MoreHorizontal, Printer, Pencil, CheckCircle, FileText, DollarSign } from "lucide-react";
-import { format, differenceInCalendarDays, startOfDay, isToday } from "date-fns";
+import { format, startOfDay, isToday } from "date-fns";
 import { fr } from "date-fns/locale";
 
 import { Button } from "@/components/ui/button";
@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import type { Rental, Client, Car as CarType } from "@/lib/definitions";
-import { cn, formatCurrency, getSafeDate, getRentalDate, calculateTotalRentalAmount } from "@/lib/utils";
+import { cn, formatCurrency, getRentalDate, calculateTotalRentalAmount } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import RentalForm from "./rental-form";
 import { useToast } from "@/hooks/use-toast";
