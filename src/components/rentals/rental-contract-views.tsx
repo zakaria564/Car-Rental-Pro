@@ -49,7 +49,7 @@ export const InspectionDetailsView: React.FC<{ inspectionId: string, type: 'depa
             {inspection.photos && inspection.photos.length > 0 && (
                 <div className="flex gap-2 mt-2 no-print overflow-x-auto pb-2">
                     {inspection.photos.map((url: string, i: number) => (
-                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="relative h-16 w-16 shrink-0 rounded border overflow-hidden hover:ring-2 hover:ring-primary transition-all">
+                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="relative h-16 w-16 shrink-0 rounded border overflow-hidden hover:ring-2 hover:ring-primary transition-all cursor-zoom-in">
                             <Image src={url} alt="Photo inspection" fill className="object-cover" unoptimized />
                         </a>
                     ))}

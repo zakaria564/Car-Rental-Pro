@@ -45,20 +45,12 @@ import RentalForm from "./rental-form";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { query, where, runTransaction, doc, collection, getDocs } from "firebase/firestore";
+import { runTransaction, doc } from "firebase/firestore";
 import { useFirebase } from "@/firebase";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { RentalDetails } from "./rental-contract-views";
 import { ScrollArea } from "../ui/scroll-area";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import PaymentForm from "../payments/payment-form";
-
 
 type RentalTableProps = {
   rentals: Rental[];
@@ -304,7 +296,10 @@ export default function RentalTable({ rentals, clients = [], cars = [], isDashbo
       </Dialog>
       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
         <AlertDialogContent>
-            <AlertDialogHeader><AlertDialogTitle>Supprimer ?</AlertDialogTitle><AlertDialogDescription>Action irréversible.</AlertDialogDescription></AlertDialogHeader>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Supprimer ?</AlertDialogTitle>
+                <AlertDialogDescription>Action irréversible.</AlertDialogDescription>
+            </AlertDialogHeader>
             <AlertDialogFooter><AlertDialogCancel>Annuler</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteRental(rentalForModal!)} className="bg-destructive">Supprimer</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

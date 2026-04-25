@@ -18,27 +18,23 @@ import { maintenanceInterventionTypes } from "@/lib/car-data";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { format } from 'date-fns';
 import { getSafeDate } from "@/lib/utils";
-import { Construction, CheckCircle2, Wrench, Paintbrush } from "lucide-react";
-import { Separator } from "../ui/separator";
+import { Wrench, Paintbrush } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { ScrollArea } from "../ui/scroll-area";
 
-const startMaintenanceSchema = z.object({
+// Unified schema to avoid TypeScript build errors on union types
+const maintenanceSchema = z.object({
   mechanicalReason: z.string().optional(),
   bodyworkReason: z.string().optional(),
   notes: z.string().optional(),
-}).refine(data => data.mechanicalReason || data.bodyworkReason, {
-    message: "Veuillez sélectionner au moins un motif.",
-    path: ["mechanicalReason"]
-});
-
-const finishMaintenanceSchema = z.object({
-  date: z.coerce.date({ required_error: "La date est requise." }),
-  kilometrage: z.coerce.number({ required_error: "Le kilométrage est requis." }).int().min(0, "Le kilométrage doit être positif."),
+  date: z.coerce.date().optional(),
+  kilometrage: z.coerce.number().int().min(0).optional(),
   prices: z.record(z.string(), z.any()).optional(),
   otherIntervention: z.string().optional(),
   otherPrice: z.any().optional(),
 });
+
+type MaintenanceFormValues = z.infer<typeof maintenanceSchema>;
 
 export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinished: () => void }) {
   const { toast } = useToast();
@@ -48,12 +44,12 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
   
   const isCurrentlyInMaintenance = car.disponibilite === 'maintenance';
 
-  const form = useForm({
-    resolver: zodResolver(activeTab === "direct_finish" || isCurrentlyInMaintenance ? finishMaintenanceSchema : startMaintenanceSchema),
+  const form = useForm<MaintenanceFormValues>({
+    resolver: zodResolver(maintenanceSchema),
     defaultValues: {
         mechanicalReason: "",
         bodyworkReason: "",
-        notes: "",
+        notes: isCurrentlyInMaintenance ? (car.currentMaintenance?.notes || "") : "",
         date: new Date(),
         kilometrage: car.kilometrage,
         prices: {},
@@ -62,21 +58,18 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
     }
   });
 
-  React.useEffect(() => {
-    if (isCurrentlyInMaintenance && car) {
-        form.reset({
-            date: new Date(),
-            kilometrage: car.kilometrage,
-            prices: {},
-            notes: car.currentMaintenance?.notes || ""
-        });
-    }
-  }, [car, isCurrentlyInMaintenance, form]);
-
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: MaintenanceFormValues) => {
     if (!firestore) return;
-    setIsSubmitting(true);
     
+    // Validation manuelle selon le mode pour plus de robustesse au build
+    if (!isCurrentlyInMaintenance && activeTab === "start") {
+        if (!data.mechanicalReason && !data.bodyworkReason) {
+            form.setError("mechanicalReason", { message: "Veuillez sélectionner au moins un motif." });
+            return;
+        }
+    }
+
+    setIsSubmitting(true);
     const carRef = doc(firestore, 'cars', car.id);
     const isFinishing = isCurrentlyInMaintenance || activeTab === "direct_finish";
 
@@ -95,15 +88,16 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
             updatePayload.currentMaintenance = null;
 
             const newHistoryEvents: Maintenance[] = [];
+            const finishDate = data.date || new Date();
+            const finishKm = data.kilometrage || car.kilometrage;
             
-            // Collect prices from fixed fields, only those with a value > 0
             if (data.prices) {
                 Object.entries(data.prices).forEach(([type, price]) => {
                     const numPrice = price === "" || price === null || price === undefined ? NaN : Number(price);
                     if (!isNaN(numPrice) && numPrice > 0) {
                         newHistoryEvents.push({
-                            date: data.date,
-                            kilometrage: data.kilometrage,
+                            date: finishDate,
+                            kilometrage: finishKm,
                             typeIntervention: type,
                             description: type,
                             cout: numPrice,
@@ -112,12 +106,11 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
                 });
             }
 
-            // Collect other intervention if both name and price are provided
             const otherNumPrice = data.otherPrice === "" || data.otherPrice === null || data.otherPrice === undefined ? NaN : Number(data.otherPrice);
             if (data.otherIntervention && !isNaN(otherNumPrice) && otherNumPrice > 0) {
                 newHistoryEvents.push({
-                    date: data.date,
-                    kilometrage: data.kilometrage,
+                    date: finishDate,
+                    kilometrage: finishKm,
                     typeIntervention: data.otherIntervention,
                     description: data.otherIntervention,
                     cout: otherNumPrice,
@@ -138,17 +131,17 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
                     updatePayload.maintenanceHistory = arrayUnion(...nonDuplicateEvents);
                 }
 
-                const newCarMileage = Math.max(carData.kilometrage, data.kilometrage);
+                const newCarMileage = Math.max(carData.kilometrage, finishKm);
                 updatePayload.kilometrage = newCarMileage;
                 
                 const newSchedule = { ...(carData.maintenanceSchedule || {}) };
 
                 newHistoryEvents.forEach((event) => {
-                    const type = event.typeIntervention.toLowerCase();
-                    if (type.includes("vidange")) newSchedule.prochainVidangeKm = newCarMileage + 10000;
-                    if (type.includes("filtre à carburant (gazole)")) newSchedule.prochainFiltreGasoilKm = newCarMileage + 20000;
-                    if (type.includes("plaquettes")) newSchedule.prochainesPlaquettesFreinKm = newCarMileage + 20000;
-                    if (type.includes("distribution")) newSchedule.prochaineCourroieDistributionKm = newCarMileage + 60000;
+                    const typeLower = event.typeIntervention.toLowerCase();
+                    if (typeLower.includes("vidange")) newSchedule.prochainVidangeKm = newCarMileage + 10000;
+                    if (typeLower.includes("filtre à carburant (gazole)")) newSchedule.prochainFiltreGasoilKm = newCarMileage + 20000;
+                    if (typeLower.includes("plaquettes")) newSchedule.prochainesPlaquettesFreinKm = newCarMileage + 20000;
+                    if (typeLower.includes("distribution")) newSchedule.prochaineCourroieDistributionKm = newCarMileage + 60000;
                 });
                 updatePayload.maintenanceSchedule = newSchedule;
             }
@@ -206,7 +199,7 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
                                     <FormItem>
                                         <FormLabel>Date de fin</FormLabel>
                                         <FormControl>
-                                            <Input type="date" value={field.value instanceof Date ? format(field.value, "yyyy-MM-dd") : ""} onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : null)} />
+                                            <Input type="date" value={field.value instanceof Date ? format(field.value, "yyyy-MM-dd") : ""} onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : undefined)} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -219,7 +212,7 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
                                 <FormItem>
                                     <FormLabel>Kilométrage actuel</FormLabel>
                                     <FormControl>
-                                        <Input type="number" {...field} />
+                                        <Input type="number" {...field} value={field.value ?? ''} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -297,6 +290,7 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
                                             {maintenanceInterventionTypes["Mécanique"].map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
+                                    <FormMessage />
                                 </FormItem>
                                 )}
                             />
@@ -321,7 +315,7 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
                                 render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Notes supplémentaires</FormLabel>
-                                    <FormControl><Textarea placeholder="Précisions..." {...field} /></FormControl>
+                                    <FormControl><Textarea placeholder="Précisions..." {...field} value={field.value ?? ''} /></FormControl>
                                 </FormItem>
                                 )}
                             />
@@ -337,7 +331,7 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
                                     <FormItem>
                                         <FormLabel>Date</FormLabel>
                                         <FormControl>
-                                            <Input type="date" value={field.value instanceof Date ? format(field.value, "yyyy-MM-dd") : ""} onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : null)} />
+                                            <Input type="date" value={field.value instanceof Date ? format(field.value, "yyyy-MM-dd") : ""} onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : undefined)} />
                                         </FormControl>
                                     </FormItem>
                                 )}
@@ -348,7 +342,7 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
                                 render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Kilométrage</FormLabel>
-                                    <FormControl><Input type="number" {...field} /></FormControl>
+                                    <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
                                 </FormItem>
                                 )}
                             />
@@ -405,7 +399,7 @@ export default function MaintenanceForm({ car, onFinished }: { car: Car, onFinis
                                     <FormField
                                         control={form.control}
                                         name="otherIntervention"
-                                        render={({ field }) => <Input placeholder="Nom de l'intervention..." className="h-8 text-xs" {...field} />}
+                                        render={({ field }) => <Input placeholder="Nom de l'intervention..." className="h-8 text-xs" {...field} value={field.value ?? ''} />}
                                     />
                                     <FormField
                                         control={form.control}
